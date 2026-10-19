@@ -47,6 +47,17 @@ const { id, addr, title, plain, pin, hero = false } = Astro.props;
       width: min(100% - 2 * var(--s-3), var(--content-w));
     }
   }
+  @media (min-width: 1100px) {
+    .section.hero {
+      padding-block: var(--s-3);
+    }
+    .section.hero > .container {
+      width: min(100% - 2 * var(--s-6), 1280px);
+    }
+    .section.hero .body {
+      margin-top: var(--s-3);
+    }
+  }
   .eyebrow {
     display: flex;
     flex-wrap: wrap;

@@ -1,0 +1,304 @@
+---
+import { Code } from 'astro:components';
+import type { ShikiTransformer, ThemeRegistration } from 'shiki';
+
+interface File {
+  name: string;
+  lang: 'c' | 'riscv';
+  code: string;
+}
+interface Props {
+  files?: File[];
+}
+
+const mainC = `#include "hal.h"
+
+static const struct engineer {
+    const char *name, *role, *education, *status;
+    const char *focus[2];
+} rohith = {
+    .name      = "Rohith Kalisetti",
+    .role      = "Embedded firmware engineer",
+    .focus     = { "OpenWrt fault-injection platform",
+                   "FreeRTOS host-side shim" },
+    .education = "M.S. Computer Engineering, George Mason University",
+    .status    = "open to roles",
+};
+
+int main(void) {
+    hal_init();
+    for (;;) ship_firmware(&rohith);
+}`;
+
+// no ARM grammar ships with Shiki; riscv covers GNU as directives, labels and strings
+const startupS = `/* Cortex-M4, Thumb-2 */
+    .syntax unified
+    .cpu    cortex-m4
+    .thumb
+
+    .section .isr_vector, "a", %progbits
+    .word   _estack
+    .word   Reset_Handler
+
+    .section .text.Reset_Handler, "ax", %progbits
+    .global Reset_Handler
+    .type   Reset_Handler, %function
+Reset_Handler:
+    ldr     r0, =_estack
+    mov     sp, r0
+    bl      SystemInit
+    bl      main
+1:  b       1b
+    .size   Reset_Handler, . - Reset_Handler`;
+
+const {
+  files = [
+    { name: 'main.c', lang: 'c', code: mainC },
+    { name: 'startup.s', lang: 'riscv', code: startupS },
+  ],
+} = Astro.props;
+
+const color = (v: string) => ({ foreground: `var(--syn-${v})` });
+const theme: ThemeRegistration = {
+  name: 'tokens',
+  type: 'dark',
+  colors: { 'editor.background': 'var(--ide-bg)', 'editor.foreground': 'var(--syn-fg)' },
+  tokenColors: [
+    { scope: ['comment', 'punctuation.definition.comment'], settings: color('com') },
+    { scope: ['keyword', 'storage', 'keyword.control', 'meta.preprocessor'], settings: color('kw') },
+    { scope: ['entity.name.type', 'support.type', 'storage.type.built-in'], settings: color('type') },
+    { scope: ['entity.name.function', 'support.function', 'entity.name.label'], settings: color('fn') },
+    { scope: ['string', 'punctuation.definition.string'], settings: color('str') },
+    { scope: ['constant.numeric', 'constant.language', 'constant'], settings: color('num') },
+    { scope: ['punctuation', 'keyword.operator'], settings: color('punc') },
+    { scope: ['variable', 'entity.name.variable'], settings: color('fg') },
+  ],
+};
+
+// stagger index per line for the boot reveal
+const stagger: ShikiTransformer = {
+  line(node, line) {
+    node.properties.style = `--i:${line - 1}`;
+  },
+};
+
+const uid = 'ide';
+---
+
+<div class="ide" data-ide>
+  <div class="chrome">
+    <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <div class="tabs" role="tablist" aria-label="Source files">
+      {
+        files.map((f, i) => (
+          <button
+            type="button"
+            role="tab"
+            id={`${uid}-tab-${i}`}
+            aria-controls={`${uid}-panel-${i}`}
+            aria-selected={i === 0 ? 'true' : 'false'}
+            tabindex={i === 0 ? 0 : -1}
+          >
+            {f.name}
+          </button>
+        ))
+      }
+    </div>
+  </div>
+  {
+    files.map((f, i) => (
+      <div
+        class="panel"
+        role="tabpanel"
+        id={`${uid}-panel-${i}`}
+        aria-labelledby={`${uid}-tab-${i}`}
+        hidden={i !== 0}
+        data-boot={i === 0 ? '' : undefined}
+      >
+        <span class="caret" aria-hidden="true" />
+        <Code code={f.code} lang={f.lang} theme={theme} transformers={[stagger]} />
+      </div>
+    ))
+  }
+  <p class="status mono">Cortex-M4 · Thumb-2 · UTF-8 · Ln 1, Col 1</p>
+</div>
+
+<script is:inline>
+  (() => {
+    const r = document.documentElement;
+    const skip = () => {
+      r.classList.add('boot-skip');
+      removeEventListener('pointerdown', skip);
+      removeEventListener('keydown', skip);
+    };
+    addEventListener('pointerdown', skip);
+    addEventListener('keydown', skip);
+  })();
+</script>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-ide]').forEach((ide) => {
+    const tabs = [...ide.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const select = (next: HTMLButtonElement) => {
+      tabs.forEach((t) => {
+        const on = t === next;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        const panel = document.getElementById(t.getAttribute('aria-controls')!);
+        if (panel) panel.hidden = !on;
+      });
+      next.focus();
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => select(t));
+      t.addEventListener('keydown', (e) => {
+        const n = tabs.length;
+        const to =
+          e.key === 'ArrowRight' ? (i + 1) % n
+          : e.key === 'ArrowLeft' ? (i - 1 + n) % n
+          : e.key === 'Home' ? 0
+          : e.key === 'End' ? n - 1
+          : -1;
+        if (to < 0) return;
+        e.preventDefault();
+        select(tabs[to]);
+      });
+    });
+  });
+</script>
+
+<style>
+  .ide {
+    --code-fs: 0.75rem;
+    --pad: var(--s-2);
+    --gutter: 4.5ch;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--r-3);
+    background: var(--ide-bg);
+    box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.55);
+  }
+  .chrome {
+    display: flex;
+    align-items: end;
+    gap: var(--s-2);
+    padding: 8px var(--s-2) 0;
+    background: var(--ide-chrome);
+    border-bottom: 1px solid var(--line);
+  }
+  .dots {
+    display: flex;
+    gap: 6px;
+    align-self: center;
+    padding-bottom: 8px;
+  }
+  .dots i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--line);
+  }
+  .tabs {
+    display: flex;
+    gap: 2px;
+  }
+  [role='tab'] {
+    min-height: 32px;
+    padding: 0 var(--s-2);
+    border: 1px solid transparent;
+    border-bottom: 0;
+    border-radius: var(--r-1) var(--r-1) 0 0;
+    background: transparent;
+    color: var(--muted);
+    font: var(--fs-label-lg) var(--font-mono);
+    cursor: pointer;
+    transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+  }
+  [role='tab']:hover {
+    color: var(--text);
+  }
+  [role='tab'][aria-selected='true'] {
+    position: relative;
+    top: 1px;
+    background: var(--ide-bg);
+    border-color: var(--line);
+    color: var(--text);
+    box-shadow: inset 0 2px 0 var(--accent);
+  }
+  [role='tab']:focus-visible {
+    outline-offset: -2px;
+  }
+  .panel {
+    position: relative;
+  }
+  .panel :global(pre) {
+    margin: 0;
+    padding: var(--pad);
+    background: transparent !important;
+    font: var(--code-fs) / 1.5 var(--font-mono);
+    tab-size: 4;
+  }
+  .panel :global(pre:focus-visible) {
+    outline-offset: -2px;
+  }
+  .panel :global(code) {
+    counter-reset: ln;
+    font: inherit;
+  }
+  .panel :global(.line) {
+    counter-increment: ln;
+  }
+  .panel :global(.line)::before {
+    content: counter(ln);
+    display: inline-block;
+    width: 2.5ch;
+    margin-right: 2ch;
+    text-align: right;
+    color: var(--syn-ln);
+    user-select: none;
+  }
+  .caret {
+    position: absolute;
+    top: calc(var(--pad) + 0.15em);
+    left: calc(var(--pad) + var(--gutter));
+    width: 2px;
+    height: 1.25em;
+    background: var(--accent);
+    font: var(--code-fs) / 1.5 var(--font-mono);
+    animation: caret 1.06s steps(1) infinite;
+    pointer-events: none;
+  }
+  @keyframes caret {
+    50% {
+      opacity: 0;
+    }
+  }
+  [data-boot] :global(.line) {
+    animation: line-in 320ms var(--ease) both;
+    animation-delay: calc(var(--i) * 45ms + 100ms);
+  }
+  @keyframes line-in {
+    from {
+      opacity: 0;
+    }
+  }
+  :global(.boot-skip) [data-boot] :global(.line) {
+    animation: none;
+  }
+  .status {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px var(--s-2);
+    border-top: 1px solid var(--line);
+    background: var(--ide-chrome);
+    color: var(--muted);
+    font-size: var(--fs-label);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .caret,
+    [data-boot] :global(.line) {
+      animation: none !important;
+    }
+  }
+</style>
