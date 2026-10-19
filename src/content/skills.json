@@ -1,0 +1,8 @@
+[
+  { "reg": "LANG", "values": ["C", "C++"] },
+  { "reg": "RTOS", "values": ["FreeRTOS"] },
+  { "reg": "OS", "values": ["OpenWrt", "embedded Linux"] },
+  { "reg": "TRUST", "values": ["OP-TEE", "TrustZone"] },
+  { "reg": "TEST", "values": ["fault injection", "unit testing", "host-side simulation"] },
+  { "reg": "TOOLS", "values": ["Ghidra", "[add]"] }
+]

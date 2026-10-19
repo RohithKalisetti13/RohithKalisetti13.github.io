@@ -1,0 +1,100 @@
+---
+import LedDot from './LedDot.astro';
+import site from '../content/site.json';
+
+const links = [
+  { label: 'BOOT', href: '#boot', color: 'var(--pa0)' },
+  { label: 'TRACE', href: '#trace', color: 'var(--pa1)' },
+  { label: 'BUILDS', href: '#builds', color: 'var(--pa2)' },
+  { label: 'REGS', href: '#regs', color: 'var(--pa3)' },
+  { label: 'IRQ', href: '#irq', color: 'var(--pa4)' },
+];
+---
+
+<header class="nav">
+  <div class="container bar">
+    <nav aria-label="Primary">
+      <ul>
+        {
+          links.map((l) => (
+            <li>
+              <a href={l.href}>
+                <LedDot color={l.color} />
+                {l.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+    <p class="status">
+      <LedDot color="var(--pa4)" />
+      <span class="status-text">{site.status}</span>
+    </p>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    height: var(--nav-h);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    height: 100%;
+  }
+  ul {
+    display: flex;
+    gap: var(--s-1);
+  }
+  nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding-inline: var(--s-1);
+    color: var(--text-2);
+    font: 500 var(--fs-label) var(--font-mono);
+    letter-spacing: 0.04em;
+    text-decoration: none;
+  }
+  nav a:hover {
+    color: var(--text);
+  }
+  .status {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    font: var(--fs-label) var(--font-mono);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  @media (max-width: 819px) {
+    .status-text {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+  }
+  @media (max-width: 480px) {
+    ul {
+      gap: 0;
+    }
+    nav a {
+      padding-inline: 6px;
+    }
+    nav a :global(.led) {
+      display: none;
+    }
+  }
+</style>

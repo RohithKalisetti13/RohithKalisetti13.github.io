@@ -1,0 +1,20 @@
+---
+interface Props {
+  color?: string;
+}
+const { color = 'var(--accent)' } = Astro.props;
+---
+
+<span class="led" style={`--led:${color}`} aria-hidden="true"></span>
+
+<style>
+  .led {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--led);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--led) 25%, transparent), 0 0 8px var(--led);
+    flex: none;
+  }
+</style>

@@ -1,0 +1,111 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Panel from '../../components/Panel.astro';
+import Chip from '../../components/Chip.astro';
+import GpioButton from '../../components/GpioButton.astro';
+import site from '../../content/site.json';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+  return projects.map((p) => ({ params: { slug: p.id }, props: { project: p } }));
+}
+
+const { project } = Astro.props;
+const d = project.data;
+---
+
+<Base title={`${d.title} · ${site.name}`} description={d.summary}>
+  <Nav />
+  <main id="main" class="container case">
+    <p class="mono crumb"><a href="/#builds">← Firmware builds</a></p>
+    <h1>{d.title}</h1>
+    <p class="outcome">{d.outcome}</p>
+    <p class="summary">{d.summary}</p>
+
+    <section aria-labelledby="problem">
+      <h2 id="problem">Problem</h2>
+      <p>{d.problem}</p>
+    </section>
+
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">Architecture</h2>
+      <Panel>
+        <div class="diagram" role="img" aria-label="Placeholder for architecture diagram">{d.architecture}</div>
+      </Panel>
+    </section>
+
+    <section aria-labelledby="contribution">
+      <h2 id="contribution">My contribution</h2>
+      <p>{d.contribution}</p>
+    </section>
+
+    <section aria-labelledby="decisions">
+      <h2 id="decisions">Key design decisions</h2>
+      <ul class="decisions">
+        {d.decisions.map((x) => <li>{x}</li>)}
+      </ul>
+    </section>
+
+    <section aria-labelledby="results">
+      <h2 id="results">Results</h2>
+      <p>{d.results}</p>
+    </section>
+
+    <section aria-labelledby="stack">
+      <h2 id="stack">Stack</h2>
+      <div class="chips">{d.stack.map((s) => <Chip>{s}</Chip>)}</div>
+    </section>
+
+    <div class="back"><GpioButton href="/#builds" pin="GP4" variant="secondary">Back to builds</GpioButton></div>
+  </main>
+</Base>
+
+<style>
+  .case {
+    padding-block: var(--s-8) var(--s-12);
+    max-width: 800px;
+  }
+  .crumb {
+    margin-bottom: var(--s-3);
+  }
+  .outcome {
+    margin-top: var(--s-2);
+    color: var(--text);
+    font-size: 1.25rem;
+  }
+  .summary {
+    margin-top: var(--s-1);
+  }
+  section {
+    margin-top: var(--s-8);
+  }
+  section h2 {
+    margin-bottom: var(--s-2);
+  }
+  .diagram {
+    display: grid;
+    place-items: center;
+    min-height: 200px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--fs-label-lg);
+    text-align: center;
+  }
+  .decisions {
+    display: grid;
+    gap: var(--s-2);
+    padding-left: var(--s-3);
+    list-style: disc;
+    color: var(--text-2);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+  }
+  .back {
+    margin-top: var(--s-8);
+  }
+</style>

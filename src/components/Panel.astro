@@ -1,0 +1,38 @@
+---
+interface Props {
+  as?: 'div' | 'article' | 'section';
+  class?: string;
+}
+const { as: Tag = 'div', class: className } = Astro.props;
+---
+
+<Tag class:list={['panel', className]}>
+  <span class="hole hole-tl" aria-hidden="true"></span>
+  <span class="hole hole-tr" aria-hidden="true"></span>
+  <slot />
+</Tag>
+
+<style>
+  .panel {
+    position: relative;
+    padding: var(--s-5) var(--s-4) var(--s-4);
+    background: var(--board);
+    border: 1px solid var(--line);
+    border-radius: var(--r-3);
+  }
+  .hole {
+    position: absolute;
+    top: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+  }
+  .hole-tl {
+    left: 12px;
+  }
+  .hole-tr {
+    right: 12px;
+  }
+</style>

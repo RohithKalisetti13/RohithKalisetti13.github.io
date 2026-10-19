@@ -1,0 +1,74 @@
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0a1a14;
+  --board: #0f3326;
+  --board-2: #12402e;
+  --line: #2a6b50;
+  --text: #e8efe9;
+  --text-2: #c3d6cb;
+  --muted: #93b5a5;
+  --accent: #f2a33a;
+  --on-accent: #0a1a14;
+  --dot: rgba(147, 181, 165, 0.16);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f3f6f1;
+  --board: #ffffff;
+  --board-2: #eaf1ec;
+  --line: #c9d8cf;
+  --text: #10231a;
+  --text-2: #2f4a3c;
+  --muted: #4b6a5a;
+  --accent: #9a5300;
+  --on-accent: #ffffff;
+  --dot: rgba(16, 35, 26, 0.12);
+}
+
+:root {
+  /* wire colors, same in both themes */
+  --pa0: #b98650;
+  --pa1: #e5534b;
+  --pa2: #6cb6ff;
+  --pa3: #f2c94c;
+  --pa4: #3fb27f;
+
+  /* 8px spacing scale */
+  --s-1: 8px;
+  --s-2: 16px;
+  --s-3: 24px;
+  --s-4: 32px;
+  --s-5: 40px;
+  --s-6: 48px;
+  --s-8: 64px;
+  --s-10: 80px;
+  --s-12: 96px;
+
+  --r-1: 4px;
+  --r-2: 10px;
+  --r-3: 14px;
+
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --fs-label: 0.75rem; /* 12px, mono labels span 11-14px */
+  --fs-label-lg: 0.875rem; /* 14px */
+  --fs-body: 1rem;
+  --fs-body-lg: 1.125rem;
+  --fs-h2: clamp(26px, 3.5vw, 34px);
+  --fs-h1: clamp(36px, 5vw, 58px);
+
+  --t-fast: 150ms;
+  --t-med: 220ms;
+  --t-slow: 300ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --grid-size: 24px;
+  --perfboard: radial-gradient(circle at center, var(--dot) 1.25px, transparent 1.5px) 0 0 / var(--grid-size)
+    var(--grid-size);
+
+  --content-w: 1120px;
+  --nav-h: 64px;
+}

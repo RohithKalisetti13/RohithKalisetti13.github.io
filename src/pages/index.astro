@@ -1,0 +1,266 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Section from '../components/Section.astro';
+import GpioButton from '../components/GpioButton.astro';
+import Panel from '../components/Panel.astro';
+import Chip from '../components/Chip.astro';
+import site from '../content/site.json';
+import skills from '../content/skills.json';
+
+const work = (await getCollection('work')).sort((a, b) => a.data.order - b.data.order);
+const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+---
+
+<Base>
+  <Nav />
+  <main id="main">
+    <Section id="boot" addr="0x0000" title="Reset_Handler" plain="boot" pin="PA0" hero>
+      <div class="hero">
+        <div class="ide-slot" role="img" aria-label="Placeholder for the editor-style hero">[IDE hero: stage 3]</div>
+        <div class="hero-copy">
+          <h1>{site.headline}</h1>
+          <p class="lede">{site.summary}</p>
+          <div class="actions">
+            <GpioButton href="#builds" pin="GP4">View builds</GpioButton>
+            <GpioButton href="#irq" pin="GP5" variant="secondary">Resume and contact</GpioButton>
+          </div>
+        </div>
+      </div>
+    </Section>
+
+    <Section id="trace" addr="0x1000" title="Execution trace" plain="work experience" pin="PA1">
+      <ol class="trace">
+        {
+          work.map((w) => (
+            <li>
+              <Panel>
+                <p class="mono dates">{w.data.dates}</p>
+                <h3>{w.data.org}</h3>
+                <p class="role">{w.data.role}</p>
+                <p>{w.data.summary}</p>
+              </Panel>
+            </li>
+          ))
+        }
+      </ol>
+    </Section>
+
+    <Section id="builds" addr="0x2000" title="Firmware builds" plain="projects" pin="PA2">
+      <ul class="builds">
+        {
+          projects.map((p) => (
+            <li>
+              <Panel as="article">
+                <h3>{p.data.title}</h3>
+                <p>{p.data.summary}</p>
+                <div class="chips">
+                  {p.data.stack.map((s) => (
+                    <Chip>{s}</Chip>
+                  ))}
+                </div>
+                <div class="card-action">
+                  <GpioButton href={`/projects/${p.id}/`} pin="GP6" variant="secondary">
+                    Read case study<span class="sr-only">: {p.data.title}</span>
+                  </GpioButton>
+                </div>
+              </Panel>
+            </li>
+          ))
+        }
+      </ul>
+    </Section>
+
+    <Section id="regs" addr="0x3000" title="Register map" plain="skills" pin="PA3">
+      <Panel>
+        <dl class="regs">
+          {
+            skills.map((r) => (
+              <div class="reg">
+                <dt class="mono">{r.reg}</dt>
+                <dd>
+                  {r.values.map((v) => (
+                    <Chip>{v}</Chip>
+                  ))}
+                </dd>
+              </div>
+            ))
+          }
+        </dl>
+      </Panel>
+    </Section>
+
+    <Section id="irq" addr="0x4000" title="Interrupt line" plain="contact" pin="PA4">
+      <div class="irq">
+        <Panel as="section" class="about">
+          <h3>Device descriptor</h3>
+          <p class="mono sub">about</p>
+          <div class="photo" role="img" aria-label="Photo placeholder">[photo]</div>
+          <p>{site.about}</p>
+          <ul class="facts">
+            <li>{site.location}</li>
+            <li>{site.education}</li>
+            <li>{site.looking}</li>
+          </ul>
+        </Panel>
+        <Panel as="section">
+          <h3>Flash image</h3>
+          <p class="mono sub">resume</p>
+          <p class="mono file">{site.resumeName}</p>
+          <div class="actions">
+            <GpioButton href={site.resume} download pin="GP7">Download</GpioButton>
+            <GpioButton href={site.resume} external pin="GP8" variant="secondary">View</GpioButton>
+          </div>
+        </Panel>
+        <Panel as="section">
+          <h3>Pinout</h3>
+          <p class="mono sub">contact</p>
+          <ul class="pinout">
+            <li><span class="mono">MAIL</span> <a href={`mailto:${site.email}`}>{site.email}</a></li>
+            <li><span class="mono">LNKD</span> <a href={site.linkedin}>LinkedIn</a></li>
+            <li><span class="mono">GITH</span> <a href={site.github}>GitHub</a></li>
+          </ul>
+        </Panel>
+      </div>
+    </Section>
+  </main>
+  <footer class="foot">
+    <div class="container mono">__stack_top</div>
+  </footer>
+</Base>
+
+<style>
+  .hero {
+    display: grid;
+    gap: var(--s-5);
+  }
+  .ide-slot {
+    display: grid;
+    place-items: center;
+    min-height: 220px;
+    border: 1px dashed var(--line);
+    border-radius: var(--r-3);
+    background: var(--board);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--fs-label-lg);
+  }
+  .hero-copy {
+    display: grid;
+    gap: var(--s-3);
+    justify-items: start;
+  }
+  .lede {
+    max-width: 56ch;
+    font-size: 1.25rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+  .trace,
+  .builds {
+    display: grid;
+    gap: var(--s-3);
+  }
+  .trace {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .dates,
+  .sub {
+    color: var(--muted);
+  }
+  .role {
+    color: var(--text);
+    margin-bottom: var(--s-1);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+    margin-top: var(--s-2);
+  }
+  .card-action {
+    margin-top: var(--s-3);
+  }
+  .regs {
+    display: grid;
+    gap: var(--s-2);
+    margin: 0;
+  }
+  .reg {
+    display: grid;
+    gap: var(--s-1);
+    align-items: center;
+  }
+  .reg dt {
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+  .reg dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+    margin: 0;
+  }
+  .irq {
+    display: grid;
+    gap: var(--s-3);
+  }
+  .photo {
+    display: grid;
+    place-items: center;
+    width: 112px;
+    height: 112px;
+    margin-block: var(--s-2);
+    border: 1px dashed var(--line);
+    border-radius: var(--r-2);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--fs-label);
+  }
+  .facts,
+  .pinout {
+    display: grid;
+    gap: var(--s-1);
+    margin-top: var(--s-2);
+    color: var(--text-2);
+  }
+  .pinout li {
+    display: flex;
+    gap: var(--s-2);
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .pinout .mono {
+    color: var(--muted);
+    min-width: 4ch;
+  }
+  .file {
+    margin-block: var(--s-2) var(--s-3);
+    color: var(--text);
+  }
+  .foot {
+    padding-block: var(--s-6);
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+  }
+  @media (min-width: 820px) {
+    .builds {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .trace {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .reg {
+      grid-template-columns: 96px 1fr;
+    }
+    .irq {
+      grid-template-columns: 1.2fr 1fr 1fr;
+    }
+  }
+</style>

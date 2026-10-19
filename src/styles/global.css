@@ -1,0 +1,120 @@
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource-variable/jetbrains-mono';
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--nav-h);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg) var(--perfboard);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body-lg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+h1 {
+  font-size: var(--fs-h1);
+}
+h2 {
+  font-size: var(--fs-h2);
+}
+h3 {
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+}
+p {
+  margin: 0;
+  color: var(--text-2);
+}
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+  transition: color var(--t-fast) var(--ease);
+}
+a:hover {
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--r-1);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label-lg);
+}
+
+.container {
+  width: min(100% - 2 * var(--s-3), var(--content-w));
+  margin-inline: auto;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--s-2);
+  top: -80px;
+  z-index: 100;
+  padding: var(--s-1) var(--s-2);
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--r-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label-lg);
+  text-decoration: none;
+  transition: top var(--t-fast) var(--ease);
+}
+.skip-link:focus {
+  top: var(--s-1);
+  color: var(--on-accent);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

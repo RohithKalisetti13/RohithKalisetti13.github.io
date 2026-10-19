@@ -1,0 +1,12 @@
+{
+  "title": "openwrt-fault-injection",
+  "order": 1,
+  "summary": "An OpenWrt-based fault-injection platform for embedded network devices.",
+  "outcome": "[one-line outcome]",
+  "problem": "[what problem this solves, in two or three sentences]",
+  "architecture": "[architecture diagram: stage 4]",
+  "contribution": "[what I built and owned]",
+  "decisions": ["[decision and why]", "[decision and why]", "[decision and why]"],
+  "results": "[results, with real numbers only]",
+  "stack": ["OpenWrt", "C", "[add]"]
+}

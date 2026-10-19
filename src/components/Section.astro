@@ -1,0 +1,80 @@
+---
+interface Props {
+  id: string;
+  addr: string;
+  title: string;
+  plain: string;
+  pin: 'PA0' | 'PA1' | 'PA2' | 'PA3' | 'PA4';
+  /** Hero section: title is a label, the h1 lives in the slot. */
+  hero?: boolean;
+}
+const { id, addr, title, plain, pin, hero = false } = Astro.props;
+---
+
+<section id={id} class="section" style={`--wire:var(--${pin.toLowerCase()})`} aria-labelledby={`${id}-title`}>
+  <div class="container">
+    <p class="eyebrow">
+      <span class="pin" aria-hidden="true">{pin}</span>
+      <span>{addr}</span>
+      <span class="sep" aria-hidden="true">/</span>
+      <span class="plain">{plain}</span>
+    </p>
+    {
+      hero ? (
+        <p id={`${id}-title`} class="handler">{title}</p>
+      ) : (
+        <h2 id={`${id}-title`}>{title}</h2>
+      )
+    }
+    <div class="body"><slot /></div>
+  </div>
+</section>
+
+<style>
+  .section {
+    padding-block: var(--s-8);
+  }
+  @media (min-width: 900px) {
+    .section {
+      min-height: 100vh;
+      min-height: 100svh;
+      display: flex;
+      align-items: center;
+      padding-block: var(--s-10);
+    }
+    .section > .container {
+      width: min(100% - 2 * var(--s-3), var(--content-w));
+    }
+  }
+  .eyebrow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-1);
+    margin-bottom: var(--s-2);
+    font-family: var(--font-mono);
+    font-size: var(--fs-label-lg);
+    color: var(--muted);
+  }
+  .pin {
+    padding: 0 6px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--wire);
+    color: var(--text);
+    font-size: var(--fs-label);
+  }
+  .plain {
+    color: var(--text-2);
+  }
+  .sep {
+    color: var(--line);
+  }
+  .handler {
+    font-family: var(--font-mono);
+    font-size: var(--fs-label-lg);
+    color: var(--text-2);
+  }
+  .body {
+    margin-top: var(--s-5);
+  }
+</style>
