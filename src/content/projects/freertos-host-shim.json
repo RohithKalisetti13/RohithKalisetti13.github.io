@@ -1,5 +1,5 @@
 {
-  "title": "freertos-host-shim",
+  "title": "Host-side FreeRTOS shim and test suite",
   "order": 2,
   "summary": "A host-side FreeRTOS simulation layer and unit-test suite, so firmware logic can be tested off-target.",
   "outcome": "[one-line outcome]",

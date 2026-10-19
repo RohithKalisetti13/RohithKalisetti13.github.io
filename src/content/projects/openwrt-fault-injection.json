@@ -1,5 +1,5 @@
 {
-  "title": "openwrt-fault-injection",
+  "title": "OpenWrt fault-injection platform",
   "order": 1,
   "summary": "An OpenWrt-based fault-injection platform for embedded network devices.",
   "outcome": "[one-line outcome]",

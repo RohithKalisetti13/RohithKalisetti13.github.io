@@ -23,8 +23,8 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
           <h1>{site.headline}</h1>
           <p class="lede">{site.summary}</p>
           <div class="actions">
-            <GpioButton href="#builds" pin="GP4">View builds</GpioButton>
-            <GpioButton href="#irq" pin="GP5" variant="secondary">Resume and contact</GpioButton>
+            <GpioButton href="#builds" pin="PB0">View builds</GpioButton>
+            <GpioButton href="#irq" pin="PB1" variant="secondary">Resume and contact</GpioButton>
           </div>
         </div>
       </div>
@@ -50,9 +50,10 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
     <Section id="builds" addr="0x2000" title="Firmware builds" plain="projects" pin="PA2">
       <ul class="builds">
         {
-          projects.map((p) => (
-            <li>
+          projects.map((p, i) => (
+            <li class={i === 0 ? 'headline' : undefined}>
               <Panel as="article">
+                {i === 0 && <Chip>HEADLINE</Chip>}
                 <h3>{p.data.title}</h3>
                 <p>{p.data.summary}</p>
                 <div class="chips">
@@ -61,7 +62,7 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
                   ))}
                 </div>
                 <div class="card-action">
-                  <GpioButton href={`/projects/${p.id}/`} pin="GP6" variant="secondary">
+                  <GpioButton href={`/projects/${p.id}/`} pin="PB2" variant="secondary">
                     Read case study<span class="sr-only">: {p.data.title}</span>
                   </GpioButton>
                 </div>
@@ -76,10 +77,11 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
       <Panel>
         <dl class="regs">
           {
-            skills.map((r) => (
+            skills.map((r, i) => (
               <div class="reg">
-                <dt class="mono">{r.reg}</dt>
-                <dd>
+                <dt class="mono addr">{`0x${(i * 4).toString(16).toUpperCase().padStart(2, '0')}`}</dt>
+                <dd class="mono name">{r.reg}</dd>
+                <dd class="vals">
                   {r.values.map((v) => (
                     <Chip>{v}</Chip>
                   ))}
@@ -109,8 +111,8 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
           <p class="mono sub">resume</p>
           <p class="mono file">{site.resumeName}</p>
           <div class="actions">
-            <GpioButton href={site.resume} download pin="GP7">Download</GpioButton>
-            <GpioButton href={site.resume} external pin="GP8" variant="secondary">View</GpioButton>
+            <GpioButton href={site.resume} download pin="PB3">Download</GpioButton>
+            <GpioButton href={site.resume} external pin="PB4" variant="secondary">View</GpioButton>
           </div>
         </Panel>
         <Panel as="section">
@@ -184,9 +186,6 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
     gap: var(--s-1);
     margin-top: var(--s-2);
   }
-  .card-action {
-    margin-top: var(--s-3);
-  }
   .regs {
     display: grid;
     gap: var(--s-2);
@@ -194,18 +193,44 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
   }
   .reg {
     display: grid;
-    gap: var(--s-1);
+    grid-template-columns: 56px 80px 1fr;
+    gap: var(--s-2);
     align-items: center;
   }
-  .reg dt {
+  .reg .addr {
+    color: var(--muted);
+  }
+  .reg .name {
     color: var(--accent);
     letter-spacing: 0.06em;
+    margin: 0;
   }
-  .reg dd {
+  .reg .vals {
     display: flex;
     flex-wrap: wrap;
     gap: var(--s-1);
     margin: 0;
+  }
+  .builds,
+  .trace {
+    align-items: stretch;
+  }
+  .builds > li,
+  .trace > li {
+    display: flex;
+  }
+  .builds > li > :global(.panel),
+  .trace > li > :global(.panel) {
+    flex: 1;
+  }
+  .builds > li > :global(.panel) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .card-action {
+    margin-top: auto;
+    padding-top: var(--s-3);
   }
   .irq {
     display: grid;
@@ -214,8 +239,8 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
   .photo {
     display: grid;
     place-items: center;
-    width: 112px;
-    height: 112px;
+    width: 160px;
+    height: 200px;
     margin-block: var(--s-2);
     border: 1px dashed var(--line);
     border-radius: var(--r-2);
@@ -251,13 +276,13 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
   }
   @media (min-width: 820px) {
     .builds {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 1fr;
+    }
+    .builds > .headline {
+      grid-column: 1 / -1;
     }
     .trace {
       grid-template-columns: repeat(3, 1fr);
-    }
-    .reg {
-      grid-template-columns: 96px 1fr;
     }
     .irq {
       grid-template-columns: 1.2fr 1fr 1fr;

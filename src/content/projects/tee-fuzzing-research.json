@@ -1,5 +1,5 @@
 {
-  "title": "tee-fuzzing-research",
+  "title": "Embedded AI security research",
   "order": 3,
   "summary": "Research at George Mason University, including fuzzing the client-to-trusted-application interface of TEEs (OP-TEE on TrustZone).",
   "outcome": "[one-line outcome]",

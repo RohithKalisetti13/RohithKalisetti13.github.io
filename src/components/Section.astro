@@ -11,7 +11,7 @@ interface Props {
 const { id, addr, title, plain, pin, hero = false } = Astro.props;
 ---
 
-<section id={id} class="section" style={`--wire:var(--${pin.toLowerCase()})`} aria-labelledby={`${id}-title`}>
+<section id={id} class:list={['section', { hero }]} style={`--wire:var(--${pin.toLowerCase()})`} aria-labelledby={`${id}-title`}>
   <div class="container">
     <p class="eyebrow">
       <span class="pin" aria-hidden="true">{pin}</span>
@@ -32,15 +32,16 @@ const { id, addr, title, plain, pin, hero = false } = Astro.props;
 
 <style>
   .section {
-    padding-block: var(--s-8);
+    padding-block: 64px;
+  }
+  .section.hero {
+    min-height: calc(100svh - var(--nav-h));
+    display: flex;
+    align-items: center;
   }
   @media (min-width: 900px) {
     .section {
-      min-height: 100vh;
-      min-height: 100svh;
-      display: flex;
-      align-items: center;
-      padding-block: var(--s-10);
+      padding-block: 96px;
     }
     .section > .container {
       width: min(100% - 2 * var(--s-3), var(--content-w));
