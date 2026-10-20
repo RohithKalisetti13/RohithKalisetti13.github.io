@@ -1,0 +1,89 @@
+---
+// Dev-only preview of the traced board. Not linked from the nav.
+import '../styles/global.css';
+import McuBoard from '../components/McuBoard.astro';
+
+// dev only: production builds get no page here
+if (!import.meta.env.DEV) return new Response(null, { status: 404 });
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Board preview</title>
+  </head>
+  <body>
+    <main class="bp">
+      <header class="bp-bar">
+        <h1>MCU board preview</h1>
+        <button type="button" class="bp-toggle" aria-pressed="false">Power: OFF</button>
+      </header>
+      <div class="bp-row">
+        <figure class="bp-l"><McuBoard /></figure>
+        <figure class="bp-m"><McuBoard idPrefix="m-" /></figure>
+        <figure class="bp-s"><McuBoard idPrefix="s-" /></figure>
+      </div>
+    </main>
+    <script>
+      const btn = document.querySelector<HTMLButtonElement>('.bp-toggle');
+      btn?.addEventListener('click', () => {
+        const on = btn.getAttribute('aria-pressed') !== 'true';
+        btn.setAttribute('aria-pressed', String(on));
+        btn.textContent = `Power: ${on ? 'ON' : 'OFF'}`;
+        document.querySelectorAll('.mcu-board').forEach((el) => el.setAttribute('data-power', on ? 'on' : 'off'));
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  .bp {
+    padding: 24px 16px 64px;
+  }
+  .bp-bar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto 24px;
+  }
+  .bp-bar h1 {
+    font-size: 1.25rem;
+  }
+  .bp-toggle {
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--board);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .bp-toggle[aria-pressed='true'] {
+    border-color: var(--accent);
+  }
+  .bp-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  figure {
+    margin: 0;
+  }
+  .bp-l {
+    width: min(100%, 720px);
+  }
+  .bp-m {
+    width: min(100%, 360px);
+  }
+  .bp-s {
+    width: 160px;
+  }
+</style>
