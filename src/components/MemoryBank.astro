@@ -51,7 +51,7 @@ const J1 = [
 <div class="mb">
   <div class="db">
     <svg class="copper" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-      <g fill="none" stroke="#2c7d49" stroke-width="2.2" stroke-linejoin="round">
+      <g fill="none" stroke="#24693e" stroke-width="2.2" stroke-linejoin="round">
         {TRACES.map((d) => <path d={d} />)}
       </g>
       <g fill="none" stroke="#5aa874" stroke-width="0.6" opacity="0.5" transform="translate(-0.6 -0.6)">
@@ -60,7 +60,7 @@ const J1 = [
       {
         VIAS.map(([x, y]) => (
           <g>
-            <circle cx={x} cy={y} r="3.4" fill="#2c7d49" />
+            <circle cx={x} cy={y} r="3.4" fill="#24693e" />
             <circle cx={x} cy={y} r="1.5" fill="#123d22" />
           </g>
         ))
@@ -221,7 +221,7 @@ const J1 = [
     width: 100%;
     height: 100%;
     border-radius: inherit;
-    opacity: 0.85;
+    opacity: 0.7;
   }
   .hole {
     position: absolute;
@@ -633,6 +633,10 @@ const J1 = [
     }
     .smd {
       display: none;
+    }
+    /* the cropped copper scales up on a narrow board; keep it a texture under the text */
+    .copper {
+      opacity: 0.4;
     }
     .addr,
     .name {
