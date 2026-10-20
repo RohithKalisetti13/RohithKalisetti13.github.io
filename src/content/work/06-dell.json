@@ -1,0 +1,13 @@
+{
+  "slug": "dell",
+  "org": "Dell Technologies",
+  "role": "Technical Support Engineer",
+  "location": "India",
+  "start": "Sep 2019",
+  "end": "Feb 2020",
+  "kind": "rom",
+  "address": "0x50:3F52",
+  "bullets": [
+    "Triaged 40+ daily hardware/firmware escalations using BIOS-level diagnostics and Linux system log analysis, logging structured root-cause reports in Jira that accelerated L3 engineering resolution. Performed root cause analysis across hardware, firmware, and Linux system boundaries."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "slug": "gmu-research",
+  "org": "George Mason University",
+  "role": "Graduate Research Assistant",
+  "location": "Fairfax, VA",
+  "start": "Aug 2024",
+  "end": "May 2025",
+  "kind": "flash",
+  "address": "0x0802_91F8",
+  "bullets": [
+    "Contributed to the Hardware Debloat research project presented through the DAC Young Fellows programme, building a QEMU/DECAF-based dynamic feature-management system across Windows XP, Windows 7, and Lubuntu guest images.",
+    "Worked within a team that developed four DECAF/QEMU plugins to dynamically control network, Q-device, block-device, and context-switching features, supporting attack-surface reduction, resource efficiency, and full-system benchmarking. Configured and troubleshot block-device storage connectivity and volumes across Linux guest images.",
+    "Developed a Python/GHIDRA static-analysis pipeline that reconstructed control-flow graphs across 40+ firmware binaries, handling indirect calls, computed jumps, recursion, and call over-approximation. Correlated static results with live DECAF execution traces to isolate defects across firmware and system layers, building automated verification mechanisms for systems-level code, and automated the pipeline with Python and Bash scripts."
+  ]
+}

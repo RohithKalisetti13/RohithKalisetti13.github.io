@@ -1,0 +1,13 @@
+{
+  "slug": "amazon",
+  "org": "Amazon",
+  "role": "Risk Investigations Specialist",
+  "location": "India",
+  "start": "Jun 2020",
+  "end": "Oct 2021",
+  "kind": "rom",
+  "address": "0x50:2C9E",
+  "bullets": [
+    "Investigated 500+ accounts daily using fraud detection platforms, surfacing false-positive trends that informed detection-model refinements. Documented findings in Jira and Confluence for cross-team SOP updates."
+  ]
+}

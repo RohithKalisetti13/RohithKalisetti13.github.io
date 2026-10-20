@@ -1,0 +1,14 @@
+{
+  "slug": "gmu-teaching",
+  "org": "George Mason University",
+  "role": "Graduate Teaching Assistant",
+  "location": "Fairfax, VA",
+  "start": "Aug 2024",
+  "end": "Oct 2025",
+  "kind": "flash",
+  "address": "0x0801_7E10",
+  "bullets": [
+    "Supported embedded systems labs covering MSP430 and ARM Cortex-M firmware, interrupts, timers, DMA, UART, SPI, and I2C, helping students diagnose hardware and software faults using oscilloscopes, logic analyzers, and serial traces.",
+    "Guided C, Assembly, Pthreads, and CUDA assignments on parallel programming, GPU memory hierarchy, kernel execution, thread divergence, and performance profiling with NVIDIA Nsight, including CUDA kernel tuning and thread scheduling trade-offs."
+  ]
+}

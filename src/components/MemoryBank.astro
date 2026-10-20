@@ -1,0 +1,508 @@
+---
+// Work experience as a small memory daughterboard: SPI flash for the recent roles, I2C EEPROMs
+// for the earlier ones. Each chip opens the work drawer; the ribbon from CN5 lands on J1.
+import type { CollectionEntry } from 'astro:content';
+import { hexAt } from '../lib/hex';
+
+interface Props {
+  work: CollectionEntry<'work'>[];
+}
+const { work } = Astro.props;
+const flash = work.filter((w) => w.data.kind === 'flash');
+const rom = work.filter((w) => w.data.kind === 'rom');
+const short = (slug: string) => slug.replace(/-/g, ' ').toUpperCase();
+const span = (w: CollectionEntry<'work'>) => `${w.data.start} – ${w.data.end}`;
+
+// J1, top to bottom; the lowest CN5 pin lands on the top pad so the ribbon never crosses itself
+const J1 = [
+  { silk: 'D8', pin: 'PA9', color: '#7d7f84' },
+  { silk: 'D9', pin: 'PC7', color: '#6d5596' },
+  { silk: 'CS/D10', pin: 'PB6', color: '#4f8a4f' },
+  { silk: 'MOSI/D11', pin: 'PA7', color: '#c77a33' },
+  { silk: 'MISO/D12', pin: 'PA6', color: '#b5473d' },
+  { silk: 'SCK/D13', pin: 'PA5', color: '#7a5136' },
+  { silk: 'SDA/D14', pin: 'PB9', color: '#3f86d8', shared: true },
+  { silk: 'SCL/D15', pin: 'PB8', color: '#e3b23c', shared: true },
+];
+---
+
+<div class="mb">
+  <div class="db">
+    <span class="hole" style="left:12px;top:12px"></span>
+    <span class="hole" style="right:12px;top:12px"></span>
+    <span class="hole" style="left:12px;bottom:12px"></span>
+    <span class="hole" style="right:12px;bottom:12px"></span>
+
+    <div class="chips">
+      <p class="silk bank">FLASH - current roles</p>
+      <ul class="row">
+        {
+          flash.map((w, i) => (
+            <li>
+              <button type="button" class="ic soic" data-drawer-open={`work/${w.id}`}>
+                <span class="pkg" aria-hidden="true">
+                  <i class="legs" />
+                  <i class="body">
+                    <i class="dot" />
+                  </i>
+                  <i class="legs" />
+                </span>
+                <span class="led" aria-hidden="true" />
+                <span class="ref silk" aria-hidden="true">
+                  U{i + 1}
+                </span>
+                <span class="addr">{w.data.address}</span>
+                <span class="name">{short(w.id)}</span>
+                <span class="tip">
+                  <span class="t-role">{w.data.role}</span>, <span class="t-org">{w.data.org}</span>, <span class="t-date">{span(w)}</span>
+                </span>
+              </button>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="silk bank dim">ROM - earlier roles</p>
+      <ul class="row">
+        {
+          rom.map((w, i) => (
+            <li>
+              <button type="button" class="ic dip" data-drawer-open={`work/${w.id}`}>
+                <span class="pkg" aria-hidden="true">
+                  <i class="legs" />
+                  <i class="body">
+                    <i class="dot" />
+                  </i>
+                  <i class="legs" />
+                </span>
+                <span class="led" aria-hidden="true" />
+                <span class="ref silk" aria-hidden="true">
+                  U{flash.length + i + 1}
+                </span>
+                <span class="addr">{w.data.address}</span>
+                <span class="name">{short(w.id)}</span>
+                <span class="tip">
+                  <span class="t-role">{w.data.role}</span>, <span class="t-org">{w.data.org}</span>, <span class="t-date">{span(w)}</span>
+                </span>
+              </button>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="j1" aria-hidden="true">
+      <p class="silk">J1 &middot; CN5</p>
+      <ul>
+        {
+          J1.map((p) => (
+            <li>
+              <span class="silk">{p.silk}</span>
+              <span
+                class="pad"
+                data-wire-from={`#hero-cn5 [data-pin='${p.pin}']`}
+                data-wire-color={p.color}
+                data-wire-group="trace"
+                {...(p.shared ? { 'data-wire-shared': '' } : {})}
+              />
+            </li>
+          ))
+        }
+      </ul>
+      <p class="silk bus">SPI &middot; I2C</p>
+    </div>
+
+    <p class="silk tag">RK-MEM1 REV A</p>
+  </div>
+
+  <!-- every role in full, for screen readers and for visits without scripts -->
+  <ol class="fallback">
+    {
+      work.map((w) => (
+        <li>
+          <h3>
+            {w.data.role}, {w.data.org}
+          </h3>
+          <p>
+            {w.data.location}, {span(w)}
+          </p>
+          <ul>
+            {w.data.bullets.map((b, i) => (
+              <li>
+                <span class="mono">{hexAt(w.data.address, i)}</span> {b}
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))
+    }
+  </ol>
+  <noscript>
+    <style is:inline>
+      .mb .fallback { position: static; width: auto; height: auto; clip-path: none; white-space: normal; margin-top: 32px; display: grid; gap: 24px; }
+      .mb .fallback ul { display: grid; gap: 8px; margin-top: 8px; }
+    </style>
+  </noscript>
+</div>
+
+<style>
+  .mb {
+    --teal: #0f3b3c;
+    --teal-2: #0b2f30;
+    --gold: #c9a24a;
+    --silk: #e4ede8;
+    --silk-dim: #b9ccc5;
+    margin-top: var(--s-4);
+  }
+  .db {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--s-3);
+    width: min(100%, 960px, 80cqw - 48px);
+    margin-inline: auto;
+    padding: 34px 28px 40px 40px;
+    border-radius: 10px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 40%),
+      var(--teal);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 2px 0 var(--teal-2),
+      10px 16px 28px rgba(0, 0, 0, 0.38);
+  }
+  .hole {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 3px solid var(--gold);
+    border-radius: 50%;
+    background: var(--desk);
+  }
+  .silk {
+    color: var(--silk);
+    font: 500 var(--fs-label) var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .bank {
+    margin-bottom: var(--s-2);
+    text-transform: none;
+  }
+  .bank.dim {
+    margin-top: var(--s-4);
+    color: var(--silk-dim);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-3);
+  }
+
+  /* one chip with its LED, reference and silkscreen */
+  .ic {
+    position: relative;
+    display: grid;
+    justify-items: start;
+    gap: 2px;
+    width: 100%;
+    min-height: 44px;
+    padding: 6px 8px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--silk);
+    text-align: left;
+    cursor: pointer;
+  }
+  .ic:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .ic:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+  .pkg {
+    position: relative;
+    display: grid;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  .body {
+    position: relative;
+    display: block;
+    border-radius: 3px;
+    background: linear-gradient(160deg, #2a2b2f, #141518 70%);
+    box-shadow:
+      inset 1px 1px 0 rgba(255, 255, 255, 0.1),
+      5px 7px 9px rgba(0, 0, 0, 0.45);
+  }
+  .dot {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0a0a0b;
+    box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.12);
+  }
+  /* four legs per side, drawn as one repeating gradient */
+  .legs {
+    display: block;
+    height: 10px;
+    margin-inline: 12%;
+    background: repeating-linear-gradient(
+        to right,
+        transparent 0 6%,
+        #c7c9cc 6% 19%,
+        transparent 19% 25%
+      );
+  }
+  .soic .body {
+    height: 64px;
+  }
+  .dip .pkg {
+    width: 62%;
+  }
+  .dip .body {
+    height: 44px;
+    border-radius: 2px;
+  }
+  /* DIP notch at the pin-1 end */
+  .dip .body::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 50%;
+    width: 9px;
+    height: 16px;
+    margin-top: -8px;
+    border-radius: 0 9px 9px 0;
+    background: var(--teal);
+  }
+  .dip .legs {
+    height: 8px;
+    background: repeating-linear-gradient(to right, transparent 0 8%, #b9bbbe 8% 17%, transparent 17% 25%);
+  }
+  .dip .dot {
+    left: 14px;
+    bottom: 8px;
+    width: 6px;
+    height: 6px;
+  }
+  .led {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 12px;
+    height: 7px;
+    border-radius: 1.5px;
+    background: #3b4a3f;
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+      2px 2px 2px rgba(0, 0, 0, 0.35);
+    transition: background var(--t-fast) var(--ease);
+  }
+  .ref {
+    position: absolute;
+    top: 6px;
+    right: 26px;
+    font-size: 11px;
+  }
+  .soic .led,
+  .soic .ref {
+    top: 2px;
+  }
+  .ic:hover .led,
+  .ic:focus-visible .led,
+  .ic[aria-current='true'] .led {
+    background: #5fd08f;
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.2),
+      inset -2px -1px 0 rgba(255, 255, 255, 0.4),
+      2px 2px 2px rgba(0, 0, 0, 0.35);
+  }
+  .addr {
+    font: 500 var(--fs-label-lg) var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+  .name {
+    font: 500 var(--fs-label) var(--font-mono);
+    letter-spacing: 0.08em;
+  }
+  .dip .addr,
+  .dip .name {
+    color: var(--silk-dim);
+  }
+
+  /* tooltip: role, company, dates */
+  .tip {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    z-index: 3;
+    width: max-content;
+    max-width: 300px;
+    padding: 8px 12px;
+    border: 1px solid #2c3a35;
+    border-radius: 8px;
+    background: #101614;
+    color: #e8efe9;
+    font: 400 var(--fs-label-lg) / 1.45 var(--font-sans);
+    box-shadow: 6px 10px 18px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    translate: -50% 4px;
+    transition:
+      opacity var(--t-fast) var(--ease),
+      translate var(--t-fast) var(--ease),
+      visibility 0s var(--t-fast);
+  }
+  .t-role {
+    font-weight: 600;
+  }
+  .t-date {
+    color: #b9ccc5;
+    font-family: var(--font-mono);
+    font-size: var(--fs-label);
+  }
+  .ic:hover .tip,
+  .ic:focus-visible .tip {
+    opacity: 1;
+    visibility: visible;
+    translate: -50% 0;
+    transition-delay: 0s;
+  }
+
+  /* J1 input header, wired from CN5 */
+  .j1 {
+    display: grid;
+    align-content: center;
+    justify-items: end;
+    gap: var(--s-1);
+    padding-left: var(--s-2);
+    border-left: 1px dashed rgba(228, 237, 232, 0.25);
+  }
+  .j1 ul {
+    position: relative;
+    display: grid;
+    gap: 6px;
+    padding-block: 6px;
+  }
+  /* the black header housing sits behind the pads only */
+  .j1 ul::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -6px;
+    bottom: 0;
+    width: 28px;
+    border-radius: 3px;
+    background: #141517;
+    box-shadow: 4px 6px 8px rgba(0, 0, 0, 0.35);
+  }
+  .j1 li {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+  }
+  .j1 li .silk {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .pad {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    background: linear-gradient(135deg, #e3c46e, #a8852f);
+    box-shadow: inset 0 0 0 4px #b08d3a, inset 0 0 0 5px rgba(0, 0, 0, 0.25);
+  }
+  .j1 .bus {
+    color: var(--silk-dim);
+  }
+  .tag {
+    position: absolute;
+    left: 40px;
+    bottom: 12px;
+    color: var(--silk-dim);
+    font-size: 11px;
+  }
+
+  .fallback {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 960px) {
+    .row {
+      gap: var(--s-2);
+    }
+  }
+  @media (max-width: 720px) {
+    .db {
+      grid-template-columns: 1fr;
+      width: 100%;
+      padding: 32px 16px 40px;
+    }
+    .j1 {
+      display: none;
+    }
+    .row {
+      grid-template-columns: 1fr;
+      gap: var(--s-1);
+    }
+    .ic {
+      grid-template-columns: 76px 1fr;
+      column-gap: var(--s-2);
+      align-items: center;
+      padding: 10px 8px;
+    }
+    .pkg {
+      grid-row: 1 / span 3;
+      margin: 0;
+    }
+    .dip .pkg {
+      width: 56px;
+    }
+    .soic .body {
+      height: 44px;
+    }
+    .dip .body {
+      height: 32px;
+    }
+    .addr,
+    .name {
+      grid-column: 2;
+    }
+    /* the tooltip becomes the visible role line */
+    .tip {
+      position: static;
+      grid-column: 2;
+      width: auto;
+      max-width: none;
+      padding: 0;
+      border: 0;
+      background: none;
+      box-shadow: none;
+      color: var(--silk);
+      opacity: 1;
+      visibility: visible;
+      translate: none;
+    }
+    .t-date {
+      color: var(--silk-dim);
+    }
+    .ref {
+      display: none;
+    }
+  }
+</style>

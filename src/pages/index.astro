@@ -4,12 +4,14 @@ import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import DeskHero from '../components/DeskHero.astro';
 import SideDrawer from '../components/SideDrawer.astro';
+import MemoryBank from '../components/MemoryBank.astro';
+import WireLayer from '../components/WireLayer.astro';
+import { hexAt } from '../lib/hex';
 import site from '../content/site.json';
 
-const work = (await getCollection('work')).sort((a, b) => a.data.order - b.data.order);
+// resume order comes from the file names ("01-...")
+const work = (await getCollection('work')).sort((a, b) => (a.filePath ?? '').localeCompare(b.filePath ?? ''));
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
-// work ids carry an order prefix ("01-..."); the URL slug drops it
-const slugOf = (id: string) => id.replace(/^\d+-/, '');
 ---
 
 <Base>
@@ -20,14 +22,7 @@ const slugOf = (id: string) => id.replace(/^\d+-/, '');
         <div class="container">
           <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa1)">PA1</span> 0x1000 / work experience</p>
           <h2 id="trace-title">Execution trace</h2>
-          <p class="placeholder mono">[Work Exp: memory bank goes here]</p>
-          {
-            work[0] && (
-              <button type="button" class="test-btn mono" data-drawer-open={`work/${slugOf(work[0].id)}`}>
-                Open drawer (test): {work[0].data.org}
-              </button>
-            )
-          }
+          <MemoryBank work={work} />
         </div>
       </section>
 
@@ -47,6 +42,7 @@ const slugOf = (id: string) => id.replace(/^\d+-/, '');
           </ul>
         </div>
       </section>
+      <WireLayer />
     </DeskHero>
 
     <a class="to-ide" href="/ide/" aria-label="Go to the IDE world" title="IDE world">
@@ -56,14 +52,26 @@ const slugOf = (id: string) => id.replace(/^\d+-/, '');
     </a>
 
   </main>
-  <SideDrawer route="work" label="TRACE / work">
+  <SideDrawer route="work" label="TRACE / work" mode="inspector">
     {
       work.map((w) => (
-        <article data-slug={slugOf(w.id)} hidden>
-          <p class="mono dates">{w.data.dates}</p>
-          <h2>{w.data.org}</h2>
-          <p class="role">{w.data.role}</p>
-          <p>{w.data.summary}</p>
+        <article data-slug={w.id} hidden>
+          <p class="mono head-line">
+            {w.data.kind === 'flash' ? 'FLASH' : 'ROM'} @ {w.data.address} &middot; {w.data.bullets.length}{' '}
+            {w.data.bullets.length === 1 ? 'record' : 'records'}
+          </p>
+          <h2>{w.data.role}</h2>
+          <p class="role">
+            {w.data.org} &middot; {w.data.location} &middot; {w.data.start} – {w.data.end}
+          </p>
+          <ol class="records">
+            {w.data.bullets.map((b, i) => (
+              <li>
+                <span class="mono gutter">{hexAt(w.data.address, i)}</span>
+                <p>{b}</p>
+              </li>
+            ))}
+          </ol>
         </article>
       ))
     }
@@ -112,19 +120,6 @@ const slugOf = (id: string) => id.replace(/^\d+-/, '');
     color: var(--muted);
     text-align: center;
   }
-  .test-btn {
-    margin-top: var(--s-3);
-    min-height: 44px;
-    padding: 0 var(--s-2);
-    border: 1px solid var(--accent);
-    border-radius: var(--r-2);
-    background: transparent;
-    color: var(--accent);
-    cursor: pointer;
-  }
-  .test-btn:hover {
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-  }
   .case-links {
     display: flex;
     flex-wrap: wrap;
@@ -159,15 +154,45 @@ const slugOf = (id: string) => id.replace(/^\d+-/, '');
     color: var(--text);
     transform: translateX(3px);
   }
-  :global(.drawer) .dates {
+  :global(.drawer) .head-line {
     color: var(--muted);
   }
   :global(.drawer) h2 {
     margin-top: var(--s-1);
   }
   :global(.drawer) .role {
-    margin-block: var(--s-1) var(--s-2);
+    margin-block: var(--s-1) var(--s-3);
     color: var(--text);
+  }
+  :global(.drawer) .records {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--line);
+  }
+  :global(.drawer) .records li {
+    display: grid;
+    grid-template-columns: 11ch 1fr;
+    gap: var(--s-2);
+    padding-block: var(--s-2);
+    border-bottom: 1px solid var(--line);
+  }
+  :global(.drawer) .gutter {
+    padding-top: 3px;
+    color: var(--muted);
+    font-size: var(--fs-label);
+  }
+  :global(.drawer) .records p {
+    font-family: var(--font-mono);
+    font-size: var(--fs-label-lg);
+    line-height: 1.65;
+  }
+  @media (max-width: 480px) {
+    :global(.drawer) .records li {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
   }
   .foot {
     position: relative;

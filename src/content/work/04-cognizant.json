@@ -1,0 +1,14 @@
+{
+  "slug": "cognizant",
+  "org": "Apple via Cognizant",
+  "role": "Senior Quality Analyst",
+  "location": "India",
+  "start": "Feb 2022",
+  "end": "Jul 2023",
+  "kind": "rom",
+  "address": "0x50:1A40",
+  "bullets": [
+    "Diagnosed and resolved 1000+ geospatial data defects in Apple Maps' production pipeline using Linux-based log analysis, improving routing accuracy and POI integrity at global scale. Investigated system logs to resolve performance and configuration problems.",
+    "Automated daily validation workflows with Python and Bash/shell scripting. Built and maintained a Python-based automated test framework that ran daily validation of production data, managed regression runs, and surfaced defect trends for cross-functional triage."
+  ]
+}

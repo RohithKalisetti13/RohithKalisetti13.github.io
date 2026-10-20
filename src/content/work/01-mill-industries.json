@@ -1,1 +1,17 @@
-{ "order": 1, "org": "Mill Industries", "role": "[title]", "dates": "[dates]", "summary": "[one or two sentences on the work]" }
+{
+  "slug": "mill-industries",
+  "org": "Mill Industries",
+  "role": "Firmware Engineer Intern",
+  "location": "San Bruno, CA",
+  "start": "Nov 2025",
+  "end": "Feb 2026",
+  "kind": "flash",
+  "address": "0x0800_C2A4",
+  "bullets": [
+    "Built a C/C++ FreeRTOS simulation layer that decoupled firmware logic from ESP32 hardware, enabling task, timer, delay, and concurrency behavior to be exercised reproducibly on Linux x86 systems. Used it to debug firmware issues before they reached the device, and as the core of an automated firmware test framework that supported design verification before hardware availability.",
+    "Designed an OpenWrt-based fault-injection platform that recreated Wi-Fi, DHCP, DNS, routing, port-blocking, and cloud-connectivity failures, turning intermittent device issues into repeatable engineering test cases for unattended regression runs. Drove root-cause analysis of field-reported defects and exercised TCP/IP, DNS, and DHCP troubleshooting on Linux.",
+    "Modernized firmware test infrastructure by migrating Ceedling 0.31 to 1.x, rebuilding mocks and platform abstractions, and resolving preprocessing, dependency, include-path, and build-system incompatibilities across firmware modules, establishing objective and verifiable test methods.",
+    "Integrated the simulated firmware and validation stack into Dockerized QEMU and GitHub Actions workflows with ASAN, UBSAN, Valgrind, coverage analysis, packet captures, and device logs, so failures were detected and diagnosed before hardware testing. Managed VMs and virtual networking in QEMU for reproducible test environments, and handled Linux administration of the build and test hosts.",
+    "Contributed to board support package (BSP) development and Linux kernel configuration for the device platform, adapting drivers and build settings so firmware could be brought up and validated on target hardware."
+  ]
+}

@@ -2,17 +2,36 @@
 // Right-hand drawer driven by the URL: #/<route>/<slug> opens the slotted
 // <article data-slug="..."> with that slug, and history back closes it.
 // Any element with data-drawer-open="<route>/<slug>" opens it.
+// Inspector mode adds prev/next stepping (buttons and left/right arrow keys).
 interface Props {
   route: string;
   label: string;
+  mode?: 'default' | 'inspector';
 }
-const { route, label } = Astro.props;
+const { route, label, mode = 'default' } = Astro.props;
 ---
 
-<dialog class="drawer" data-drawer={route} aria-label={label} data-lenis-prevent>
+<dialog class="drawer" data-drawer={route} data-mode={mode} aria-label={label} data-lenis-prevent>
   <div class="panel" tabindex="-1">
     <div class="head">
       <span class="mono tag">{label}</span>
+      {
+        mode === 'inspector' && (
+          <div class="step">
+            <button type="button" class="arrow" data-drawer-step="-1" aria-label="Previous">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <span class="mono pos" aria-live="polite" />
+            <button type="button" class="arrow" data-drawer-step="1" aria-label="Next">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        )
+      }
       <button type="button" class="close" data-drawer-close aria-label="Close">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
           <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -40,10 +59,19 @@ const { route, label } = Astro.props;
       const slugOf = (hash: string) => (hash.startsWith(prefix) ? decodeURIComponent(hash.slice(prefix.length)) : '');
       const lock = (on: boolean) => window.dispatchEvent(new CustomEvent('rk:scroll-lock', { detail: on }));
 
-      const open = (slug: string) => {
+      const steps = [...dlg.querySelectorAll<HTMLButtonElement>('[data-drawer-step]')];
+      const pos = dlg.querySelector<HTMLElement>('.pos');
+      let current = '';
+
+      const open = (slug: string, focusPanel = true) => {
         const item = items.find((el) => el.dataset.slug === slug);
         if (!item) return false;
         items.forEach((el) => (el.hidden = el !== item));
+        current = slug;
+        const i = items.indexOf(item);
+        steps.forEach((b) => (b.disabled = items[i + Number(b.dataset.drawerStep)] === undefined));
+        if (pos) pos.textContent = `${i + 1} / ${items.length}`;
+        dlg.querySelector('.content')!.scrollTop = 0;
         clearTimeout(timer);
         dlg.classList.remove('closing');
         if (!dlg.open) {
@@ -52,8 +80,22 @@ const { route, label } = Astro.props;
           lock(true);
           requestAnimationFrame(() => dlg.classList.add('in'));
         }
-        dlg.querySelector<HTMLElement>('.panel')!.focus({ preventScroll: true });
+        if (focusPanel) dlg.querySelector<HTMLElement>('.panel')!.focus({ preventScroll: true });
         return true;
+      };
+      // step to a neighbour in place, so history back still closes the drawer
+      const step = (dir: number) => {
+        const next = items[items.findIndex((el) => el.dataset.slug === current) + dir];
+        if (!next) return;
+        history.replaceState(history.state, '', `${prefix}${next.dataset.slug}`);
+        open(next.dataset.slug!, false);
+      };
+      // focus goes back to the trigger of the record on screen, else to whatever opened the drawer
+      const returnFocus = () => {
+        const t = [...document.querySelectorAll<HTMLElement>(`[data-drawer-open="${route}/${current}"]`)].find(
+          (el) => el.getClientRects().length,
+        );
+        (t ?? opener)?.focus({ preventScroll: true });
       };
       const close = () => {
         if (!dlg.open || dlg.classList.contains('closing')) return;
@@ -65,7 +107,7 @@ const { route, label } = Astro.props;
             dlg.classList.remove('closing');
             dlg.close();
             lock(false);
-            opener?.focus({ preventScroll: true });
+            returnFocus();
           },
           reduced ? 0 : MS,
         );
@@ -107,11 +149,17 @@ const { route, label } = Astro.props;
       // a click on the dialog box itself, outside the panel, is the backdrop
       dlg.addEventListener('click', (e) => e.target === dlg && dismiss());
       dlg.querySelector('[data-drawer-close]')!.addEventListener('click', dismiss);
+      steps.forEach((b) => b.addEventListener('click', () => step(Number(b.dataset.drawerStep))));
       // keep Tab inside the panel
       dlg.addEventListener('keydown', (e) => {
+        if (steps.length && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.altKey && !e.metaKey && !e.ctrlKey) {
+          e.preventDefault();
+          step(e.key === 'ArrowLeft' ? -1 : 1);
+          return;
+        }
         if (e.key !== 'Tab') return;
         const f = [...dlg.querySelectorAll<HTMLElement>('a[href], button, [tabindex]:not([tabindex="-1"])')].filter(
-          (el) => !el.closest('[hidden]'),
+          (el) => !el.closest('[hidden]') && !(el as HTMLButtonElement).disabled,
         );
         if (!f.length) return;
         const first = f[0];
@@ -207,8 +255,36 @@ const { route, label } = Astro.props;
     color: var(--text);
     cursor: pointer;
   }
-  .close:hover {
+  .close:hover,
+  .arrow:hover:not(:disabled) {
     border-color: var(--accent);
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    margin-left: auto;
+  }
+  .pos {
+    min-width: 5ch;
+    color: var(--text-2);
+    text-align: center;
+  }
+  .arrow {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-2);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .arrow:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
   .content {
     flex: 1;

@@ -20,12 +20,17 @@ const projects = defineCollection({
 
 const work = defineCollection({
   loader: glob({ pattern: '*.json', base: './src/content/work' }),
+  // file names carry the resume order ("01-..."); the slug field becomes the entry id
   schema: z.object({
-    order: z.number(),
+    slug: z.string(),
     org: z.string(),
     role: z.string(),
-    dates: z.string(),
-    summary: z.string(),
+    location: z.string(),
+    start: z.string(),
+    end: z.string(),
+    kind: z.enum(['flash', 'rom']),
+    address: z.string(),
+    bullets: z.array(z.string()),
   }),
 });
 

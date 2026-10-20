@@ -1,0 +1,167 @@
+---
+// Runtime jumper layer over the whole desk. Any element with data-wire-from="<selector>" is a pad;
+// a wire runs from the header pin that selector finds to that pad, down the right desk margin.
+// Optional on the pad: data-wire-color, data-wire-group (lanes are grouped, first group innermost),
+// data-wire-shared (the pin already carries a housing, so the wire leaves from its end).
+// A selector may end in "@n" to pick the nth match. Missing or hidden anchors drop the wire.
+---
+
+<svg class="wire-layer" aria-hidden="true" focusable="false"></svg>
+
+<script>
+  const NS = 'http://www.w3.org/2000/svg';
+  const LCD_OUTER = 1542 + 4.5; // outer edge of the LCD jumpers, board units
+  const GAP = 18;
+  const BOARD_W = 1500;
+
+  type Wire = { pin: DOMRect; pad: DOMRect; color: string; group: string; shared: boolean };
+
+  const pick = (sel: string) => {
+    const [q, n] = sel.split('@');
+    try {
+      const el = document.querySelectorAll(q)[Number(n ?? 0)];
+      return el && el.getClientRects().length ? el.getBoundingClientRect() : null;
+    } catch {
+      return null;
+    }
+  };
+  const el = (name: string, attrs: Record<string, string | number>) => {
+    const e = document.createElementNS(NS, name);
+    for (const k in attrs) e.setAttribute(k, String(attrs[k]));
+    return e;
+  };
+
+  const init = () => {
+    const svg = document.querySelector<SVGSVGElement>('.wire-layer');
+    const desk = svg?.parentElement;
+    const stage = desk?.querySelector<HTMLElement>('.stage');
+    if (!svg || !desk || !stage) return;
+
+    const draw = () => {
+      svg.replaceChildren();
+      if (desk.dataset.intro === 'run') return;
+      const d = desk.getBoundingClientRect();
+      const s = stage.getBoundingClientRect();
+      const u = s.width / BOARD_W;
+      svg.setAttribute('viewBox', `0 0 ${d.width} ${d.height}`);
+      svg.setAttribute('width', String(d.width));
+      svg.setAttribute('height', String(d.height));
+      const stubs = window.matchMedia('(max-width: 720px)').matches;
+
+      const groups = new Map<string, Wire[]>();
+      document.querySelectorAll<HTMLElement>('[data-wire-from]').forEach((t) => {
+        const pin = pick(t.dataset.wireFrom!);
+        const pad = t.getClientRects().length ? t.getBoundingClientRect() : null;
+        if (!pin || (!pad && !stubs)) return;
+        const g = t.dataset.wireGroup ?? 'a';
+        if (!groups.has(g)) groups.set(g, []);
+        groups.get(g)!.push({ pin, pad: pad ?? new DOMRect(), color: t.dataset.wireColor ?? '#8a8a86', group: g, shared: 'wireShared' in t.dataset });
+      });
+      if (!groups.size) return;
+
+      // board units to desk px
+      const X = (x: number) => s.left - d.left + x * u;
+      const housingW = 52 * u;
+      const housingH = Math.max(10, 28 * u);
+      const total = [...groups.values()].reduce((n, g) => n + g.length, 0);
+      const start = X(LCD_OUTER) + GAP;
+      const room = d.width - 6 - start;
+      const pitch = Math.max(2.4, Math.min(5.5, room / (total + 2 * (groups.size - 1))));
+      const wireW = Math.min(4.6, pitch * 0.92);
+
+      const shadow = el('g', { fill: 'none', stroke: '#000', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.22, transform: 'translate(3 5)' });
+      const body = el('g', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+      const shine = el('g', { fill: 'none', stroke: '#fff', 'stroke-linecap': 'round', opacity: 0.28, transform: 'translate(-0.8 -0.8)' });
+      const caps = el('g', {});
+      svg.append(shadow, body, shine, caps);
+
+      // Dupont housing lying flat; x0 is where the wire leaves it
+      const housing = (cx: number, cy: number, x0: number, x1: number) => {
+        caps.append(
+          el('rect', { x: x0 + 3, y: cy - housingH / 2 + 4, width: x1 - x0, height: housingH, rx: 2.5, fill: '#000', opacity: 0.28 }),
+          el('rect', { x: x0, y: cy - housingH / 2, width: x1 - x0, height: housingH, rx: 2.5, fill: '#18191c' }),
+          el('path', { d: `M${x0 + 2} ${cy - housingH / 2 + 1.5}H${x1 - 2}`, stroke: '#4a4b51', 'stroke-width': 1.5 }),
+          el('rect', { x: cx - 3, y: cy - 3, width: 6, height: 6, rx: 1, fill: '#2c2d32' }),
+        );
+      };
+      const stroke = (path: string, color: string) => {
+        shadow.append(el('path', { d: path, 'stroke-width': wireW + 1.5 }));
+        body.append(el('path', { d: path, stroke: color, 'stroke-width': wireW }));
+        shine.append(el('path', { d: path, 'stroke-width': Math.max(0.8, wireW * 0.28) }));
+      };
+
+      let lane = start;
+      for (const wires of groups.values()) {
+        // lowest exit takes the inner lane, so nothing in a group crosses
+        wires.sort((a, b) => b.pin.top - a.pin.top);
+        wires.forEach((w, i) => {
+          const px = w.pin.left + w.pin.width / 2 - d.left;
+          const py = w.pin.top + w.pin.height / 2 - d.top;
+          const out = w.shared ? px + 28 * u + 2 : px + 28 * u;
+          if (!w.shared) housing(px, py, px - 24 * u, out);
+          if (stubs) {
+            stroke(`M${out} ${py}h${Math.max(10, 22 * u)}`, w.color);
+            return;
+          }
+          const tx = w.pad.left + w.pad.width / 2 - d.left;
+          const ty = w.pad.top + w.pad.height / 2 - d.top;
+          const tEnd = tx + housingW * 0.6;
+          housing(tx, ty, tx - housingW * 0.3, tEnd);
+          const lx = lane + i * pitch;
+          const r = Math.min(34, (ty - py) / 4);
+          const span = ty - py - 2 * r;
+          const sag = Math.min(12, span * 0.006) + i * 0.15;
+          stroke(
+            [
+              `M${out} ${py}`,
+              `H${lx - r}`,
+              `Q${lx} ${py} ${lx} ${py + r}`,
+              `C${lx + sag} ${py + r + span * 0.3} ${lx + sag} ${ty - r - span * 0.3} ${lx} ${ty - r}`,
+              `Q${lx} ${ty} ${lx - r} ${ty}`,
+              `H${tEnd}`,
+            ].join(''),
+            w.color,
+          );
+        });
+        lane += (wires.length + 2) * pitch;
+      }
+    };
+
+    let raf = 0;
+    const queue = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(draw);
+    };
+    const ro = new ResizeObserver(queue);
+    ro.observe(desk);
+    document.querySelectorAll('[data-wire-from]').forEach((t) => ro.observe(t));
+    const mo = new MutationObserver(queue);
+    mo.observe(desk, { attributes: true, attributeFilter: ['data-intro'] });
+    window.addEventListener('resize', queue);
+    document.fonts?.ready.then(queue);
+    document.fonts?.addEventListener('loadingdone', queue);
+    queue();
+    document.addEventListener(
+      'astro:before-swap',
+      () => {
+        ro.disconnect();
+        mo.disconnect();
+        window.removeEventListener('resize', queue);
+        document.fonts?.removeEventListener('loadingdone', queue);
+      },
+      { once: true },
+    );
+  };
+  document.addEventListener('astro:page-load', init);
+</script>
+
+<style>
+  .wire-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    overflow: visible;
+    pointer-events: none;
+  }
+</style>
