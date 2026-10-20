@@ -10,43 +10,59 @@ const VB = { w: 1080, h: 1300 };
 const pct = (v: number, of: number) => `${+((v / of) * 100).toFixed(4)}%`;
 const PORT = { x: 1078, y: 740 };
 
-// keyboard: five rows of keys, with the wide keys where a real board has them
-const ROWS: number[][] = [
-  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.6],
-  [1.6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [1.9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.7],
-  [2.4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.2],
-  [1, 1, 1, 1.3, 5.6, 1.3, 1, 1, 1],
+// keyboard: a half-height function row, then five rows with the wide keys where a real board has them;
+// each key carries its legend, set small and dim like a real keycap
+type Key = [number, string];
+const k1 = (t: string): Key[] => [...t].map((c) => [1, c]);
+const ROWS: Key[][] = [
+  [[1.4, 'esc'], ...Array.from({ length: 12 }, (_, i): Key => [1, `F${i + 1}`]), [1, '']],
+  [[1, '`'], ...k1('1234567890-='), [1.6, 'delete']],
+  [[1.6, 'tab'], ...k1('QWERTYUIOP[]\\')],
+  [[1.9, 'caps lock'], ...k1("ASDFGHJKL;'"), [1.7, 'return']],
+  [[2.4, 'shift'], ...k1('ZXCVBNM,./'), [2.4, 'shift']],
+  [[1, 'fn'], [1, 'control'], [1, 'option'], [1.3, 'command'], [5.6, ''], [1.3, 'command'], [1, 'option'], [1, '‹'], [1, '›']],
 ];
-const KB = { x: 92, y: 708, w: 816, gap: 7, h: 52 };
+const KB = { x: 92, y: 704, w: 816, gap: 7, h: 50, fh: 28 };
 const keys = ROWS.flatMap((row, r) => {
-  const total = row.reduce((a, b) => a + b, 0);
+  const total = row.reduce((a, [span]) => a + span, 0);
   const unit = (KB.w - KB.gap * (row.length - 1)) / total;
+  const y = r === 0 ? KB.y : KB.y + KB.fh + KB.gap + (r - 1) * (KB.h + KB.gap);
+  const h = r === 0 ? KB.fh : KB.h;
   let x = KB.x;
-  return row.map((span) => {
-    const k = { x, y: KB.y + r * (KB.h + KB.gap), w: span * unit, h: KB.h };
+  return row.map(([span, t]) => {
+    const k = { x, y, w: span * unit, h, t, word: t.length > 1 && !/^F\d/.test(t) };
     x += span * unit + KB.gap;
     return k;
   });
 });
+const FONT = "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif";
 ---
 
 <div class="laptop">
-  <svg class="lap-art" viewBox={`0 0 ${VB.w} ${VB.h}`} aria-hidden="true" focusable="false">
+  <svg class="lap-art" viewBox={`0 0 ${VB.w} ${VB.h}`} aria-hidden="true" focusable="false" font-family={FONT}>
     <defs>
       <linearGradient id="lap-alu" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#6c7076" />
-        <stop offset=".55" stop-color="#55595e" />
-        <stop offset="1" stop-color="#46494e" />
+        <stop offset="0" stop-color="#80848a" />
+        <stop offset=".5" stop-color="#686c72" />
+        <stop offset="1" stop-color="#585c61" />
       </linearGradient>
       <linearGradient id="lap-pad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#5f6369" />
-        <stop offset="1" stop-color="#4c5055" />
+        <stop offset="0" stop-color="#73777d" />
+        <stop offset="1" stop-color="#62666b" />
       </linearGradient>
-      <radialGradient id="lap-glow" cx=".5" cy=".5" r=".6">
-        <stop offset="0" stop-color="#3fb27f" stop-opacity=".16" />
-        <stop offset="1" stop-color="#3fb27f" stop-opacity="0" />
-      </radialGradient>
+      <linearGradient id="lap-hinge" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#16171a" />
+        <stop offset=".6" stop-color="#2b2d31" />
+        <stop offset="1" stop-color="#46494e" />
+      </linearGradient>
+      <linearGradient id="lap-key" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1d1e21" />
+        <stop offset="1" stop-color="#121315" />
+      </linearGradient>
+      <pattern id="lap-grille" width="8" height="8" patternUnits="userSpaceOnUse">
+        <circle cx="4" cy="4" r="1.5" fill="#2e3034" />
+        <circle cx="3.6" cy="3.6" r="0.6" fill="#8a8e94" opacity=".3" />
+      </pattern>
     </defs>
 
     <!-- shadows, down and to the right -->
@@ -59,35 +75,58 @@ const keys = ROWS.flatMap((row, r) => {
     <rect x="1060" y="728" width="22" height="24" rx="4" fill="#141518" />
     <path d="M1000 727H1060" stroke="#fff" stroke-width="2" opacity=".14" />
 
-    <!-- lid, folded open -->
+    <!-- lid, folded open: aluminium rim, thin black bezel -->
     <rect x="0" y="0" width="1000" height="626" rx="30" fill="url(#lap-alu)" />
-    <path d="M4 600V30Q4 4 30 4H970" stroke="#fff" stroke-width="3" fill="none" opacity=".16" />
-    <rect x="22" y="22" width="956" height="580" rx="16" fill="#0b0c0e" />
+    <path d="M4 600V30Q4 4 30 4H970" stroke="#fff" stroke-width="3" fill="none" opacity=".18" />
+    <rect x="14" y="14" width="972" height="598" rx="20" fill="#0a0b0c" />
+    <path d="M18 600V34Q18 18 34 18H966" stroke="#fff" stroke-width="1.5" fill="none" opacity=".06" />
     <rect x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx="4" fill="#0d1512" />
-    <circle cx="500" cy="37" r="5" fill="#1d2024" />
-    <circle cx="500" cy="37" r="2" fill="#2f3a44" />
+    <circle cx="500" cy="33" r="3.5" fill="#1a1d21" />
 
-    <!-- hinge -->
-    <rect x="60" y="618" width="880" height="26" rx="10" fill="#26282c" />
-    <path d="M66 622H934" stroke="#fff" stroke-width="2" opacity=".08" />
+    <!-- hinge, with the shadow it throws on the deck -->
+    <rect x="70" y="616" width="860" height="30" rx="8" fill="url(#lap-hinge)" />
+    <path d="M78 620H922" stroke="#fff" stroke-width="1.5" opacity=".08" />
 
     <!-- deck -->
-    <rect x="0" y="636" width="1000" height="642" rx="30" fill="url(#lap-alu)" />
-    <path d="M4 1250V666Q4 640 30 640H970" stroke="#fff" stroke-width="3" fill="none" opacity=".12" />
-    <rect x="80" y="696" width="840" height="312" rx="14" fill="#2c2f33" />
+    <rect x="0" y="638" width="1000" height="640" rx="30" fill="url(#lap-alu)" />
+    <path d="M4 1250V668Q4 642 30 642H970" stroke="#fff" stroke-width="3" fill="none" opacity=".14" />
+    <rect x="0" y="638" width="1000" height="22" fill="#000" opacity=".12" />
+    <path d="M70 660H930" stroke="#000" stroke-width="10" opacity=".08" />
+
+    <!-- speaker grilles either side of the keyboard -->
+    <rect x="30" y="704" width="44" height="325" rx="6" fill="url(#lap-grille)" />
+    <rect x="926" y="704" width="44" height="325" rx="6" fill="url(#lap-grille)" />
+
+    <!-- keyboard well and keycaps -->
+    <rect x="84" y="696" width="832" height="341" rx="12" fill="#25272b" />
+    <path d="M86 1032V708Q86 698 96 698H912" stroke="#000" stroke-width="2.5" fill="none" opacity=".35" />
     {
       keys.map((k) => (
         <g>
-          <rect x={k.x + 1.5} y={k.y + 2.5} width={k.w} height={k.h} rx="6" fill="#000" opacity=".35" />
-          <rect x={k.x} y={k.y} width={k.w} height={k.h} rx="6" fill="#1a1c1f" />
-          <path d={`M${k.x + 3} ${k.y + k.h - 6}V${k.y + 6}Q${k.x + 3} ${k.y + 2} ${k.x + 7} ${k.y + 2}H${k.x + k.w - 6}`} stroke="#fff" stroke-width="1.4" fill="none" opacity=".1" />
+          <rect x={k.x + 1.2} y={k.y + 2.2} width={k.w} height={k.h} rx="6" fill="#000" opacity=".4" />
+          <rect x={k.x} y={k.y} width={k.w} height={k.h} rx="6" fill="url(#lap-key)" />
+          <path d={`M${k.x + 3} ${k.y + k.h - 6}V${k.y + 6}Q${k.x + 3} ${k.y + 2} ${k.x + 7} ${k.y + 2}H${k.x + k.w - 6}`} stroke="#fff" stroke-width="1.2" fill="none" opacity=".08" />
+          {k.t &&
+            (k.word ? (
+              <text x={k.x + 8} y={k.y + k.h - 9} font-size="10.5" fill="#9a9ea4" opacity=".75">
+                {k.t}
+              </text>
+            ) : (
+              <text x={k.x + k.w / 2} y={k.y + k.h / 2 + (k.h > 40 ? 5.5 : 4)} font-size={k.h > 40 ? 16 : 10} fill="#9a9ea4" opacity=".75" text-anchor="middle">
+                {k.t}
+              </text>
+            ))}
         </g>
       ))
     }
-    <!-- trackpad -->
-    <rect x="322" y="1046" width="356" height="196" rx="16" fill="#000" opacity=".18" transform="translate(3 4)" />
-    <rect x="322" y="1046" width="356" height="196" rx="16" fill="url(#lap-pad)" />
-    <path d="M326 1236V1062Q326 1050 338 1050H662" stroke="#fff" stroke-width="2" fill="none" opacity=".12" />
+
+    <!-- trackpad: one wide glass plate, a hair lower than the deck -->
+    <rect x="288" y="1064" width="424" height="190" rx="16" fill="#000" opacity=".16" transform="translate(2 3)" />
+    <rect x="288" y="1064" width="424" height="190" rx="16" fill="url(#lap-pad)" />
+    <rect x="288.75" y="1064.75" width="422.5" height="188.5" rx="15.5" fill="none" stroke="#45484d" stroke-width="1.5" />
+    <path d="M292 1246V1080Q292 1068 304 1068H696" stroke="#fff" stroke-width="1.5" fill="none" opacity=".14" />
+    <!-- thumb notch in the front lip -->
+    <path d="M440 1277Q500 1268 560 1277" stroke="#3e4146" stroke-width="3" fill="none" />
     <!-- port slot on the left side -->
     <rect x="-3" y="728" width="7" height="24" rx="2" fill="#1b1c1f" />
   </svg>
