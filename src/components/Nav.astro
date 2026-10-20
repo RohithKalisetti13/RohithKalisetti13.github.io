@@ -10,15 +10,16 @@ const SECTIONS = [
   { id: 'irq', label: 'IRQ', addr: '0x4000', plain: 'Contact', color: 'var(--pa4)' },
 ];
 
-const home = Astro.url.pathname === '/';
-const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id}`);
+// absolute hrefs: the nav persists across pages, and same-page ones glide via Lenis
+const href = (id: string) => (id === 'irq' ? '/ide/' : `/#${id}`);
 ---
 
-<header class="nav" transition:name="site-nav" transition:animate="none">
+<header class="nav" transition:name="site-nav" transition:persist transition:animate="none">
   <div class="container bar">
-    <a class="mono-mark" href={home ? '#boot' : '/#boot'} aria-label="Rohith Kalisetti, home">RK</a>
+    <a class="mono-mark" href="/#boot" aria-label="Rohith Kalisetti, home">RK</a>
     <nav aria-label="Primary">
       <ul>
+        <li class="pill" aria-hidden="true"></li>
         {
           SECTIONS.map((s) => (
             <li>
@@ -40,48 +41,108 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
 </header>
 
 <script>
-  // the section crossing the middle of the viewport is the active one
+  // one reference line at 45% of the viewport decides the active section
+  const LINE = 0.45;
   const init = () => {
     const nav = document.querySelector<HTMLElement>('.nav');
-    const links = [...document.querySelectorAll<HTMLAnchorElement>('.nav a[data-sec]')];
-    const status = nav?.querySelector<HTMLElement>('.status');
-    if (!nav || !status) return;
-    const r1 = status.querySelector('.r1')!;
-    const r2 = status.querySelector('.r2')!;
+    if (!nav || nav.dataset.ready) {
+      nav?.dispatchEvent(new Event('rk:sync'));
+      return;
+    }
+    nav.dataset.ready = '1';
+    const links = [...nav.querySelectorAll<HTMLAnchorElement>('a[data-sec]')];
+    const pill = nav.querySelector<HTMLElement>('.pill')!;
+    const r1 = nav.querySelector('.r1')!;
+    const r2 = nav.querySelector('.r2')!;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const pad = (s: string) => s.padEnd(16, ' ').slice(0, 16);
+    let current = '';
+    let placed = false;
 
-    const setActive = (id: string) => {
-      for (const a of links) {
-        const on = a.dataset.sec === id;
-        a.classList.toggle('active', on);
-        if (on) {
-          a.setAttribute('aria-current', 'location');
-          r1.textContent = pad(`${a.dataset.addr} ${a.dataset.tag}`);
-          r2.textContent = pad(a.dataset.plain!.toUpperCase());
-        } else a.removeAttribute('aria-current');
+    const place = (a: HTMLElement, instant: boolean) => {
+      if (instant || reduced.matches) pill.style.transition = 'none';
+      pill.style.width = `${a.offsetWidth}px`;
+      pill.style.transform = `translateX(${a.offsetLeft}px)`;
+      if (instant || reduced.matches) {
+        void pill.offsetWidth;
+        pill.style.transition = '';
       }
+      pill.style.opacity = '1';
     };
 
-    const sections = links.map((a) => document.getElementById(a.dataset.sec!)).filter(Boolean) as HTMLElement[];
-    if (!sections.length) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) if (e.isIntersecting) setActive(e.target.id);
-      },
-      { rootMargin: '-50% 0px -50% 0px' },
-    );
-    sections.forEach((s) => io.observe(s));
+    // 150 ms crossfade of the LCD text
+    let swap = 0;
+    const lcd = (a: HTMLElement, instant: boolean) => {
+      const status = nav.querySelector<HTMLElement>('.status')!;
+      const write = () => {
+        r1.textContent = pad(`${a.dataset.addr} ${a.dataset.tag}`);
+        r2.textContent = pad(a.dataset.plain!.toUpperCase());
+      };
+      clearTimeout(swap);
+      if (instant || reduced.matches) return write();
+      status.classList.add('swap');
+      swap = window.setTimeout(() => {
+        write();
+        status.classList.remove('swap');
+      }, 150);
+    };
 
-    // the LCD wakes once the hero copy has scrolled away
-    const hero = document.getElementById('boot');
-    if (hero) {
-      const heroIo = new IntersectionObserver(([e]) => nav.classList.toggle('show-status', !e.isIntersecting), {
-        rootMargin: `-${nav.offsetHeight}px 0px 0px 0px`,
-      });
-      heroIo.observe(hero);
-    }
+    const setActive = (id: string) => {
+      const a = links.find((l) => l.dataset.sec === id);
+      if (!a) return;
+      const first = !placed;
+      if (id !== current) {
+        current = id;
+        for (const l of links) {
+          const on = l === a;
+          l.classList.toggle('active', on);
+          if (on) l.setAttribute('aria-current', 'location');
+          else l.removeAttribute('aria-current');
+        }
+        lcd(a, first);
+      }
+      place(a, first);
+      placed = true;
+    };
 
-    document.addEventListener('astro:before-swap', () => io.disconnect(), { once: true });
+    const top = (el: Element | null) => (el ? el.getBoundingClientRect().top : Infinity);
+    const update = () => {
+      const path = location.pathname;
+      let id: string;
+      if (path.startsWith('/ide')) id = 'irq';
+      else if (path.startsWith('/projects/')) id = 'builds';
+      else if (path === '/') {
+        const y = innerHeight * LINE;
+        id = top(document.getElementById('builds')) <= y ? 'builds' : top(document.getElementById('trace')) <= y ? 'trace' : top(document.getElementById('s-regs')) <= y ? 'regs' : 'boot';
+      } else id = '';
+      if (id) setActive(id);
+      else {
+        pill.style.opacity = '0';
+        links.forEach((l) => l.classList.remove('active'));
+        current = '';
+      }
+      // the LCD wakes once the hero copy has scrolled away
+      const hero = document.getElementById('boot');
+      nav.classList.toggle('show-status', !!hero && hero.getBoundingClientRect().bottom < nav.offsetHeight);
+    };
+
+    // three rect reads per event: cheap enough to run unthrottled, and never stalls behind rAF
+    const queue = update;
+    addEventListener('scroll', queue, { passive: true });
+    addEventListener('resize', () => {
+      placed = false;
+      current = '';
+      queue();
+    });
+    nav.addEventListener('rk:sync', () => {
+      queue();
+    });
+    document.fonts?.ready.then(() => {
+      placed = false;
+      current = '';
+      queue();
+    });
+    update();
   };
   document.addEventListener('astro:page-load', init);
 </script>
@@ -128,8 +189,26 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
     margin-right: auto;
   }
   ul {
+    position: relative;
     display: flex;
     gap: 2px;
+  }
+  /* single sliding pill, moved with transform and width */
+  .pill {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 0;
+    width: 0;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--board) 85%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 280ms cubic-bezier(0.4, 0, 0.2, 1),
+      width 280ms cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 150ms linear;
   }
   nav a {
     position: relative;
@@ -152,31 +231,23 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
-  /* pill sits behind the label and fades in, so only opacity animates */
-  nav a::before {
-    content: '';
-    position: absolute;
-    inset: 6px 0;
-    border: 1px solid var(--line);
-    border-radius: inherit;
-    background: color-mix(in srgb, var(--board) 85%, transparent);
-    opacity: 0;
-    transition: opacity var(--t-med) var(--ease);
-    z-index: -1;
-  }
   nav a:hover,
   nav a.active {
     color: var(--text);
   }
-  nav a.active::before {
-    opacity: 1;
+  nav a {
+    transition: color 280ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   nav a :global(.led) {
     opacity: 0.4;
-    transition: opacity var(--t-med) var(--ease);
+    filter: saturate(0.2);
+    transition:
+      opacity 280ms cubic-bezier(0.4, 0, 0.2, 1),
+      filter 280ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   nav a.active :global(.led) {
     opacity: 1;
+    filter: none;
     animation: led-blink 1.2s steps(1, end) infinite;
   }
   @keyframes led-blink {
@@ -209,6 +280,10 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
   .row {
     display: block;
     min-width: 16ch;
+    transition: opacity 150ms linear;
+  }
+  .status.swap .row {
+    opacity: 0;
   }
   .nav.show-status .status {
     opacity: 1;
@@ -236,6 +311,12 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
     }
   }
   @media (prefers-reduced-motion: reduce) {
+    .pill,
+    nav a,
+    nav a :global(.led),
+    .row {
+      transition: none;
+    }
     nav a.active :global(.led) {
       animation: none;
     }

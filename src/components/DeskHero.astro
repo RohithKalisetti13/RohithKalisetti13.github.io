@@ -151,6 +151,8 @@ const LINKS = [
         </dl>
       </div>
       <McuBoard power="on" idPrefix="hero-" />
+      <!-- nav sentinel on the perforation slots between ST-LINK and target halves (y 650 of 2000) -->
+      <i id="s-regs" class="sentinel" aria-hidden="true"></i>
 
       <!-- USB cable, permanently in CN1 -->
       <svg class="rig rig-usb" viewBox="0 -400 1500 2400" overflow="visible" aria-hidden="true">
@@ -724,6 +726,14 @@ const LINKS = [
     width: var(--stage-w);
     margin-left: calc((100% - var(--stage-w)) / 2);
     aspect-ratio: 1500 / 2000;
+  }
+  .sentinel {
+    position: absolute;
+    top: 32.5%;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
   }
   .rig {
     position: absolute;
