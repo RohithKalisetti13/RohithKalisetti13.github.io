@@ -6,6 +6,7 @@
 import McuBoard from './McuBoard.astro';
 import LedDot from './LedDot.astro';
 import site from '../content/site.json';
+import skills from '../content/skills.json';
 
 // 1602 module, lying on the desk above the top-right corner (local coordinates inside it)
 const LCD = { x: 1105, y: -186, w: 410, h: 176 };
@@ -88,9 +89,9 @@ const LINKS = [
 ];
 ---
 
-<section id="boot" class="desk" data-power="on" aria-labelledby="boot-title">
+<div class="desk" data-power="on">
   <div class="desk-inner">
-    <div class="copy">
+    <section id="boot" class="copy" aria-labelledby="boot-title">
       <h1 id="boot-title">{site.name}</h1>
       <div class="meta">
         <p class="role">{site.role}</p>
@@ -132,9 +133,23 @@ const LINKS = [
           ))
         }
       </ul>
-    </div>
+    </section>
 
-    <div class="stage">
+    <!-- the board itself is the skills region; its register map is drawn in a later stage -->
+    <section id="regs" class="stage" aria-labelledby="regs-title">
+      <div class="sr-only">
+        <h2 id="regs-title">Register map: skills</h2>
+        <dl>
+          {
+            skills.map((r) => (
+              <>
+                <dt>{r.reg}</dt>
+                <dd>{r.values.join(', ')}</dd>
+              </>
+            ))
+          }
+        </dl>
+      </div>
       <McuBoard power="on" idPrefix="hero-" />
 
       <!-- USB cable, permanently in CN1 -->
@@ -314,13 +329,14 @@ const LINKS = [
           <text x="47" y="132" text-anchor="middle" font-family="'JetBrains Mono Variable', ui-monospace, monospace" font-size="12" font-weight="600" fill="#b4b6bb">I/O</text>
         </svg>
       </button>
-    </div>
+    </section>
   </div>
-</section>
+  <slot />
+</div>
 
 <script is:inline define:vars={{ FONT, LOG, NAME, TAG, TX, TY, D, DOT, COLS }}>
   (() => {
-    const root = document.getElementById('boot');
+    const root = document.querySelector('.desk');
     const board = root && root.querySelector('.mcu-board');
     if (!root || !board) return;
     const stage = root.querySelector('.stage');

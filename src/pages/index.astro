@@ -5,82 +5,58 @@ import Nav from '../components/Nav.astro';
 import Section from '../components/Section.astro';
 import GpioButton from '../components/GpioButton.astro';
 import Panel from '../components/Panel.astro';
-import Chip from '../components/Chip.astro';
 import DeskHero from '../components/DeskHero.astro';
+import SideDrawer from '../components/SideDrawer.astro';
 import site from '../content/site.json';
-import skills from '../content/skills.json';
 
 const work = (await getCollection('work')).sort((a, b) => a.data.order - b.data.order);
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+// work ids carry an order prefix ("01-..."); the URL slug drops it
+const slugOf = (id: string) => id.replace(/^\d+-/, '');
 ---
 
 <Base>
   <Nav />
   <main id="main">
-    <DeskHero />
-
-    <Section id="trace" addr="0x1000" title="Execution trace" plain="work experience" pin="PA1">
-      <ol class="trace">
-        {
-          work.map((w) => (
-            <li>
-              <Panel>
-                <p class="mono dates">{w.data.dates}</p>
-                <h3>{w.data.org}</h3>
-                <p class="role">{w.data.role}</p>
-                <p>{w.data.summary}</p>
-              </Panel>
-            </li>
-          ))
-        }
-      </ol>
-    </Section>
-
-    <Section id="builds" addr="0x2000" title="Firmware builds" plain="projects" pin="PA2">
-      <ul class="builds">
-        {
-          projects.map((p, i) => (
-            <li class={i === 0 ? 'headline' : undefined}>
-              <Panel as="article">
-                {i === 0 && <Chip>HEADLINE</Chip>}
-                <h3>{p.data.title}</h3>
-                <p>{p.data.summary}</p>
-                <div class="chips">
-                  {p.data.stack.map((s) => (
-                    <Chip>{s}</Chip>
-                  ))}
-                </div>
-                <div class="card-action">
-                  <GpioButton href={`/projects/${p.id}/`} pin="PB2" variant="secondary">
-                    Read case study<span class="sr-only">: {p.data.title}</span>
-                  </GpioButton>
-                </div>
-              </Panel>
-            </li>
-          ))
-        }
-      </ul>
-    </Section>
-
-    <Section id="regs" addr="0x3000" title="Register map" plain="skills" pin="PA3">
-      <Panel>
-        <dl class="regs">
+    <DeskHero>
+      <section id="trace" class="region" aria-labelledby="trace-title">
+        <div class="container">
+          <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa1)">PA1</span> 0x1000 / work experience</p>
+          <h2 id="trace-title">Execution trace</h2>
+          <p class="placeholder mono">[Work Exp: memory bank goes here]</p>
           {
-            skills.map((r, i) => (
-              <div class="reg">
-                <dt class="mono addr">{`0x${(i * 4).toString(16).toUpperCase().padStart(2, '0')}`}</dt>
-                <dd class="mono name">{r.reg}</dd>
-                <dd class="vals">
-                  {r.values.map((v) => (
-                    <Chip>{v}</Chip>
-                  ))}
-                </dd>
-              </div>
-            ))
+            work[0] && (
+              <button type="button" class="test-btn mono" data-drawer-open={`work/${slugOf(work[0].id)}`}>
+                Open drawer (test): {work[0].data.org}
+              </button>
+            )
           }
-        </dl>
-      </Panel>
-    </Section>
+        </div>
+      </section>
+
+      <section id="builds" class="region" aria-labelledby="builds-title">
+        <div class="container">
+          <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa2)">PA2</span> 0x2000 / projects</p>
+          <h2 id="builds-title">Firmware builds</h2>
+          <p class="placeholder mono">[Projects: breadboard goes here]</p>
+          <ul class="case-links">
+            {
+              projects.map((p) => (
+                <li>
+                  <a href={`/projects/${p.id}/`}>{p.data.title} →</a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </section>
+    </DeskHero>
+
+    <a class="to-ide" href="/ide/" aria-label="Go to the IDE world" title="IDE world">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </a>
 
     <Section id="irq" addr="0x4000" title="Interrupt line" plain="contact" pin="PA4">
       <div class="irq">
@@ -116,26 +92,118 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
       </div>
     </Section>
   </main>
+  <SideDrawer route="work" label="TRACE / work">
+    {
+      work.map((w) => (
+        <article data-slug={slugOf(w.id)} hidden>
+          <p class="mono dates">{w.data.dates}</p>
+          <h2>{w.data.org}</h2>
+          <p class="role">{w.data.role}</p>
+          <p>{w.data.summary}</p>
+        </article>
+      ))
+    }
+  </SideDrawer>
   <footer class="foot">
     <div class="container mono">__stack_top</div>
   </footer>
 </Base>
 
 <style>
+  /* desk regions below the board; C1 and C2 draw into these */
+  .region {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    min-height: 100svh;
+    padding-block: var(--s-12);
+  }
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    margin-bottom: var(--s-2);
+    color: var(--muted);
+  }
+  .pin {
+    padding: 0 6px;
+    border: 1px solid var(--wire);
+    border-radius: var(--r-1);
+    color: var(--text);
+    font-size: var(--fs-label);
+  }
+  .placeholder {
+    display: grid;
+    place-items: center;
+    min-height: 40svh;
+    margin-top: var(--s-4);
+    border: 1px dashed var(--line);
+    border-radius: var(--r-3);
+    color: var(--muted);
+    text-align: center;
+  }
+  .test-btn {
+    margin-top: var(--s-3);
+    min-height: 44px;
+    padding: 0 var(--s-2);
+    border: 1px solid var(--accent);
+    border-radius: var(--r-2);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .test-btn:hover {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .case-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-3);
+    margin-top: var(--s-3);
+  }
+  .case-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .to-ide {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 72px;
+    margin-top: -36px;
+    border: 1px solid var(--line);
+    border-left: 0;
+    border-radius: 0 var(--r-2) var(--r-2) 0;
+    background: color-mix(in srgb, var(--board) 90%, transparent);
+    color: var(--text-2);
+    transition:
+      transform var(--t-fast) var(--ease),
+      opacity var(--t-fast) var(--ease);
+  }
+  .to-ide:hover {
+    color: var(--text);
+    transform: translateX(3px);
+  }
+  :global(.drawer) .dates {
+    color: var(--muted);
+  }
+  :global(.drawer) h2 {
+    margin-top: var(--s-1);
+  }
+  :global(.drawer) .role {
+    margin-block: var(--s-1) var(--s-2);
+    color: var(--text);
+  }
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: var(--s-2);
-  }
-  .trace,
-  .builds {
-    display: grid;
-    gap: var(--s-3);
-  }
-  .trace {
-    margin: 0;
-    padding: 0;
-    list-style: none;
   }
   .dates,
   .sub {
@@ -144,58 +212,6 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
   .role {
     color: var(--text);
     margin-bottom: var(--s-1);
-  }
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-1);
-    margin-top: var(--s-2);
-  }
-  .regs {
-    display: grid;
-    gap: var(--s-2);
-    margin: 0;
-  }
-  .reg {
-    display: grid;
-    grid-template-columns: 56px 80px 1fr;
-    gap: var(--s-2);
-    align-items: center;
-  }
-  .reg .addr {
-    color: var(--muted);
-  }
-  .reg .name {
-    color: var(--accent);
-    letter-spacing: 0.06em;
-    margin: 0;
-  }
-  .reg .vals {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-1);
-    margin: 0;
-  }
-  .builds,
-  .trace {
-    align-items: stretch;
-  }
-  .builds > li,
-  .trace > li {
-    display: flex;
-  }
-  .builds > li > :global(.panel),
-  .trace > li > :global(.panel) {
-    flex: 1;
-  }
-  .builds > li > :global(.panel) {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .card-action {
-    margin-top: auto;
-    padding-top: var(--s-3);
   }
   .irq {
     display: grid;
@@ -240,15 +256,6 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
     color: var(--muted);
   }
   @media (min-width: 820px) {
-    .builds {
-      grid-template-columns: 1fr 1fr;
-    }
-    .builds > .headline {
-      grid-column: 1 / -1;
-    }
-    .trace {
-      grid-template-columns: repeat(3, 1fr);
-    }
     .irq {
       grid-template-columns: 1.2fr 1fr 1fr;
     }

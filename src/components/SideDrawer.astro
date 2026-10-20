@@ -1,0 +1,238 @@
+---
+// Right-hand drawer driven by the URL: #/<route>/<slug> opens the slotted
+// <article data-slug="..."> with that slug, and history back closes it.
+// Any element with data-drawer-open="<route>/<slug>" opens it.
+interface Props {
+  route: string;
+  label: string;
+}
+const { route, label } = Astro.props;
+---
+
+<dialog class="drawer" data-drawer={route} aria-label={label} data-lenis-prevent>
+  <div class="panel" tabindex="-1">
+    <div class="head">
+      <span class="mono tag">{label}</span>
+      <button type="button" class="close" data-drawer-close aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+    <div class="content"><slot /></div>
+  </div>
+</dialog>
+
+<script>
+  import { navigate } from 'astro:transitions/client';
+
+  const MS = 320;
+  const init = () => {
+    document.querySelectorAll<HTMLDialogElement>('dialog[data-drawer]').forEach((dlg) => {
+      const route = dlg.dataset.drawer!;
+      const prefix = `#/${route}/`;
+      const items = [...dlg.querySelectorAll<HTMLElement>('[data-slug]')];
+      // true while the open state owns a history entry we pushed
+      let pushed = false;
+      let opener: HTMLElement | null = null;
+      let timer = 0;
+
+      const slugOf = (hash: string) => (hash.startsWith(prefix) ? decodeURIComponent(hash.slice(prefix.length)) : '');
+      const lock = (on: boolean) => window.dispatchEvent(new CustomEvent('rk:scroll-lock', { detail: on }));
+
+      const open = (slug: string) => {
+        const item = items.find((el) => el.dataset.slug === slug);
+        if (!item) return false;
+        items.forEach((el) => (el.hidden = el !== item));
+        clearTimeout(timer);
+        dlg.classList.remove('closing');
+        if (!dlg.open) {
+          opener = document.activeElement as HTMLElement | null;
+          dlg.showModal();
+          lock(true);
+          requestAnimationFrame(() => dlg.classList.add('in'));
+        }
+        dlg.querySelector<HTMLElement>('.panel')!.focus({ preventScroll: true });
+        return true;
+      };
+      const close = () => {
+        if (!dlg.open || dlg.classList.contains('closing')) return;
+        dlg.classList.remove('in');
+        dlg.classList.add('closing');
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        timer = window.setTimeout(
+          () => {
+            dlg.classList.remove('closing');
+            dlg.close();
+            lock(false);
+            opener?.focus({ preventScroll: true });
+          },
+          reduced ? 0 : MS,
+        );
+      };
+      // UI close: step back over our own entry, or drop a deep-linked hash in place
+      const dismiss = () => {
+        if (pushed) {
+          pushed = false;
+          history.back();
+        } else {
+          history.replaceState(history.state, '', location.pathname + location.search);
+          close();
+        }
+      };
+
+      const sync = () => {
+        const slug = slugOf(location.hash);
+        if (!slug || !open(slug)) {
+          pushed = false;
+          close();
+        }
+      };
+
+      document.querySelectorAll<HTMLElement>('[data-drawer-open]').forEach((btn) => {
+        const [r, slug] = btn.dataset.drawerOpen!.split('/');
+        if (r !== route) return;
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (slugOf(location.hash) === slug) return;
+          pushed = true;
+          // through the router, so the entry carries its history state
+          navigate(`${prefix}${slug}`).then(sync);
+        });
+      });
+      dlg.addEventListener('cancel', (e) => {
+        e.preventDefault();
+        dismiss();
+      });
+      // a click on the dialog box itself, outside the panel, is the backdrop
+      dlg.addEventListener('click', (e) => e.target === dlg && dismiss());
+      dlg.querySelector('[data-drawer-close]')!.addEventListener('click', dismiss);
+      // keep Tab inside the panel
+      dlg.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+        const f = [...dlg.querySelectorAll<HTMLElement>('a[href], button, [tabindex]:not([tabindex="-1"])')].filter(
+          (el) => !el.closest('[hidden]'),
+        );
+        if (!f.length) return;
+        const first = f[0];
+        const last = f[f.length - 1];
+        const at = document.activeElement;
+        if (e.shiftKey && (at === first || at === dlg.querySelector('.panel'))) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && at === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      });
+
+      window.addEventListener('hashchange', sync);
+      window.addEventListener('popstate', sync);
+      document.addEventListener(
+        'astro:before-swap',
+        () => {
+          window.removeEventListener('hashchange', sync);
+          window.removeEventListener('popstate', sync);
+          if (dlg.open) lock(false);
+        },
+        { once: true },
+      );
+      sync();
+    });
+  };
+  document.addEventListener('astro:page-load', init);
+</script>
+
+<style>
+  .drawer {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    overflow: hidden;
+  }
+  .drawer::backdrop {
+    background: rgba(4, 10, 8, 0.6);
+    opacity: 0;
+    transition: opacity 320ms var(--ease);
+  }
+  .drawer.in::backdrop {
+    opacity: 1;
+  }
+  .panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(640px, 92vw);
+    border-left: 1px solid var(--line);
+    background: var(--board) var(--perfboard);
+    box-shadow: -18px 0 40px rgba(0, 0, 0, 0.35);
+    transform: translateX(100%);
+    transition: transform 320ms var(--ease);
+    outline: none;
+  }
+  .drawer.in .panel {
+    transform: none;
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    border-bottom: 1px solid var(--line);
+  }
+  .tag {
+    color: var(--muted);
+  }
+  .close {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-2);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .close:hover {
+    border-color: var(--accent);
+  }
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--s-4) var(--s-3) var(--s-6);
+  }
+  @media (max-width: 720px) {
+    .panel {
+      top: auto;
+      left: 0;
+      width: auto;
+      max-height: 88svh;
+      border-left: 0;
+      border-top: 1px solid var(--line);
+      border-radius: var(--r-3) var(--r-3) 0 0;
+      box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.35);
+      transform: translateY(100%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .drawer::backdrop,
+    .panel {
+      transition: none;
+    }
+  }
+</style>

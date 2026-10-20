@@ -1,33 +1,88 @@
 ---
 import LedDot from './LedDot.astro';
 
-const links = [
-  { label: 'BOOT', href: '#boot', color: 'var(--pa0)' },
-  { label: 'TRACE', href: '#trace', color: 'var(--pa1)' },
-  { label: 'BUILDS', href: '#builds', color: 'var(--pa2)' },
-  { label: 'REGS', href: '#regs', color: 'var(--pa3)' },
-  { label: 'IRQ', href: '#irq', color: 'var(--pa4)' },
+// scroll order down the desk; IRQ leads off to the IDE world on the left
+const SECTIONS = [
+  { id: 'boot', label: 'BOOT', addr: '0x0000', plain: 'INTRO', color: 'var(--pa0)' },
+  { id: 'regs', label: 'REGS', addr: '0x0800', plain: 'SKILLS', color: 'var(--pa3)' },
+  { id: 'trace', label: 'TRACE', addr: '0x1000', plain: 'WORK EXP', color: 'var(--pa1)' },
+  { id: 'builds', label: 'BUILDS', addr: '0x2000', plain: 'PROJECTS', color: 'var(--pa2)' },
+  { id: 'irq', label: 'IRQ', addr: '0x4000', plain: 'CONTACT', color: 'var(--pa4)' },
 ];
+
+const home = Astro.url.pathname === '/';
+const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id}`);
 ---
 
-<header class="nav">
+<header class="nav" transition:name="site-nav" transition:animate="none">
   <div class="container bar">
     <nav aria-label="Primary">
       <ul>
         {
-          links.map((l) => (
+          SECTIONS.map((s) => (
             <li>
-              <a href={l.href}>
-                <LedDot color={l.color} />
-                {l.label}
+              <a href={href(s.id)} data-sec={s.id} data-addr={s.addr} data-plain={s.plain}>
+                <LedDot color={s.color} />
+                {s.label}
               </a>
             </li>
           ))
         }
       </ul>
     </nav>
+    <div class="status" aria-hidden="true">
+      <span class="row r1"></span>
+      <span class="row r2"></span>
+    </div>
   </div>
 </header>
+
+<script>
+  // the section crossing the middle of the viewport is the active one
+  const init = () => {
+    const nav = document.querySelector<HTMLElement>('.nav');
+    const links = [...document.querySelectorAll<HTMLAnchorElement>('.nav a[data-sec]')];
+    const status = nav?.querySelector<HTMLElement>('.status');
+    if (!nav || !status) return;
+    const r1 = status.querySelector('.r1')!;
+    const r2 = status.querySelector('.r2')!;
+    const pad = (s: string) => s.padEnd(16, ' ').slice(0, 16);
+
+    const setActive = (id: string) => {
+      for (const a of links) {
+        const on = a.dataset.sec === id;
+        a.classList.toggle('active', on);
+        if (on) {
+          a.setAttribute('aria-current', 'location');
+          r1.textContent = pad(`${a.dataset.addr} ${a.textContent!.trim()}`);
+          r2.textContent = pad(a.dataset.plain!);
+        } else a.removeAttribute('aria-current');
+      }
+    };
+
+    const sections = links.map((a) => document.getElementById(a.dataset.sec!)).filter(Boolean) as HTMLElement[];
+    if (!sections.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) setActive(e.target.id);
+      },
+      { rootMargin: '-50% 0px -50% 0px' },
+    );
+    sections.forEach((s) => io.observe(s));
+
+    // the LCD wakes once the hero copy has scrolled away
+    const hero = document.getElementById('boot');
+    if (hero) {
+      const heroIo = new IntersectionObserver(([e]) => nav.classList.toggle('show-status', !e.isIntersecting), {
+        rootMargin: `-${nav.offsetHeight}px 0px 0px 0px`,
+      });
+      heroIo.observe(hero);
+    }
+
+    document.addEventListener('astro:before-swap', () => io.disconnect(), { once: true });
+  };
+  document.addEventListener('astro:page-load', init);
+</script>
 
 <style>
   .nav {
@@ -51,18 +106,86 @@ const links = [
     gap: var(--s-1);
   }
   nav a {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 6px;
     min-height: 44px;
-    padding-inline: var(--s-1);
+    padding-inline: 10px;
+    border-radius: 999px;
     color: var(--text-2);
     font: 500 var(--fs-label) var(--font-mono);
     letter-spacing: 0.04em;
     text-decoration: none;
   }
+  /* pill sits behind the label and fades in, so only opacity animates */
+  nav a::before {
+    content: '';
+    position: absolute;
+    inset: 6px 0;
+    border: 1px solid var(--line);
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--board) 85%, transparent);
+    opacity: 0;
+    transition: opacity var(--t-med) var(--ease);
+    z-index: -1;
+  }
   nav a:hover {
     color: var(--text);
+  }
+  nav a.active {
+    color: var(--text);
+  }
+  nav a.active::before {
+    opacity: 1;
+  }
+  nav a :global(.led) {
+    opacity: 0.35;
+    transition: opacity var(--t-med) var(--ease);
+  }
+  nav a.active :global(.led) {
+    opacity: 1;
+    animation: led-blink 1.2s steps(1, end) infinite;
+  }
+  @keyframes led-blink {
+    50% {
+      opacity: 0.25;
+    }
+  }
+
+  /* 16x2 status character LCD */
+  .status {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4px 10px;
+    border: 2px solid #25282d;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #c4ecdb, #a9dcc7);
+    box-shadow: inset 0 0 6px rgba(20, 50, 40, 0.35);
+    color: #16302a;
+    font: 600 11px/1.25 var(--font-mono);
+    letter-spacing: 0.08em;
+    white-space: pre;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition:
+      opacity var(--t-slow) var(--ease),
+      transform var(--t-slow) var(--ease);
+    pointer-events: none;
+  }
+  .row {
+    display: block;
+    min-width: 16ch;
+  }
+  .nav.show-status .status {
+    opacity: 1;
+    transform: none;
+  }
+  @media (min-width: 760px) {
+    .status {
+      display: flex;
+    }
   }
   @media (max-width: 480px) {
     ul {
@@ -73,6 +196,11 @@ const links = [
     }
     nav a :global(.led) {
       display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    nav a.active :global(.led) {
+      animation: none;
     }
   }
 </style>

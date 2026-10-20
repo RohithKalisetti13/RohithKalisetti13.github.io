@@ -1,4 +1,6 @@
 ---
+import { ClientRouter } from 'astro:transitions';
+import 'lenis/dist/lenis.css';
 import '../styles/global.css';
 import site from '../content/site.json';
 
@@ -38,11 +40,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         document.documentElement.dataset.theme = t;
       })();
     </script>
+    <ClientRouter />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <slot />
-    <button type="button" class="theme-toggle" aria-label="Toggle light or dark theme" aria-pressed="false">
+    <button type="button" class="theme-toggle" transition:name="theme-toggle" transition:animate="none" aria-label="Toggle light or dark theme" aria-pressed="false">
       <svg viewBox="0 0 56 56" width="56" height="56" aria-hidden="true">
         <rect x="2" y="2" width="52" height="52" rx="6" fill="#10241b" stroke="#2a6b50" stroke-width="1.5" />
         <circle cx="9" cy="9" r="2.4" fill="#c9b16c" />
@@ -72,10 +75,122 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         });
       })();
     </script>
+    <script>
+      import Lenis from 'lenis';
+
+      const root = document.documentElement;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+      let lenis: Lenis | null = null;
+      let raf = 0;
+      const loop = (t: number) => {
+        lenis?.raf(t);
+        raf = requestAnimationFrame(loop);
+      };
+      // wheel smoothing only: no snap, no hijack; keys, find-in-page and touch stay native
+      const sync = () => {
+        if (reduced.matches) {
+          cancelAnimationFrame(raf);
+          lenis?.destroy();
+          lenis = null;
+        } else if (!lenis) {
+          lenis = new Lenis({ lerp: 0.12, smoothWheel: true, syncTouch: false });
+          raf = requestAnimationFrame(loop);
+        }
+      };
+      sync();
+      reduced.addEventListener('change', sync);
+
+      // same-page anchors glide; the URL and focus still follow
+      document.addEventListener('click', (e) => {
+        if (!lenis || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        const a = (e.target as Element).closest?.('a[href*="#"]') as HTMLAnchorElement | null;
+        if (!a || a.target || a.origin !== location.origin || a.pathname !== location.pathname) return;
+        const id = decodeURIComponent(a.hash.slice(1));
+        const el = id && !id.startsWith('/') ? document.getElementById(id) : null;
+        if (!el) return;
+        e.preventDefault();
+        const nav = parseFloat(getComputedStyle(root).scrollPaddingTop) || 0;
+        lenis.scrollTo(el, { offset: -nav });
+        history.replaceState(history.state, '', a.hash);
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+        el.focus({ preventScroll: true });
+      });
+
+      // the drawer asks for the page to hold still
+      window.addEventListener('rk:scroll-lock', (e) => {
+        const on = (e as CustomEvent<boolean>).detail;
+        root.classList.toggle('scroll-locked', on);
+        if (on) lenis?.stop();
+        else lenis?.start();
+      });
+
+      // keep theme across client-side swaps; pick the slide direction
+      const side = (p: string) => (p.startsWith('/ide') ? -1 : p.startsWith('/projects/') ? 1 : 0);
+      document.addEventListener('astro:before-swap', (e) => {
+        const next = e.newDocument.documentElement;
+        next.dataset.theme = root.dataset.theme;
+        const from = side(e.from.pathname);
+        const to = side(e.to.pathname);
+        // new page comes in from the side of the world it lives on
+        next.dataset.slide = to < from ? 'left' : to > from ? 'right' : 'none';
+      });
+      document.addEventListener('astro:after-swap', () => {
+        root.classList.remove('scroll-locked');
+        if (!lenis) return;
+        lenis.start();
+        lenis.resize();
+        root.classList.add(...lenis.className.split(' '));
+      });
+    </script>
   </body>
 </html>
 
 <style is:global>
+  html.scroll-locked {
+    overflow: hidden;
+  }
+  /* world travel: the new page slides in from its side, the old one moves away */
+  html[data-slide='left']::view-transition-old(root) {
+    animation: 420ms var(--ease) both slide-to-right;
+  }
+  html[data-slide='left']::view-transition-new(root) {
+    animation: 420ms var(--ease) both slide-from-left;
+  }
+  html[data-slide='right']::view-transition-old(root) {
+    animation: 420ms var(--ease) both slide-to-left;
+  }
+  html[data-slide='right']::view-transition-new(root) {
+    animation: 420ms var(--ease) both slide-from-right;
+  }
+  @keyframes slide-from-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes slide-from-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes slide-to-left {
+    to {
+      transform: translateX(-30%);
+      opacity: 0;
+    }
+  }
+  @keyframes slide-to-right {
+    to {
+      transform: translateX(30%);
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none !important;
+    }
+  }
   .theme-toggle {
     --ldr-face: #6b4a1e;
     --ldr-track: #c98a3a;
