@@ -171,8 +171,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       // Lenis holds still. Written as the page moves, so leaving never has to catch it in time
       history.scrollRestoration = 'manual';
       let remembering = 0;
+      // a restore in progress: until the page is tall enough to reach it, the browser clamps scrollY,
+      // and that clamped value must not overwrite the entry's saved one
+      let hold: number | null = null;
       const remember = () => {
         if (root.classList.contains('rk-swapping')) return;
+        if (hold !== null && Math.abs(window.scrollY - hold) > 1) return;
+        hold = null;
         writePos(window.scrollY, root.dataset.station);
       };
       window.addEventListener(
@@ -214,14 +219,33 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       document.addEventListener('astro:after-swap', () => {
         root.classList.remove('scroll-locked');
         history.scrollRestoration = 'manual';
-        // the router has just scrolled (smoothly, if CSS asks); land exactly, with no animation
-        if (restoreY !== null) window.scrollTo({ top: restoreY, left: 0, behavior: 'instant' });
-        restoreY = null;
         if (lenis) {
           root.classList.add(...lenis.className.split(' '));
-          lenis.resize();
-          lenis.scrollTo(window.scrollY, { immediate: true, force: true });
           lenis.start();
+        }
+        // the router has just scrolled (smoothly, if CSS asks); land exactly, with no animation. The
+        // bench settles into place shortly after first paint and the page grows with it, so the same
+        // saved position is applied again until it holds or the visitor takes over
+        const y = restoreY;
+        restoreY = null;
+        hold = y;
+        const land = () => {
+          if (y === null) return;
+          lenis?.resize();
+          window.scrollTo({ top: y, left: 0, behavior: 'instant' });
+          lenis?.scrollTo(window.scrollY, { immediate: true, force: true });
+        };
+        land();
+        if (y !== null) {
+          const ctl = new AbortController();
+          const stop = () => {
+            hold = null;
+            ctl.abort();
+          };
+          const again = () => (Math.abs(window.scrollY - y) > 1 ? land() : stop());
+          window.addEventListener('rk:layout', again, { signal: ctl.signal });
+          for (const t of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) window.addEventListener(t, stop, { once: true, passive: true, signal: ctl.signal });
+          setTimeout(stop, 5000);
         }
         bindTheme();
         setTimeout(() => root.classList.remove('rk-swapping'), 0);
