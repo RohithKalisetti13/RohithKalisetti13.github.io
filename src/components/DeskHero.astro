@@ -1,65 +1,91 @@
 ---
-// Hero: the board lying on a desk, a USB cable over CN1 and an I2C display wired to CN5.
+// Hero: the board lying on a desk, a USB cable in CN1 with an inline power switch,
+// and a 1602 character LCD on an I2C backpack wired to CN5.
 // Overlays share the board's 1500x2000 user space, so every coordinate below is board units.
 // Markup is the powered-on state; the inline script switches to off before first paint.
 import McuBoard from './McuBoard.astro';
-import GpioButton from './GpioButton.astro';
 import LedDot from './LedDot.astro';
 import site from '../content/site.json';
 
-// display module, lying on the desk above the top-right corner
-const LCD = { x: 1150, y: -105, w: 300, h: 160 };
-const SCREEN = { x: 1166, y: -93, w: 268, h: 82 };
-const LCD_PINS = [
-  { n: 'VCC', x: 1220 },
-  { n: 'GND', x: 1273 },
-  { n: 'SCL', x: 1326 },
-  { n: 'SDA', x: 1379 },
-];
+// 1602 module, lying on the desk above the top-right corner (local coordinates inside it)
+const LCD = { x: 1105, y: -186, w: 410, h: 176 };
+const WIN = { x: 22, y: 40, w: 366, h: 108 };
+// 5x8 dot cells: dot pitch D, a one-dot gap between characters and between the two rows
+const D = 3.6;
+const DOT = 3;
+const COLS = 16;
+const TX = WIN.x + (WIN.w - (COLS * 6 - 1) * D) / 2;
+const TY = WIN.y + (WIN.h - 17 * D) / 2;
+const CELLS = Array.from({ length: COLS * 2 }, (_, i) => [TX + (i % COLS) * 6 * D, TY + Math.floor(i / COLS) * 9 * D]);
 
-// CN5 sockets (column x 1270, pitch 53 from y 826) and the jumper for each display pin
-type Wire = { pin: string; to: string; y: number; color: string; lane: number; rank: number };
+// HD44780-style glyphs, seven rows of five bits; the eighth row is the cursor line
+const FONT: Record<string, number[]> = {
+  A: [14, 17, 17, 17, 31, 17, 17], B: [30, 17, 17, 30, 17, 17, 30], C: [14, 17, 16, 16, 16, 17, 14],
+  D: [28, 18, 17, 17, 17, 18, 28], E: [31, 16, 16, 30, 16, 16, 31], F: [31, 16, 16, 30, 16, 16, 16],
+  G: [14, 17, 16, 23, 17, 17, 15], H: [17, 17, 17, 31, 17, 17, 17], I: [14, 4, 4, 4, 4, 4, 14],
+  J: [7, 2, 2, 2, 2, 18, 12], K: [17, 18, 20, 24, 20, 18, 17], L: [16, 16, 16, 16, 16, 16, 31],
+  M: [17, 27, 21, 21, 17, 17, 17], N: [17, 17, 25, 21, 19, 17, 17], O: [14, 17, 17, 17, 17, 17, 14],
+  P: [30, 17, 17, 30, 16, 16, 16], Q: [14, 17, 17, 17, 21, 18, 13], R: [30, 17, 17, 30, 20, 18, 17],
+  S: [15, 16, 16, 14, 1, 1, 30], T: [31, 4, 4, 4, 4, 4, 4], U: [17, 17, 17, 17, 17, 17, 14],
+  V: [17, 17, 17, 17, 17, 10, 4], W: [17, 17, 17, 21, 21, 21, 10], X: [17, 17, 10, 4, 10, 17, 17],
+  Y: [17, 17, 17, 10, 4, 4, 4], Z: [31, 1, 2, 4, 8, 16, 31], x: [0, 0, 17, 10, 4, 10, 17],
+  0: [14, 17, 19, 21, 25, 17, 14], 1: [4, 12, 4, 4, 4, 4, 14], 2: [14, 17, 1, 2, 4, 8, 31],
+  3: [31, 2, 4, 2, 1, 17, 14], 4: [2, 6, 10, 18, 31, 2, 2], 5: [31, 16, 30, 1, 1, 17, 14],
+  6: [6, 8, 16, 30, 17, 17, 14], 7: [31, 1, 2, 4, 8, 8, 8], 8: [14, 17, 17, 14, 17, 17, 14],
+  9: [14, 17, 17, 15, 1, 2, 12], ':': [0, 12, 12, 0, 12, 12, 0], '.': [0, 0, 0, 0, 0, 12, 12],
+  '-': [0, 0, 0, 31, 0, 0, 0], '/': [0, 1, 2, 4, 8, 16, 0],
+};
+// lit dots for two 16-character lines, as one path
+const frame = (a: string, b: string) =>
+  [a, b]
+    .flatMap((line, r) =>
+      [...line.slice(0, COLS)].flatMap((ch, c) =>
+        (FONT[ch] ?? []).flatMap((bits, y) =>
+          [0, 1, 2, 3, 4]
+            .filter((x) => bits & (16 >> x))
+            .map((x) => `M${+(TX + (c * 6 + x) * D).toFixed(1)} ${+(TY + (r * 9 + y) * D).toFixed(1)}h${DOT}v${DOT}h-${DOT}z`),
+        ),
+      ),
+    )
+    .join('');
+const NAME = 'ROHITH KALISETTI';
+const TAG = 'EMBEDDED FIRMWARE ENGINEER';
+const LOG = ['RK-FW1 REV A', 'RST: POWER-ON', 'CLK: PLL LOCKED', 'I2C1: 0x27 ACK', 'RTOS: SCHED UP', 'APP: READY'];
+
+// backpack pins, left to right; the left pin takes the inner lane and the shallowest socket
+type Wire = { pin: string; px: number; to: string; y: number; color: string };
 const WIRES: Wire[] = [
-  { pin: 'VCC', to: 'AVDD', y: 932, color: '#d4483e', lane: 0, rank: 2 },
-  { pin: 'GND', to: 'GND', y: 985, color: '#2a2b2f', lane: 1, rank: 3 },
-  { pin: 'SCL', to: 'SCL/D15', y: 826, color: '#e3b23c', lane: 2, rank: 0 },
-  { pin: 'SDA', to: 'SDA/D14', y: 879, color: '#3f86d8', lane: 3, rank: 1 },
+  { pin: 'SCL', px: 280, to: 'SCL/D15', y: 826, color: '#e3b23c' },
+  { pin: 'SDA', px: 305, to: 'SDA/D14', y: 879, color: '#3f86d8' },
+  { pin: 'VCC', px: 330, to: 'AVDD', y: 932, color: '#d4483e' },
+  { pin: 'GND', px: 355, to: 'GND', y: 985, color: '#2a2b2f' },
 ];
-const HOUSING_END = 1298;
-
-// polyline with rounded corners
-const rounded = (pts: [number, number][], r = 46) => {
-  let d = `M${pts[0][0]} ${pts[0][1]}`;
-  for (let i = 1; i < pts.length - 1; i++) {
-    const [px, py] = pts[i - 1];
-    const [x, y] = pts[i];
-    const [nx, ny] = pts[i + 1];
-    const l1 = Math.hypot(x - px, y - py);
-    const l2 = Math.hypot(nx - x, ny - y);
-    const k1 = Math.min(r, l1 / 2) / l1;
-    const k2 = Math.min(r, l2 / 2) / l2;
-    d += `L${(x - (x - px) * k1).toFixed(1)} ${(y - (y - py) * k1).toFixed(1)}`;
-    d += `Q${x} ${y} ${(x + (nx - x) * k2).toFixed(1)} ${(y + (ny - y) * k2).toFixed(1)}`;
-  }
-  const [lx, ly] = pts[pts.length - 1];
-  return d + `L${lx} ${ly}`;
-};
-const wirePath = (w: Wire) => {
-  const px = LCD_PINS[w.lane].x;
-  const left = 1196 + w.lane * 11; // down the left side of LD1
-  const right = 1308 + w.rank * 10; // between CN5 and CN10
-  return rounded([
-    [px, LCD.y + LCD.h + 38],
-    [left, 200],
-    [left, 330],
-    [right, 430],
-    [right, w.y - 22],
-    [HOUSING_END + 4, w.y],
-  ]);
+const HOUSING_END = 1298; // CN5 socket housings end here
+const LANE0 = 1500; // right desk margin, clear of the board edge at 1470
+const PIN_Y = LCD.y + 238; // bottom of the Dupont housings on the backpack
+// over the corner, down the margin with a little slack, then into CN5
+const wirePath = (w: Wire, i: number) => {
+  const sx = LCD.x + w.px;
+  const lx = LANE0 + i * 14;
+  const sag = 16 + i * 3;
+  return [
+    `M${sx} ${PIN_Y}`,
+    `C${sx} ${PIN_Y + 50} ${lx} ${PIN_Y + 30} ${lx} ${PIN_Y + 112}`,
+    `C${lx + sag} ${PIN_Y + 330} ${lx + sag} ${w.y - 300} ${lx} ${w.y - 110}`,
+    `C${lx} ${w.y - 30} ${lx - 46} ${w.y} ${lx - 110} ${w.y}`,
+    `L${HOUSING_END + 4} ${w.y}`,
+  ].join('');
 };
 
-const PLUG_X = 1015;
-const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack', 'rtos: scheduler up', 'app: ready'];
+// the switch box sits on the cable, above the plug
+const SW = { x: 1018, y: -262 };
+
+const LINKS = [
+  { label: 'Resume', href: site.resume, pin: 'PB0', cap: 'light', external: true },
+  { label: 'GitHub', href: site.github, pin: 'PB1', cap: 'dark', external: true },
+  { label: 'LinkedIn', href: site.linkedin, pin: 'PB2', cap: 'dark', external: true },
+  { label: 'Email', href: `mailto:${site.email}`, pin: 'PB3', cap: 'dark', external: false },
+];
 ---
 
 <section id="boot" class="desk" data-power="on" aria-labelledby="boot-title">
@@ -70,119 +96,48 @@ const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack
         <p class="role">{site.role}</p>
         <p class="avail powered-in"><LedDot color="var(--pa4)" />{site.availability}</p>
       </div>
-      <div class="ctl">
-        <button type="button" class="hint" hidden>
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-            <path d="M12 3v14M12 3l-3 4h6zM7 10v3l5 3M17 9v2l-5 3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-            <circle cx="12" cy="19" r="2" fill="currentColor" />
-          </svg>
-          Plug in USB to power on
-        </button>
-        <ul class="gpios powered-in" aria-label="Links">
-          <li><GpioButton href={site.resume} external pin="PB0">Resume</GpioButton></li>
-          <li><GpioButton href={site.github} external pin="PB1" variant="secondary">GitHub</GpioButton></li>
-          <li><GpioButton href={site.linkedin} external pin="PB2" variant="secondary">LinkedIn</GpioButton></li>
-          <li><GpioButton href={`mailto:${site.email}`} pin="PB3" variant="secondary">Email</GpioButton></li>
-        </ul>
-      </div>
+      <p class="hint">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <rect x="7" y="3" width="10" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.7" />
+          <path d="M12 6.5v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+          <circle cx="12" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+        Flip the switch to power on
+      </p>
+
+      <!-- tactile switch module, one link per switch -->
+      <ul class="tact" aria-label="Links">
+        {
+          LINKS.map((l) => (
+            <li>
+              <a
+                class="tsw"
+                data-cap={l.cap}
+                href={l.href}
+                {...(l.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+              >
+                <span class="sw" aria-hidden="true">
+                  <i class="leg" />
+                  <i class="leg" />
+                  <i class="leg" />
+                  <i class="leg" />
+                  <span class="cap" />
+                </span>
+                <span class="lbl">{l.label}</span>
+                <span class="pin" aria-hidden="true">
+                  {l.pin}
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
     </div>
 
     <div class="stage">
       <McuBoard power="on" idPrefix="hero-" />
 
-      <!-- display module and its four jumpers -->
-      <svg class="rig rig-fx" viewBox="0 0 1500 2000" overflow="visible" aria-hidden="true">
-        <defs>
-          <linearGradient id="lcd-pcb" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#2367b0" />
-            <stop offset="1" stop-color="#174a86" />
-          </linearGradient>
-          <linearGradient id="lcd-glass" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#16181c" />
-            <stop offset=".5" stop-color="#0a0b0d" />
-            <stop offset="1" stop-color="#050607" />
-          </linearGradient>
-          <clipPath id="lcd-clip">
-            <rect x={SCREEN.x + 8} y={SCREEN.y + 6} width={SCREEN.w - 16} height={SCREEN.h - 12} />
-          </clipPath>
-        </defs>
-
-        <!-- module -->
-        <g class="lcd">
-          <rect x={LCD.x + 18} y={LCD.y + 28} width={LCD.w} height={LCD.h} rx="14" fill="#000" opacity=".22" />
-          <rect x={LCD.x + 6} y={LCD.y + 9} width={LCD.w} height={LCD.h} rx="11" fill="#000" opacity=".35" />
-          <rect x={LCD.x - 2} y={LCD.y + 3} width={LCD.w + 2} height={LCD.h} rx="10" fill="#0f3566" />
-          <rect x={LCD.x} y={LCD.y} width={LCD.w} height={LCD.h} rx="10" fill="url(#lcd-pcb)" />
-          <path d={`M${LCD.x + 3} ${LCD.y + LCD.h - 8}V${LCD.y + 10}Q${LCD.x + 3} ${LCD.y + 3} ${LCD.x + 10} ${LCD.y + 3}H${LCD.x + LCD.w - 8}`} stroke="#fff" stroke-width="2" fill="none" opacity=".3" />
-          {
-            [
-              [LCD.x + 14, LCD.y + 14],
-              [LCD.x + LCD.w - 14, LCD.y + 14],
-              [LCD.x + 14, LCD.y + LCD.h - 14],
-              [LCD.x + LCD.w - 14, LCD.y + LCD.h - 14],
-            ].map(([x, y]) => (
-              <g>
-                <circle cx={x} cy={y} r="9" fill="#d9c27a" />
-                <circle cx={x} cy={y} r="5" fill="#0b1018" />
-              </g>
-            ))
-          }
-          <rect x={SCREEN.x - 2} y={SCREEN.y - 2} width={SCREEN.w + 4} height={SCREEN.h + 4} rx="4" fill="#06070a" />
-          <rect x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx="3" fill="url(#lcd-glass)" />
-          <g fill="#e6eef8" font-family="'JetBrains Mono Variable', ui-monospace, monospace" font-size="12" text-anchor="middle" opacity=".85">
-            {LCD_PINS.map((p) => <text x={p.x} y={LCD.y + LCD.h - 30}>{p.n}</text>)}
-          </g>
-          {
-            LCD_PINS.map((p) => (
-              <g>
-                <rect x={p.x - 9} y={LCD.y + LCD.h - 22} width="18" height="18" rx="2" fill="#d9c27a" />
-                <circle cx={p.x} cy={LCD.y + LCD.h - 13} r="4.5" fill="#3a2c10" />
-              </g>
-            ))
-          }
-
-          <!-- screen content: boot log, then the title -->
-          <g class="lcd-on" font-family="'JetBrains Mono Variable', ui-monospace, monospace" fill="#a6e6ff">
-            <g class="lcd-log" clip-path="url(#lcd-clip)" font-size="15">
-              <g class="lcd-lines" transform={`translate(${SCREEN.x + 12} ${SCREEN.y + 24})`}></g>
-            </g>
-            <g class="lcd-final" font-size="21" font-weight="600">
-              <text x={SCREEN.x + 14} y={SCREEN.y + 34}>Embedded</text>
-              <text x={SCREEN.x + 14} y={SCREEN.y + 64}>Firmware Engineer</text>
-            </g>
-          </g>
-          <path d={`M${SCREEN.x + 4} ${SCREEN.y + SCREEN.h - 4}L${SCREEN.x + 60} ${SCREEN.y + 4}H${SCREEN.x + 96}L${SCREEN.x + 40} ${SCREEN.y + SCREEN.h - 4}Z`} fill="#fff" opacity=".05" />
-        </g>
-
-        <!-- jumpers: shadow, insulation, highlight, then the Dupont housings at both ends -->
-        <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-          {WIRES.map((w) => <path d={wirePath(w)} transform="translate(7 10)" stroke="#000" stroke-width="12" opacity=".24" />)}
-          {WIRES.map((w) => <path d={wirePath(w)} stroke={w.color} stroke-width="10" />)}
-          {WIRES.map((w) => <path d={wirePath(w)} transform="translate(-1.6 -1.6)" stroke="#fff" stroke-width="2.6" opacity=".32" />)}
-        </g>
-        {
-          LCD_PINS.map((p) => (
-            <g>
-              <rect x={p.x - 11} y={LCD.y + LCD.h - 16} width="26" height="62" rx="3" fill="#000" opacity=".3" />
-              <rect x={p.x - 13} y={LCD.y + LCD.h - 20} width="26" height="60" rx="3" fill="#18191c" />
-              <path d={`M${p.x - 11} ${LCD.y + LCD.h - 18}H${p.x + 11}`} stroke="#4a4b51" stroke-width="2" />
-              <rect x={p.x - 5} y={LCD.y + LCD.h + 8} width="10" height="18" rx="1" fill="#2c2d32" />
-            </g>
-          ))
-        }
-        {
-          WIRES.map((w) => (
-            <g>
-              <rect x="1252" y={w.y - 10} width={HOUSING_END - 1246} height="28" rx="3" fill="#000" opacity=".3" />
-              <rect x="1246" y={w.y - 14} width={HOUSING_END - 1246} height="28" rx="3" fill="#18191c" />
-              <path d={`M1248 ${w.y - 12}H${HOUSING_END - 3}`} stroke="#4a4b51" stroke-width="2" />
-              <rect x="1262" y={w.y - 5} width="18" height="10" rx="1" fill="#2c2d32" />
-            </g>
-          ))
-        }
-      </svg>
-
-      <!-- USB cable from above, plug slides into CN1 -->
+      <!-- USB cable, permanently in CN1 -->
       <svg class="rig rig-usb" viewBox="0 -400 1500 2400" overflow="visible" aria-hidden="true">
         <defs>
           <clipPath id="usb-clip">
@@ -202,37 +157,169 @@ const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack
           </linearGradient>
         </defs>
         <g clip-path="url(#usb-clip)">
-          <g class="plug">
-            <path d="M1015 -160C1015 -420 1034 -760 1050 -4000" transform="translate(16 24)" stroke="#000" stroke-width="44" fill="none" opacity=".28" />
-            <rect x={PLUG_X - 67 + 14} y="-70" width="134" height="190" rx="14" fill="#000" opacity=".3" />
-            <rect x={PLUG_X - 52} y="88" width="104" height="52" rx="3" fill="url(#usb-tip)" />
-            <rect x={PLUG_X - 40} y="96" width="80" height="8" fill="#1a1a1c" opacity=".6" />
-            <path d="M1015 -160C1015 -420 1034 -760 1050 -4000" stroke="#17181b" stroke-width="40" fill="none" />
-            <path d="M1003 -170C1003 -420 1021 -760 1037 -4000" stroke="#fff" stroke-width="5" fill="none" opacity=".1" />
-            <path d={`M${PLUG_X - 40} -78H${PLUG_X + 40}L${PLUG_X + 24} -168H${PLUG_X - 24}Z`} fill="#141518" />
-            <path d={`M${PLUG_X - 36} -98H${PLUG_X + 36}M${PLUG_X - 32} -120H${PLUG_X + 32}M${PLUG_X - 29} -142H${PLUG_X + 29}`} stroke="#2c2d31" stroke-width="5" />
-            <rect x={PLUG_X - 67} y="-80" width="134" height="180" rx="14" fill="url(#usb-mold)" />
-            <path d={`M${PLUG_X - 60} 92V-64Q${PLUG_X - 60} -74 ${PLUG_X - 50} -74H${PLUG_X + 40}`} stroke="#fff" stroke-width="2.5" fill="none" opacity=".16" />
-            <path d={`M${PLUG_X - 30} 66H${PLUG_X + 30}M${PLUG_X - 30} 78H${PLUG_X + 30}`} stroke="#0a0a0b" stroke-width="4" opacity=".8" />
-            <g transform={`translate(${PLUG_X} 4)`} stroke="#55565c" stroke-width="3.5" fill="none" stroke-linecap="round">
-              <path d="M0 26V-26M0-26l-7 9h14zM0 8l-14-8v-8M0 14l13-8v-7" />
-              <circle cx="0" cy="30" r="4" fill="#55565c" />
-            </g>
+          <path d="M1015 -160C1015 -420 1034 -760 1050 -4000" transform="translate(16 24)" stroke="#000" stroke-width="44" fill="none" opacity=".28" />
+          <rect x="962" y="-70" width="134" height="190" rx="14" fill="#000" opacity=".3" />
+          <rect x="963" y="88" width="104" height="52" rx="3" fill="url(#usb-tip)" />
+          <rect x="975" y="96" width="80" height="8" fill="#1a1a1c" opacity=".6" />
+          <path d="M1015 -160C1015 -420 1034 -760 1050 -4000" stroke="#17181b" stroke-width="40" fill="none" />
+          <path d="M1003 -170C1003 -420 1021 -760 1037 -4000" stroke="#fff" stroke-width="5" fill="none" opacity=".1" />
+          <path d="M975 -78H1055L1039 -168H991Z" fill="#141518" />
+          <path d="M979 -98H1051M983 -120H1047M986 -142H1044" stroke="#2c2d31" stroke-width="5" />
+          <rect x="948" y="-80" width="134" height="180" rx="14" fill="url(#usb-mold)" />
+          <path d="M955 92V-64Q955 -74 965 -74H1055" stroke="#fff" stroke-width="2.5" fill="none" opacity=".16" />
+          <path d="M985 66H1045M985 78H1045" stroke="#0a0a0b" stroke-width="4" opacity=".8" />
+          <g transform="translate(1015 4)" stroke="#55565c" stroke-width="3.5" fill="none" stroke-linecap="round">
+            <path d="M0 26V-26M0-26l-7 9h14zM0 8l-14-8v-8M0 14l13-8v-7" />
+            <circle cx="0" cy="30" r="4" fill="#55565c" />
           </g>
         </g>
       </svg>
+
+      <!-- 1602 LCD module and its four jumpers -->
+      <svg class="rig rig-fx" viewBox="0 0 1500 2000" overflow="visible" aria-hidden="true">
+        <defs>
+          <linearGradient id="lcd-pcb" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#2f7a3a" />
+            <stop offset="1" stop-color="#1e5a29" />
+          </linearGradient>
+          <linearGradient id="lcd-back" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#c9d6df" />
+            <stop offset=".6" stop-color="#b3c3cf" />
+            <stop offset="1" stop-color="#a2b4c2" />
+          </linearGradient>
+          <pattern id="lcd-cell" patternUnits="userSpaceOnUse" x={TX} y={TY} width={D} height={D}>
+            <rect width={DOT} height={DOT} fill="#1c2733" opacity=".07" />
+          </pattern>
+        </defs>
+
+        <g class="lcd" transform={`translate(${LCD.x} ${LCD.y})`}>
+          <rect x="14" y="22" width={LCD.w} height={LCD.h} rx="9" fill="#000" opacity=".22" />
+          <rect x="5" y="8" width={LCD.w} height={LCD.h} rx="8" fill="#000" opacity=".35" />
+          <rect x="-2" y="3" width={LCD.w + 2} height={LCD.h} rx="7" fill="#14431c" />
+          <rect width={LCD.w} height={LCD.h} rx="7" fill="url(#lcd-pcb)" />
+          <path d={`M3 ${LCD.h - 8}V10Q3 3 10 3H${LCD.w - 8}`} stroke="#fff" stroke-width="2" fill="none" opacity=".22" />
+          {
+            [
+              [13, 13],
+              [LCD.w - 13, 13],
+              [13, LCD.h - 13],
+              [LCD.w - 13, LCD.h - 13],
+            ].map(([x, y]) => (
+              <g>
+                <circle cx={x} cy={y} r="8" fill="#d9c27a" />
+                <circle cx={x} cy={y} r="4.6" fill="#0b120c" />
+              </g>
+            ))
+          }
+          <!-- 16-pin parallel header -->
+          {
+            Array.from({ length: 16 }, (_, i) => (
+              <g>
+                <rect x={44 + i * 20} y="7" width="13" height="13" rx={i ? 6.5 : 1.5} fill="#d9c27a" />
+                <circle cx={50.5 + i * 20} cy="13.5" r="3.4" fill="#1d1a10" />
+              </g>
+            ))
+          }
+          <!-- bezel and backlit window -->
+          <rect x="12" y="29" width="386" height="128" rx="4" fill="#25282d" />
+          <path d="M13 156V31Q13 30 15 30H396" stroke="#4a4e55" stroke-width="2" fill="none" />
+          <rect x={WIN.x} y={WIN.y} width={WIN.w} height={WIN.h} rx="2" fill="#3a3d42" />
+          <g class="lcd-on">
+            <rect x={WIN.x} y={WIN.y} width={WIN.w} height={WIN.h} rx="2" fill="url(#lcd-back)" />
+            {CELLS.map(([x, y]) => <rect x={x} y={y} width={5 * D} height={8 * D} fill="url(#lcd-cell)" />)}
+            <path class="lcd-lit" d={frame(NAME, TAG)} fill="#1c2733" opacity=".86" />
+          </g>
+          <path d={`M${WIN.x + 4} ${WIN.y + WIN.h - 3}L${WIN.x + 70} ${WIN.y + 3}H${WIN.x + 108}L${WIN.x + 42} ${WIN.y + WIN.h - 3}Z`} fill="#fff" opacity=".06" />
+
+          <!-- I2C backpack along the bottom edge -->
+          <rect x="152" y="168" width="250" height="44" rx="3" fill="#000" opacity=".35" />
+          <rect x="148" y="164" width="250" height="44" rx="3" fill="#16191e" />
+          <path d="M150 166H396" stroke="#3a3f47" stroke-width="1.5" />
+          <rect x="164" y="176" width="54" height="22" rx="2" fill="#0c0d0f" />
+          <path d="M168 174v-3M178 174v-3M188 174v-3M198 174v-3M208 174v-3M168 200v3M178 200v3M188 200v3M198 200v3M208 200v3" stroke="#a7a8ab" stroke-width="3" />
+          <rect x="228" y="174" width="26" height="26" rx="3" fill="#2463c4" />
+          <circle cx="241" cy="187" r="8" fill="#e9e6dc" />
+          <path d="M236 187h10M241 182v10" stroke="#555" stroke-width="2.4" />
+          <g fill="#e8edf2" opacity=".85" font-family="'JetBrains Mono Variable', ui-monospace, monospace" font-size="11" text-anchor="middle">
+            {WIRES.map((w) => <text x={w.px} y="179">{w.pin}</text>)}
+          </g>
+        </g>
+
+        <!-- jumpers: shadow, insulation, highlight, then the Dupont housings at both ends -->
+        <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+          {WIRES.map((w, i) => <path d={wirePath(w, i)} transform="translate(7 10)" stroke="#000" stroke-width="11" opacity=".24" />)}
+          {WIRES.map((w, i) => <path d={wirePath(w, i)} stroke={w.color} stroke-width="9" />)}
+          {WIRES.map((w, i) => <path d={wirePath(w, i)} transform="translate(-1.5 -1.5)" stroke="#fff" stroke-width="2.4" opacity=".3" />)}
+        </g>
+        {
+          WIRES.map((w) => (
+            <g transform={`translate(${LCD.x + w.px} ${LCD.y})`}>
+              <rect x="-9" y="190" width="22" height="58" rx="3" fill="#000" opacity=".3" />
+              <rect x="-11" y="186" width="22" height="58" rx="3" fill="#18191c" />
+              <path d="M-9 188H9" stroke="#4a4b51" stroke-width="2" />
+              <rect x="-4" y="226" width="8" height="14" rx="1" fill="#2c2d32" />
+            </g>
+          ))
+        }
+        {
+          WIRES.map((w) => (
+            <g>
+              <rect x="1252" y={w.y - 10} width={HOUSING_END - 1246} height="28" rx="3" fill="#000" opacity=".3" />
+              <rect x="1246" y={w.y - 14} width={HOUSING_END - 1246} height="28" rx="3" fill="#18191c" />
+              <path d={`M1248 ${w.y - 12}H${HOUSING_END - 3}`} stroke="#4a4b51" stroke-width="2" />
+              <rect x="1262" y={w.y - 5} width="18" height="10" rx="1" fill="#2c2d32" />
+            </g>
+          ))
+        }
+      </svg>
+
+      <button type="button" class="lcd-hit" aria-label="Open about"></button>
+
+      <!-- inline rocker on the cable -->
+      <button type="button" class="pwr" aria-pressed="true" aria-label="Power">
+        <svg viewBox="0 0 96 150" aria-hidden="true">
+          <defs>
+            <linearGradient id="pwr-case" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#34363b" />
+              <stop offset="1" stop-color="#16171a" />
+            </linearGradient>
+            <linearGradient id="pwr-up" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#4a4c52" />
+              <stop offset="1" stop-color="#2a2c30" />
+            </linearGradient>
+            <linearGradient id="pwr-down" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#151619" />
+              <stop offset="1" stop-color="#1f2024" />
+            </linearGradient>
+          </defs>
+          <rect x="10" y="10" width="86" height="140" rx="16" fill="#000" opacity=".3" />
+          <rect x="4" y="4" width="86" height="140" rx="16" fill="url(#pwr-case)" />
+          <path d="M8 130V20Q8 8 20 8H76" stroke="#fff" stroke-width="1.5" fill="none" opacity=".18" />
+          <circle class="pwr-led" cx="47" cy="20" r="4" />
+          <rect x="21" y="30" width="52" height="82" rx="6" fill="#0b0c0e" />
+          <g class="rk-i">
+            <rect x="25" y="34" width="44" height="37" rx="3" />
+            <path d="M47 43v18" stroke="#c9cbcf" stroke-width="3.2" stroke-linecap="round" />
+          </g>
+          <g class="rk-o">
+            <rect x="25" y="71" width="44" height="37" rx="3" />
+            <circle cx="47" cy="89.5" r="8" fill="none" stroke="#c9cbcf" stroke-width="3" />
+          </g>
+          <text x="47" y="132" text-anchor="middle" font-family="'JetBrains Mono Variable', ui-monospace, monospace" font-size="12" font-weight="600" fill="#b4b6bb">I/O</text>
+        </svg>
+      </button>
     </div>
   </div>
 </section>
 
-<script is:inline define:vars={{ LOG }}>
+<script is:inline define:vars={{ FONT, LOG, NAME, TAG, TX, TY, D, DOT, COLS }}>
   (() => {
     const root = document.getElementById('boot');
     const board = root && root.querySelector('.mcu-board');
     if (!root || !board) return;
     const stage = root.querySelector('.stage');
-    const hint = root.querySelector('.hint');
-    const lines = root.querySelector('.lcd-lines');
+    const sw = root.querySelector('.pwr');
+    const lit = root.querySelector('.lcd-lit');
     const store = {
       get(k) {
         try {
@@ -245,80 +332,103 @@ const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack
         try {
           window.sessionStorage.setItem(k, v);
         } catch {
-          /* storage blocked: nothing to remember */
+          /* storage blocked: every visit is a first visit */
         }
       },
     };
     const mq = (q) => window.matchMedia(q).matches;
     const reduced = mq('(prefers-reduced-motion: reduce)');
-    const setPower = (s) => {
-      root.dataset.power = s;
-      board.setAttribute('data-power', s === 'on' ? 'on' : 'off');
-    };
 
-    // a repeat visit in this session comes back powered
-    if (store.get('rk-power') === 'on') return;
+    // same lit-dot path as the server render
+    const frame = (a, b) =>
+      [a, b]
+        .flatMap((line, r) =>
+          [...line.slice(0, COLS)].flatMap((ch, c) =>
+            (FONT[ch] || []).flatMap((bits, y) =>
+              [0, 1, 2, 3, 4]
+                .filter((x) => bits & (16 >> x))
+                .map((x) => `M${+(TX + (c * 6 + x) * D).toFixed(1)} ${+(TY + (r * 9 + y) * D).toFixed(1)}h${DOT}v${DOT}h-${DOT}z`),
+            ),
+          ),
+        )
+        .join('');
+    const show = (a, b) => lit.setAttribute('d', frame(a, b));
 
-    let state = 'off';
-    let idle = 0;
-    setPower('off');
-    root.dataset.lcd = 'blank';
-    hint.hidden = false;
-
-    const boot = () => {
+    // one pending LCD step at a time, so power-off cancels whatever is running
+    let step = 0;
+    const later = (fn, ms) => (step = setTimeout(fn, ms));
+    const run = () => {
       if (reduced) {
-        root.dataset.lcd = 'final';
-        return;
+        const pages = ['    EMBEDDED', '    FIRMWARE', '    ENGINEER'];
+        let p = 0;
+        const flip = () => {
+          show(NAME, pages[p]);
+          p = (p + 1) % pages.length;
+          later(flip, 2200);
+        };
+        return flip();
       }
-      root.dataset.lcd = 'log';
-      let i = 0;
+      const s = TAG + '    ';
+      let k = 0;
       const tick = () => {
-        if (i < LOG.length) {
-          const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          t.setAttribute('y', String(i * 19));
-          t.textContent = LOG[i];
-          lines.appendChild(t);
-          lines.style.setProperty('--scroll', `${-Math.max(0, i - 3) * 19}px`);
-          i += 1;
-          setTimeout(tick, 260);
-        } else {
-          setTimeout(() => (root.dataset.lcd = 'final'), 650);
-        }
+        show(NAME, (s + s).slice(k, k + COLS));
+        const hold = k === 0 ? 1600 : 360;
+        k = (k + 1) % s.length;
+        later(tick, hold);
       };
-      setTimeout(tick, 600);
+      tick();
+    };
+    const boot = () => {
+      if (reduced) return run();
+      let i = 0;
+      show('', '');
+      const tick = () => {
+        show(LOG[i - 1] || '', LOG[i]);
+        i += 1;
+        later(i < LOG.length ? tick : run, i < LOG.length ? 300 : 900);
+      };
+      later(tick, 450);
     };
 
-    const powerOn = () => {
-      if (state !== 'off') return;
-      state = 'plugging';
-      clearTimeout(idle);
-      const hadFocus = document.activeElement === hint;
-      root.dataset.power = 'plugging';
-      setTimeout(
-        () => {
-          state = 'on';
-          setPower('on');
-          store.set('rk-power', 'on');
-          boot();
-          if (hadFocus) root.querySelector('.gpios a')?.focus();
-        },
-        reduced ? 0 : 620,
-      );
+    let on = true;
+    const setPower = (v, animate) => {
+      on = v;
+      clearTimeout(step);
+      root.dataset.power = v ? 'on' : 'off';
+      board.setAttribute('data-power', v ? 'on' : 'off');
+      sw.setAttribute('aria-pressed', String(v));
+      if (!v) show('', '');
+      else if (animate) boot();
+      else run();
     };
-    // unattended visitors still get a powered board
+
+    root.querySelector('.lcd-hit').addEventListener('click', () => {
+      const ev = new CustomEvent('rk:about', { cancelable: true });
+      if (window.dispatchEvent(ev)) document.querySelector('#irq .about')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+    });
+
+    // a repeat visit in this session comes back powered, with no intro
+    const repeat = store.get('rk-seen') === '1';
+    store.set('rk-seen', '1');
+    let touched = repeat;
+    let idle = 0;
+    sw.addEventListener('click', () => {
+      touched = true;
+      clearTimeout(idle);
+      setPower(!on, true);
+    });
+    if (repeat) return run();
+
+    setPower(false);
+    // an unattended first visit still gets a powered board, unless the switch was used
     const arm = () => {
       clearTimeout(idle);
-      if (state === 'off') idle = setTimeout(powerOn, 5000);
+      if (!touched && !on) idle = setTimeout(() => !touched && setPower(true, true), 6000);
     };
-    hint.addEventListener('click', powerOn);
     ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((e) => window.addEventListener(e, arm, { passive: true }));
 
-    const intro = store.get('rk-intro') !== '1' && !reduced && !mq('(max-width: 720px)') && window.scrollY < 8 && 'animate' in stage;
-    store.set('rk-intro', '1');
-    if (!intro) {
-      arm();
-      return;
-    }
+    const intro = !reduced && !mq('(max-width: 720px)') && window.scrollY < 8 && 'animate' in stage;
+    if (!intro) return arm();
 
     // whole board centred under the nav at about 45%, then ease into the hero framing
     root.dataset.intro = 'run';
@@ -379,10 +489,11 @@ const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack
   }
 
   .desk-inner {
-    --stage-w: clamp(1100px, 96cqw, 1760px);
+    /* about 80% of the width, so the desk shows on both sides */
+    --stage-w: min(80cqw, 1500px);
     --u: calc(var(--stage-w) / 1500);
-    /* the board's top edge (y 140) lands here; about 37% of the board shows above the fold */
-    --board-top: max(240px, 285 * var(--u), 100svh - var(--nav-h) - 636 * var(--u));
+    /* the board's top edge (y 140) lands here; room above it for the switch and the LCD */
+    --board-top: max(300px, 500 * var(--u), 100svh - var(--nav-h) - 560 * var(--u));
     position: relative;
     z-index: 1;
   }
@@ -392,12 +503,17 @@ const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack
     z-index: 2;
     display: grid;
     align-content: start;
+    justify-items: start;
     gap: var(--s-1);
     width: min(100% - 2 * var(--s-6), 1280px);
     height: calc(var(--board-top) - 140 * var(--u));
     margin-inline: auto;
     padding-top: clamp(20px, 4svh, 40px);
+    pointer-events: none;
     transition: opacity 500ms var(--ease);
+  }
+  .copy > * {
+    pointer-events: auto;
   }
   .desk[data-intro='run'] .copy {
     opacity: 0;
@@ -427,26 +543,14 @@ const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack
     color: var(--text-2);
     font: var(--fs-label-lg) var(--font-mono);
   }
-  .ctl {
-    display: grid;
-    margin-top: var(--s-1);
-  }
-  .ctl > * {
-    grid-area: 1 / 1;
-  }
-  .gpios {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-1) var(--s-2);
-  }
 
-  /* chip and links wait for power; the hint shows only while unpowered */
+  /* the chip waits for power; the hint shows only while unpowered */
   .powered-in {
     transition:
       opacity 500ms var(--ease) 350ms,
       visibility 0s;
   }
-  .desk:not([data-power='on']) .powered-in {
+  .desk[data-power='off'] .powered-in {
     opacity: 0;
     visibility: hidden;
     transition:
@@ -454,32 +558,16 @@ const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack
       visibility 0s 200ms;
   }
   .hint {
-    justify-self: start;
     display: inline-flex;
     align-items: center;
     gap: var(--s-1);
-    min-height: 44px;
-    padding: 0 var(--s-2);
-    border: 1px solid var(--accent);
-    border-radius: var(--r-2);
-    background: color-mix(in srgb, var(--board) 70%, transparent);
-    color: var(--text);
-    font: 500 var(--fs-body) var(--font-sans);
-    cursor: pointer;
-    transition:
-      opacity 200ms var(--ease),
-      visibility 0s 200ms,
-      background var(--t-fast) var(--ease);
-  }
-  .hint[hidden] {
-    display: none;
+    color: var(--text-2);
+    font: 500 var(--fs-label-lg) var(--font-mono);
+    transition: opacity 200ms var(--ease);
   }
   .hint svg {
     color: var(--accent);
     animation: hint-pulse 1.6s ease-in-out infinite;
-  }
-  .hint:hover {
-    background: var(--board-2);
   }
   .desk:not([data-power='off']) .hint {
     opacity: 0;
@@ -489,6 +577,131 @@ const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack
     50% {
       opacity: 0.45;
     }
+  }
+
+  /* tactile switch strip: a small PCB lying on the desk */
+  .tact {
+    --pcb: var(--board);
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: 4px var(--s-3);
+    margin-top: var(--s-1);
+    padding: 10px 26px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--pcb);
+    box-shadow:
+      0 2px 0 color-mix(in srgb, var(--pcb) 60%, black),
+      0 10px 22px var(--strip-shadow, rgba(0, 0, 0, 0.45));
+  }
+  /* mounting holes */
+  .tact::before,
+  .tact::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    margin-top: -4.5px;
+    border: 2px solid #c9b16c;
+    border-radius: 50%;
+    background: var(--desk);
+  }
+  .tact::before {
+    left: 8px;
+  }
+  .tact::after {
+    right: 8px;
+  }
+  .tsw {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 4px 6px;
+    border-radius: var(--r-1);
+    color: var(--text);
+    font: 500 var(--fs-body) var(--font-sans);
+    text-decoration: none;
+  }
+  .tsw:hover .lbl {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .tsw:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .sw {
+    --cap-a: #45484e;
+    --cap-b: #24262a;
+    --ring: #111215;
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, #3c3f44, #1b1c1f);
+    box-shadow:
+      inset 0 0 0 2px #8e9196,
+      inset 0 0 0 3px #2a2c30,
+      0 2px 3px rgba(0, 0, 0, 0.45);
+  }
+  [data-cap='light'] .sw {
+    --cap-a: #f4f1ea;
+    --cap-b: #cfcac0;
+    --ring: #d98a1e;
+  }
+  .leg {
+    position: absolute;
+    width: 6px;
+    height: 4px;
+    border-radius: 1px;
+    background: linear-gradient(#d3d5d8, #8a8d92);
+  }
+  .leg:nth-child(1) {
+    top: 5px;
+    left: -6px;
+  }
+  .leg:nth-child(2) {
+    bottom: 5px;
+    left: -6px;
+  }
+  .leg:nth-child(3) {
+    top: 5px;
+    right: -6px;
+  }
+  .leg:nth-child(4) {
+    bottom: 5px;
+    right: -6px;
+  }
+  .cap {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--cap-a), var(--cap-b) 75%);
+    box-shadow:
+      0 0 0 1.5px var(--ring),
+      0 3px 0 color-mix(in srgb, var(--cap-b) 55%, black),
+      0 4px 6px rgba(0, 0, 0, 0.5);
+    transform: translateY(-2px);
+    transition:
+      transform 90ms ease-out,
+      box-shadow 90ms ease-out;
+  }
+  .tsw:active .cap {
+    transform: none;
+    box-shadow:
+      0 0 0 1.5px var(--ring),
+      0 1px 0 color-mix(in srgb, var(--cap-b) 55%, black),
+      0 1px 2px rgba(0, 0, 0, 0.45);
+  }
+  .pin {
+    color: var(--muted);
+    font: var(--fs-label) var(--font-mono);
   }
 
   .stage {
@@ -512,32 +725,82 @@ const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack
     top: calc(-400 * var(--u));
     height: calc(2400 * var(--u));
   }
-  .plug {
-    transition: transform 600ms cubic-bezier(0.55, 0, 0.25, 1);
-  }
-  .desk[data-power='off'] .plug {
-    transform: translateY(-130px);
-  }
 
-  .lcd-on > g {
+  .lcd-on {
     opacity: 0;
-    transition: opacity 180ms ease-out;
+    transition: opacity 220ms ease-out;
   }
-  .desk[data-power='on'][data-lcd='log'] .lcd-log,
-  .desk[data-power='on']:not([data-lcd='log']):not([data-lcd='blank']) .lcd-final {
+  .desk[data-power='on'] .lcd-on {
     opacity: 1;
   }
-  .desk[data-lcd='final'] .lcd-final {
-    transition-duration: 400ms;
+  .lcd-hit,
+  .pwr {
+    position: absolute;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
   }
-  .lcd-lines {
-    translate: 0 var(--scroll, 0);
-    transition: translate 200ms ease-out;
+  .lcd-hit {
+    left: calc(1105 * var(--u));
+    top: calc(-186 * var(--u));
+    width: calc(410 * var(--u));
+    height: calc(176 * var(--u));
+    border-radius: calc(7 * var(--u));
+  }
+  .lcd-hit:focus-visible,
+  .pwr:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  /* rocker: the pressed half sits low and dark, the green LED marks ON */
+  .pwr {
+    left: calc(1018 * var(--u));
+    top: calc(-262 * var(--u));
+    width: max(44px, 96 * var(--u));
+    height: max(69px, 150 * var(--u));
+    translate: -50% -50%;
+    border-radius: 12px;
+  }
+  .pwr svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .rk-i rect,
+  .rk-o rect {
+    transition: fill 120ms ease-out;
+  }
+  .rk-i rect {
+    fill: url(#pwr-down);
+  }
+  .rk-o rect {
+    fill: url(#pwr-up);
+  }
+  .desk[data-power='off'] .rk-i rect {
+    fill: url(#pwr-up);
+  }
+  .desk[data-power='off'] .rk-o rect {
+    fill: url(#pwr-down);
+  }
+  .rk-i path,
+  .rk-o circle {
+    opacity: 0.85;
+  }
+  .pwr-led {
+    fill: #45ff8f;
+    filter: drop-shadow(0 0 3px #45ff8f);
+    transition: fill 160ms ease-out;
+  }
+  .desk[data-power='off'] .pwr-led {
+    fill: #1f2a22;
+    filter: none;
   }
 
   @media (max-width: 720px) {
     .desk-inner {
-      --stage-w: 100cqw;
+      --stage-w: 84cqw;
     }
     .copy {
       width: auto;
@@ -545,12 +808,21 @@ const LOG = ['RK-FW1 rev A', 'rst: power-on', 'clk: pll locked', 'i2c1: 0x3C ack
       padding: var(--s-4) var(--s-2) 0;
     }
     .stage {
-      margin-top: calc(230 * var(--u));
+      margin-top: calc(380 * var(--u));
     }
     /* the cable fades in below the copy instead of running behind it */
     .rig-usb {
       overflow: hidden;
-      mask-image: linear-gradient(to bottom, transparent 0, #000 9%);
+      mask-image: linear-gradient(to bottom, transparent 0, #000 6%);
     }
+  }
+  @media (max-width: 560px) {
+    .tact {
+      grid-template-columns: repeat(2, auto);
+      padding-inline: 24px;
+    }
+  }
+  :global(:root[data-theme='light']) .desk {
+    --strip-shadow: rgba(60, 50, 40, 0.28);
   }
 </style>

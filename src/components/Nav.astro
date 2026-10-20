@@ -1,6 +1,5 @@
 ---
 import LedDot from './LedDot.astro';
-import site from '../content/site.json';
 
 const links = [
   { label: 'BOOT', href: '#boot', color: 'var(--pa0)' },
@@ -27,10 +26,6 @@ const links = [
         }
       </ul>
     </nav>
-    <p class="status">
-      <LedDot color="var(--pa4)" />
-      <span class="status-text">{site.status}</span>
-    </p>
   </div>
 </header>
 
@@ -68,23 +63,6 @@ const links = [
   }
   nav a:hover {
     color: var(--text);
-  }
-  .status {
-    display: flex;
-    align-items: center;
-    gap: var(--s-1);
-    font: var(--fs-label) var(--font-mono);
-    color: var(--muted);
-    white-space: nowrap;
-  }
-  @media (max-width: 819px) {
-    .status-text {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-    }
   }
   @media (max-width: 480px) {
     ul {

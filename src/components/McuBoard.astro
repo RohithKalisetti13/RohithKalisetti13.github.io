@@ -476,13 +476,15 @@ const TRACES = [
         </text>
       ))
     }
+    <!-- reference designators sit back from the header labels -->
+    <g opacity=".65">
     {
       refLabels.map((l) => (
         <text
           x={l.x}
           y={l.y}
           text-anchor={l.a ?? 'start'}
-          font-size="24"
+          font-size="21"
           transform={l.r ? `rotate(${l.r} ${l.x} ${l.y})` : undefined}
           dominant-baseline={l.r ? 'central' : undefined}
         >
@@ -492,11 +494,12 @@ const TRACES = [
     }
     {
       partLabels.map((l) => (
-        <text x={l.x} y={l.y} text-anchor={l.a ?? 'start'} font-size={l.s}>
+        <text x={l.x} y={l.y} text-anchor={l.a ?? 'start'} font-size={l.s ?? 23}>
           {l.t}
         </text>
       ))
     }
+    </g>
     <!-- own marks: monogram and board id, site URL, a neutral handling mark -->
     <g id={`${p}rk-mark`}>
       <rect x="903" y="1616" width="92" height="92" rx="16" fill="none" stroke={SILK} stroke-width="5" />
