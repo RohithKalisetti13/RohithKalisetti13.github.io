@@ -1,0 +1,334 @@
+---
+// Open laptop lying on the desk, top view, lid folded flat above the deck. Same light as the board:
+// soft from the top-left, shadows offset down-right, matte finishes. Units: viewBox 1080x1300,
+// the chassis spans x 0-1000 and the USB plug sticks out of the right side.
+// The screen holds the IDE as live HTML: a dim preview on the desk, full size once zoomed in.
+import IdeWindow from './IdeWindow.astro';
+
+const SCREEN = { x: 52, y: 52, w: 896, h: 516 };
+const VB = { w: 1080, h: 1300 };
+const pct = (v: number, of: number) => `${+((v / of) * 100).toFixed(4)}%`;
+const PORT = { x: 1078, y: 740 };
+
+// keyboard: five rows of keys, with the wide keys where a real board has them
+const ROWS: number[][] = [
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.6],
+  [1.6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1.9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.7],
+  [2.4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.2],
+  [1, 1, 1, 1.3, 5.6, 1.3, 1, 1, 1],
+];
+const KB = { x: 92, y: 708, w: 816, gap: 7, h: 52 };
+const keys = ROWS.flatMap((row, r) => {
+  const total = row.reduce((a, b) => a + b, 0);
+  const unit = (KB.w - KB.gap * (row.length - 1)) / total;
+  let x = KB.x;
+  return row.map((span) => {
+    const k = { x, y: KB.y + r * (KB.h + KB.gap), w: span * unit, h: KB.h };
+    x += span * unit + KB.gap;
+    return k;
+  });
+});
+---
+
+<div class="laptop">
+  <svg class="lap-art" viewBox={`0 0 ${VB.w} ${VB.h}`} aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="lap-alu" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#6c7076" />
+        <stop offset=".55" stop-color="#55595e" />
+        <stop offset="1" stop-color="#46494e" />
+      </linearGradient>
+      <linearGradient id="lap-pad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#5f6369" />
+        <stop offset="1" stop-color="#4c5055" />
+      </linearGradient>
+      <radialGradient id="lap-glow" cx=".5" cy=".5" r=".6">
+        <stop offset="0" stop-color="#3fb27f" stop-opacity=".16" />
+        <stop offset="1" stop-color="#3fb27f" stop-opacity="0" />
+      </radialGradient>
+    </defs>
+
+    <!-- shadows, down and to the right -->
+    <rect x="26" y="34" width="1000" height="1262" rx="34" fill="#000" opacity=".3" />
+    <rect x="12" y="16" width="1000" height="1262" rx="32" fill="#000" opacity=".25" />
+
+    <!-- USB plug in the right-hand port; the cable from the board meets it -->
+    <rect x="996" y="724" width="70" height="32" rx="7" fill="#000" opacity=".3" transform="translate(6 8)" />
+    <rect x="996" y="724" width="70" height="32" rx="7" fill="#1b1c1f" />
+    <rect x="1060" y="728" width="22" height="24" rx="4" fill="#141518" />
+    <path d="M1000 727H1060" stroke="#fff" stroke-width="2" opacity=".14" />
+
+    <!-- lid, folded open -->
+    <rect x="0" y="0" width="1000" height="626" rx="30" fill="url(#lap-alu)" />
+    <path d="M4 600V30Q4 4 30 4H970" stroke="#fff" stroke-width="3" fill="none" opacity=".16" />
+    <rect x="22" y="22" width="956" height="580" rx="16" fill="#0b0c0e" />
+    <rect x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} rx="4" fill="#0d1512" />
+    <circle cx="500" cy="37" r="5" fill="#1d2024" />
+    <circle cx="500" cy="37" r="2" fill="#2f3a44" />
+
+    <!-- hinge -->
+    <rect x="60" y="618" width="880" height="26" rx="10" fill="#26282c" />
+    <path d="M66 622H934" stroke="#fff" stroke-width="2" opacity=".08" />
+
+    <!-- deck -->
+    <rect x="0" y="636" width="1000" height="642" rx="30" fill="url(#lap-alu)" />
+    <path d="M4 1250V666Q4 640 30 640H970" stroke="#fff" stroke-width="3" fill="none" opacity=".12" />
+    <rect x="80" y="696" width="840" height="312" rx="14" fill="#2c2f33" />
+    {
+      keys.map((k) => (
+        <g>
+          <rect x={k.x + 1.5} y={k.y + 2.5} width={k.w} height={k.h} rx="6" fill="#000" opacity=".35" />
+          <rect x={k.x} y={k.y} width={k.w} height={k.h} rx="6" fill="#1a1c1f" />
+          <path d={`M${k.x + 3} ${k.y + k.h - 6}V${k.y + 6}Q${k.x + 3} ${k.y + 2} ${k.x + 7} ${k.y + 2}H${k.x + k.w - 6}`} stroke="#fff" stroke-width="1.4" fill="none" opacity=".1" />
+        </g>
+      ))
+    }
+    <!-- trackpad -->
+    <rect x="322" y="1046" width="356" height="196" rx="16" fill="#000" opacity=".18" transform="translate(3 4)" />
+    <rect x="322" y="1046" width="356" height="196" rx="16" fill="url(#lap-pad)" />
+    <path d="M326 1236V1062Q326 1050 338 1050H662" stroke="#fff" stroke-width="2" fill="none" opacity=".12" />
+    <!-- port slot on the left side -->
+    <rect x="-3" y="728" width="7" height="24" rx="2" fill="#1b1c1f" />
+  </svg>
+
+  <!-- the live screen, sized to the painted one -->
+  <div
+    class="screen"
+    style={`left:${pct(SCREEN.x, VB.w)};top:${pct(SCREEN.y, VB.h)};width:${pct(SCREEN.w, VB.w)};height:${pct(SCREEN.h, VB.h)}`}
+  >
+    <IdeWindow />
+    <span class="glare" aria-hidden="true"></span>
+  </div>
+
+  <button type="button" class="lap-open" aria-label="Open the laptop: about and contact" aria-expanded="false" aria-controls="ide-about">
+    <span class="lap-hint mono" aria-hidden="true">Open</span>
+  </button>
+  <span class="usb-port" aria-hidden="true" style={`left:${pct(PORT.x, VB.w)};top:${pct(PORT.y, VB.h)}`}></span>
+</div>
+
+<script>
+  const root = document.documentElement;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const MS = 700;
+
+  let ac: AbortController | null = null;
+  document.addEventListener('astro:before-swap', () => {
+    ac?.abort();
+    ac = null;
+    delete root.dataset.zoom;
+  });
+
+  const init = () => {
+    const lap = document.querySelector<HTMLElement>('.laptop');
+    const camera = lap?.closest<HTMLElement>('.camera');
+    const world = lap?.closest<HTMLElement>('[data-world]');
+    if (!lap || !camera || !world || lap.dataset.bound) return;
+    lap.dataset.bound = '1';
+    ac?.abort();
+    ac = new AbortController();
+    const signal = ac.signal;
+    const screen = lap.querySelector<HTMLElement>('.screen')!;
+    const ide = lap.querySelector<HTMLElement>('[data-ide]')!;
+    const open = lap.querySelector<HTMLButtonElement>('.lap-open')!;
+    const lock = (on: boolean) => window.dispatchEvent(new CustomEvent('rk:scroll-lock', { detail: on }));
+    const zoomed = () => root.dataset.zoom === 'in';
+    // on the desk the screen is a preview only; it takes input once zoomed
+    const preview = () => (screen.inert = root.classList.contains('world') && !zoomed());
+    preview();
+
+    let timer = 0;
+    const animate = (transform: string, done?: () => void) => {
+      clearTimeout(timer);
+      const ms = reduced.matches ? 0 : MS;
+      camera.style.transition = ms ? `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none';
+      camera.style.transformOrigin = '0 0';
+      camera.style.transform = transform;
+      timer = window.setTimeout(() => {
+        camera.style.transition = '';
+        done?.();
+      }, ms + 20);
+    };
+
+    // scale the camera until the screen fills the space under the nav, centred
+    const zoomIn = (tab: 'about' | 'contact' = 'about') => {
+      if (!root.classList.contains('world') || document.querySelector('dialog[open]')) return;
+      ide.dispatchEvent(new CustomEvent('rk:tab', { detail: tab }));
+      if (zoomed()) return;
+      const nav = document.querySelector<HTMLElement>('.nav')?.offsetHeight ?? 52;
+      const vw = document.documentElement.clientWidth;
+      const vh = window.innerHeight - nav;
+      const s0 = screen.getBoundingClientRect();
+      const c = camera.getBoundingClientRect();
+      const w = world.getBoundingClientRect();
+      const s = Math.min((vw - 32) / s0.width, (vh - 24) / s0.height);
+      const lx = s0.left - c.left;
+      const ly = s0.top - c.top;
+      const tx = (vw - s0.width * s) / 2 - w.left - s * lx;
+      const ty = nav + (vh - s0.height * s) / 2 - w.top - s * ly;
+      root.dataset.zoom = 'in';
+      lock(true);
+      preview();
+      open.setAttribute('aria-expanded', 'true');
+      animate(`translate3d(${tx}px, ${ty}px, 0) scale(${s})`, () => {
+        ide.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus({ preventScroll: true });
+      });
+    };
+    const zoomOut = () => {
+      if (!zoomed()) return;
+      delete root.dataset.zoom;
+      open.setAttribute('aria-expanded', 'false');
+      preview();
+      animate('', () => {
+        camera.style.transformOrigin = '';
+        lock(false);
+        window.dispatchEvent(new Event('rk:world-moved'));
+      });
+      open.focus({ preventScroll: true });
+    };
+
+    open.addEventListener('click', () => zoomIn('about'));
+    window.addEventListener('rk:zoom-out', zoomOut, { signal });
+    lap.querySelector('[data-zoom-out]')!.addEventListener('click', zoomOut);
+    document.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key === 'Escape' && zoomed()) {
+          e.preventDefault();
+          zoomOut();
+        }
+      },
+      { signal },
+    );
+    // the Contact pill and #contact open the terminal once the camera has arrived
+    window.addEventListener(
+      'rk:laptop',
+      (e) => {
+        if ((e as CustomEvent<string>).detail !== 'contact') return;
+        if (root.dataset.station === 'left' && !world.classList.contains('moving')) return zoomIn('contact');
+        window.addEventListener('rk:world-moved', () => zoomIn('contact'), { once: true, signal });
+      },
+      { signal },
+    );
+    // a layout switch to the stack drops the zoom
+    window.matchMedia('(min-width: 1024px)').addEventListener(
+      'change',
+      () => {
+        if (zoomed()) {
+          delete root.dataset.zoom;
+          camera.style.transform = '';
+          camera.style.transition = '';
+          camera.style.transformOrigin = '';
+          lock(false);
+        }
+        preview();
+      },
+      { signal },
+    );
+    window.addEventListener('resize', () => zoomed() && zoomOut(), { signal });
+  };
+  document.addEventListener('astro:after-swap', init);
+  document.addEventListener('astro:page-load', init);
+</script>
+
+<style>
+  .laptop {
+    position: relative;
+    width: min(1000px, 70cqw);
+    aspect-ratio: 1080 / 1300;
+    margin-inline: auto;
+  }
+  .lap-art {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .screen {
+    position: absolute;
+    overflow: hidden;
+    border-radius: 3px;
+  }
+  /* on the desk: a dim preview behind glass */
+  .screen > :global(.ide) {
+    transition:
+      opacity 400ms var(--ease),
+      filter 400ms var(--ease);
+  }
+  :global(html.world:not([data-zoom='in'])) .screen > :global(.ide) {
+    opacity: 0.55;
+    filter: saturate(0.7) brightness(0.8);
+  }
+  .glare {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(115deg, rgba(255, 255, 255, 0.06), transparent 38%);
+    transition: opacity 400ms var(--ease);
+  }
+  :global(html[data-zoom='in']) .glare {
+    opacity: 0;
+  }
+  .lap-open {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: start center;
+    padding: 0;
+    border: 0;
+    border-radius: 3%;
+    background: none;
+    cursor: zoom-in;
+  }
+  .lap-open:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 6px;
+  }
+  .lap-hint {
+    margin-top: 51%;
+    padding: 2px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--board) 90%, transparent);
+    color: var(--text);
+    font-size: var(--fs-label);
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease);
+  }
+  .lap-open:hover .lap-hint,
+  .lap-open:focus-visible .lap-hint {
+    opacity: 1;
+  }
+  :global(html[data-zoom='in']) .lap-open {
+    display: none;
+  }
+  .usb-port {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    margin: -1px 0 0 -1px;
+  }
+
+  /* stacked layout: no laptop, just the editor in the flow */
+  :global(html:not(.world)) .laptop {
+    width: auto;
+    aspect-ratio: auto;
+  }
+  :global(html:not(.world)) .lap-art,
+  :global(html:not(.world)) .lap-open,
+  :global(html:not(.world)) .glare {
+    display: none;
+  }
+  :global(html:not(.world)) .screen {
+    position: static;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .screen > :global(.ide),
+    .glare,
+    .lap-hint {
+      transition: none;
+    }
+  }
+</style>

@@ -1,62 +1,50 @@
 ---
+// The editor on the laptop screen. main.c is About, written as C; terminal is Contact, as a serial
+// session with real links. In the stacked layout both panels show one after the other.
 import { Code } from 'astro:components';
 import type { ShikiTransformer, ThemeRegistration } from 'shiki';
+import site from '../content/site.json';
 
-interface File {
-  name: string;
-  lang: 'c' | 'riscv';
-  code: string;
-}
-interface Props {
-  files?: File[];
-}
+// draft copy: only confirmed facts
+const mainC = `/*
+ * main.c - about
+ *
+ * Rohith Kalisetti
+ * Embedded Firmware Engineer, SF Bay Area, CA
+ */
 
-const mainC = `#include "hal.h"
+#include "about.h"
 
-static const struct engineer {
-    const char *name, *role, *education, *status;
-    const char *focus[2];
-} rohith = {
-    .name      = "Rohith Kalisetti",
-    .role      = "Embedded firmware engineer",
-    .focus     = { "OpenWrt fault-injection platform",
-                   "FreeRTOS host-side shim" },
-    .education = "M.S. Computer Engineering, George Mason University",
-    .status    = "open to roles",
+static const struct engineer rohith = {
+    .name     = "Rohith Kalisetti",
+    .role     = "Embedded Firmware Engineer",
+    .location = "SF Bay Area, CA",
+    .degree   = "M.S. Computer Engineering",
+    .school   = "George Mason University",
+    .grad     = "May 2025",
 };
 
-int main(void) {
-    hal_init();
-    for (;;) ship_firmware(&rohith);
+/* experience, newest first */
+static const struct role history[] = {
+    {
+        .org  = "Mill Industries",
+        .work = "embedded firmware",
+        .from = "Nov 2025",
+        .to   = "Feb 2026",
+    },
+    {
+        .org  = "George Mason University",
+        .work = "research: embedded and hardware-debloat topics",
+    },
+};
+
+int main(void)
+{
+    about_print(&rohith);
+    for (size_t i = 0; i < ARRAY_SIZE(history); i++)
+        role_print(&history[i]);
+    return 0;
 }`;
-
-// no ARM grammar ships with Shiki; riscv covers GNU as directives, labels and strings
-const startupS = `/* Cortex-M4, Thumb-2 */
-    .syntax unified
-    .cpu    cortex-m4
-    .thumb
-
-    .section .isr_vector, "a", %progbits
-    .word   _estack
-    .word   Reset_Handler
-
-    .section .text.Reset_Handler, "ax", %progbits
-    .global Reset_Handler
-    .type   Reset_Handler, %function
-Reset_Handler:
-    ldr     r0, =_estack
-    mov     sp, r0
-    bl      SystemInit
-    bl      main
-1:  b       1b
-    .size   Reset_Handler, . - Reset_Handler`;
-
-const {
-  files = [
-    { name: 'main.c', lang: 'c', code: mainC },
-    { name: 'startup.s', lang: 'riscv', code: startupS },
-  ],
-} = Astro.props;
 
 const color = (v: string) => ({ foreground: `var(--syn-${v})` });
 const theme: ThemeRegistration = {
@@ -74,116 +62,123 @@ const theme: ThemeRegistration = {
     { scope: ['variable', 'entity.name.variable'], settings: color('fg') },
   ],
 };
-
-// stagger index per line for the boot reveal
-const stagger: ShikiTransformer = {
-  line(node, line) {
-    node.properties.style = `--i:${line - 1}`;
+const numbered: ShikiTransformer = {
+  line(node) {
+    node.properties.class = 'line';
   },
 };
 
-const uid = 'ide';
+// optional portrait: rendered only when public/photo.png exists
+const photo = Object.keys(import.meta.glob('../../public/photo.png')).length ? '/photo.png' : null;
+const CONTACT = [
+  { key: 'email', label: site.email, href: `mailto:${site.email}` },
+  { key: 'linkedin', label: site.linkedin, href: site.linkedin },
+  { key: 'github', label: site.github, href: site.github },
+  { key: 'resume', label: site.resume, href: site.resume },
+];
 ---
 
 <div class="ide" data-ide>
   <div class="chrome">
     <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-    <div class="tabs" role="tablist" aria-label="Source files">
-      {
-        files.map((f, i) => (
-          <button
-            type="button"
-            role="tab"
-            id={`${uid}-tab-${i}`}
-            aria-controls={`${uid}-panel-${i}`}
-            aria-selected={i === 0 ? 'true' : 'false'}
-            tabindex={i === 0 ? 0 : -1}
-          >
-            {f.name}
-          </button>
-        ))
-      }
+    <div class="tabs" role="tablist" aria-label="About and contact">
+      <button type="button" role="tab" id="ide-tab-about" data-tab="about" aria-controls="ide-about" aria-selected="true" tabindex="0">main.c</button>
+      <button type="button" role="tab" id="ide-tab-contact" data-tab="contact" aria-controls="contact" aria-selected="false" tabindex="-1">terminal</button>
     </div>
+    <button type="button" class="ide-close" data-zoom-out aria-label="Close the laptop">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </button>
   </div>
-  {
-    files.map((f, i) => (
-      <div
-        class="panel"
-        role="tabpanel"
-        id={`${uid}-panel-${i}`}
-        aria-labelledby={`${uid}-tab-${i}`}
-        hidden={i !== 0}
-        data-boot={i === 0 ? '' : undefined}
-      >
-        <span class="caret" aria-hidden="true" />
-        <Code code={f.code} lang={f.lang} theme={theme} transformers={[stagger]} />
-      </div>
-    ))
-  }
-  <p class="status mono">Cortex-M4 · Thumb-2 · UTF-8 · Ln 1, Col 1</p>
+
+  <section class="panel" role="tabpanel" id="ide-about" aria-labelledby="ide-tab-about" tabindex="0">
+    <h3 class="sr-only">About</h3>
+    {photo && <img class="photo" src={photo} alt="Rohith Kalisetti" width="160" height="160" loading="lazy" decoding="async" />}
+    <Code code={mainC} lang="c" theme={theme} transformers={[numbered]} />
+  </section>
+
+  <section class="panel term" role="tabpanel" id="contact" aria-labelledby="ide-tab-contact" tabindex="0">
+    <h3 class="sr-only">Contact</h3>
+    <pre class="serial"><span class="dim">$ screen /dev/ttyACM0 115200</span>
+<span class="ok">[ok]</span> uart0 115200 8N1
+<span class="prompt">&gt;</span> contact
+<ul class="links">{
+  CONTACT.map((c) => (
+    <li>
+      <span class="key">{c.key}</span>
+      <a href={c.href} {...(c.key === 'email' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}>{c.label}</a>
+    </li>
+  ))
+}</ul><span class="prompt">&gt;</span> <span class="cursor" aria-hidden="true"></span></pre>
+  </section>
+
+  <p class="status mono" aria-hidden="true">uart0 · 115200 8N1 · UTF-8</p>
 </div>
 
-<script is:inline>
-  (() => {
-    const r = document.documentElement;
-    const skip = () => {
-      r.classList.add('boot-skip');
-      removeEventListener('pointerdown', skip);
-      removeEventListener('keydown', skip);
-    };
-    addEventListener('pointerdown', skip);
-    addEventListener('keydown', skip);
-  })();
-</script>
-
 <script>
-  document.querySelectorAll<HTMLElement>('[data-ide]').forEach((ide) => {
-    const tabs = [...ide.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
-    const select = (next: HTMLButtonElement) => {
-      tabs.forEach((t) => {
-        const on = t === next;
-        t.setAttribute('aria-selected', String(on));
-        t.tabIndex = on ? 0 : -1;
-        const panel = document.getElementById(t.getAttribute('aria-controls')!);
-        if (panel) panel.hidden = !on;
+  // tabs: click, arrows, Home and End; bound once per IDE element
+  const init = () => {
+    document.querySelectorAll<HTMLElement>('[data-ide]').forEach((ide) => {
+      if (ide.dataset.bound) return;
+      ide.dataset.bound = '1';
+      const tabs = [...ide.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+      const select = (next: HTMLButtonElement, focus = true) => {
+        tabs.forEach((t) => {
+          const on = t === next;
+          t.setAttribute('aria-selected', String(on));
+          t.tabIndex = on ? 0 : -1;
+          const panel = document.getElementById(t.getAttribute('aria-controls')!);
+          if (panel) panel.hidden = !on;
+        });
+        if (focus) next.focus();
+      };
+      select(tabs[0], false);
+      tabs.forEach((t, i) => {
+        t.addEventListener('click', () => select(t));
+        t.addEventListener('keydown', (e) => {
+          const n = tabs.length;
+          const to =
+            e.key === 'ArrowRight' ? (i + 1) % n
+            : e.key === 'ArrowLeft' ? (i - 1 + n) % n
+            : e.key === 'Home' ? 0
+            : e.key === 'End' ? n - 1
+            : -1;
+          if (to < 0) return;
+          e.preventDefault();
+          select(tabs[to]);
+        });
       });
-      next.focus();
-    };
-    tabs.forEach((t, i) => {
-      t.addEventListener('click', () => select(t));
-      t.addEventListener('keydown', (e) => {
-        const n = tabs.length;
-        const to =
-          e.key === 'ArrowRight' ? (i + 1) % n
-          : e.key === 'ArrowLeft' ? (i - 1 + n) % n
-          : e.key === 'Home' ? 0
-          : e.key === 'End' ? n - 1
-          : -1;
-        if (to < 0) return;
-        e.preventDefault();
-        select(tabs[to]);
+      // the laptop picks a tab when it opens
+      ide.addEventListener('rk:tab', (e) => {
+        const t = tabs.find((x) => x.dataset.tab === (e as CustomEvent<string>).detail);
+        if (t) select(t);
       });
     });
-  });
+  };
+  document.addEventListener('astro:after-swap', init);
+  document.addEventListener('astro:page-load', init);
 </script>
 
 <style>
   .ide {
-    --code-fs: 0.75rem;
+    --code-fs: 0.8125rem;
     --pad: var(--s-2);
-    --gutter: 4.5ch;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: var(--r-3);
+    border-radius: 6px;
     background: var(--ide-bg);
-    box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.55);
+    color: var(--syn-fg);
   }
   .chrome {
     display: flex;
+    flex: none;
     align-items: end;
     gap: var(--s-2);
-    padding: 8px var(--s-2) 0;
+    padding: 8px 8px 0 var(--s-2);
     background: var(--ide-chrome);
     border-bottom: 1px solid var(--line);
   }
@@ -202,6 +197,7 @@ const uid = 'ide';
   .tabs {
     display: flex;
     gap: 2px;
+    margin-right: auto;
   }
   [role='tab'] {
     min-height: 32px;
@@ -213,7 +209,9 @@ const uid = 'ide';
     color: var(--muted);
     font: var(--fs-label-lg) var(--font-mono);
     cursor: pointer;
-    transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+    transition:
+      color var(--t-fast) var(--ease),
+      background var(--t-fast) var(--ease);
   }
   [role='tab']:hover {
     color: var(--text);
@@ -226,21 +224,58 @@ const uid = 'ide';
     color: var(--text);
     box-shadow: inset 0 2px 0 var(--accent);
   }
-  [role='tab']:focus-visible {
+  [role='tab']:focus-visible,
+  .panel:focus-visible {
+    outline: 2px solid var(--accent);
     outline-offset: -2px;
   }
+  .ide-close {
+    display: none;
+    place-items: center;
+    align-self: center;
+    width: 32px;
+    height: 32px;
+    margin-bottom: 6px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-1);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .ide-close:hover {
+    border-color: var(--accent);
+  }
+  .ide-close:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  :global(html[data-zoom='in']) .ide-close {
+    display: grid;
+  }
   .panel {
-    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  .panel[hidden] {
+    display: none;
+  }
+  .photo {
+    float: right;
+    width: 120px;
+    height: 120px;
+    margin: var(--pad);
+    border-radius: var(--r-2);
+    object-fit: cover;
   }
   .panel :global(pre) {
     margin: 0;
     padding: var(--pad);
     background: transparent !important;
-    font: var(--code-fs) / 1.5 var(--font-mono);
+    font: var(--code-fs) / 1.55 var(--font-mono);
     tab-size: 4;
-  }
-  .panel :global(pre:focus-visible) {
-    outline-offset: -2px;
   }
   .panel :global(code) {
     counter-reset: ln;
@@ -258,47 +293,88 @@ const uid = 'ide';
     color: var(--syn-ln);
     user-select: none;
   }
-  .caret {
-    position: absolute;
-    top: calc(var(--pad) + 0.15em);
-    left: calc(var(--pad) + var(--gutter));
-    width: 2px;
-    height: 1.25em;
-    background: var(--accent);
-    font: var(--code-fs) / 1.5 var(--font-mono);
-    animation: caret 1.06s steps(1) infinite;
-    pointer-events: none;
+  .serial {
+    color: var(--syn-fg);
+    white-space: pre-wrap;
   }
-  @keyframes caret {
+  .dim {
+    color: var(--syn-com);
+  }
+  .ok {
+    color: var(--syn-str);
+  }
+  .prompt {
+    color: var(--syn-kw);
+  }
+  .links {
+    display: grid;
+    gap: 2px;
+    margin: 4px 0 8px;
+    white-space: normal;
+  }
+  .links li {
+    display: grid;
+    grid-template-columns: 10ch 1fr;
+    gap: var(--s-2);
+    align-items: center;
+  }
+  .key {
+    color: var(--syn-type);
+  }
+  .links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    color: var(--syn-str);
+    overflow-wrap: anywhere;
+  }
+  .links a:hover {
+    color: var(--text);
+  }
+  .cursor {
+    display: inline-block;
+    width: 0.6em;
+    height: 1.1em;
+    vertical-align: text-bottom;
+    background: var(--accent);
+    animation: blink 1.06s steps(1) infinite;
+  }
+  @keyframes blink {
     50% {
       opacity: 0;
     }
   }
-  [data-boot] :global(.line) {
-    animation: line-in 320ms var(--ease) both;
-    animation-delay: calc(var(--i) * 45ms + 100ms);
-  }
-  @keyframes line-in {
-    from {
-      opacity: 0;
-    }
-  }
-  :global(.boot-skip) [data-boot] :global(.line) {
-    animation: none;
-  }
   .status {
-    display: flex;
-    justify-content: flex-end;
+    flex: none;
     padding: 4px var(--s-2);
     border-top: 1px solid var(--line);
     background: var(--ide-chrome);
     color: var(--muted);
     font-size: var(--fs-label);
   }
+
+  /* stacked layout: About then Contact, no tabs */
+  :global(html:not(.world)) .ide {
+    height: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--r-3);
+  }
+  :global(html:not(.world)) .tabs {
+    visibility: hidden;
+  }
+  :global(html:not(.world)) .panel[hidden] {
+    display: block;
+  }
+  :global(html:not(.world)) .panel :global(pre) {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  :global(html:not(.world)) .term {
+    border-top: 1px solid var(--line);
+  }
   @media (prefers-reduced-motion: reduce) {
-    .caret,
-    [data-boot] :global(.line) {
-      animation: none !important;
+    .cursor {
+      animation: none;
     }
   }
 </style>

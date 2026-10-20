@@ -75,6 +75,8 @@
     const hero = desk.querySelector<HTMLElement>('.desk');
 
     const draw = () => {
+      // the laptop zoom scales the whole camera; redraw once it is back
+      if (document.documentElement.dataset.zoom) return;
       svg.replaceChildren();
       if (hero?.dataset.intro === 'run') return;
       const world = document.documentElement.classList.contains('world');

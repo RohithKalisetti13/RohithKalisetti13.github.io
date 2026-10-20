@@ -7,6 +7,7 @@ import SideDrawer from '../components/SideDrawer.astro';
 import MemoryBank from '../components/MemoryBank.astro';
 import WireLayer from '../components/WireLayer.astro';
 import World from '../components/World.astro';
+import Laptop from '../components/Laptop.astro';
 import Breadboard from '../components/Breadboard.astro';
 import { getProjects } from '../lib/projects';
 import { hexAt } from '../lib/hex';
@@ -46,11 +47,8 @@ const projects = await getProjects();
       <section id="about" class="region laptop-station" aria-labelledby="about-title" slot="left">
         <div class="container">
           <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa4)">PA4</span> 0x4000 / about and contact</p>
-          <h2 id="about-title">Laptop</h2>
-          <div class="lap-stub">
-            <p>[about and contact: IDE coming in the next step]</p>
-            <span class="usb-port" aria-hidden="true"></span>
-          </div>
+          <h2 id="about-title">Workstation</h2>
+          <Laptop />
         </div>
       </section>
 
@@ -141,25 +139,14 @@ const projects = await getProjects();
     right: 120px;
     bottom: calc(100% + var(--s-3));
   }
-  .lap-stub {
-    position: relative;
-    margin-top: var(--s-3);
-    padding: var(--s-6);
-    border: 1px dashed var(--line);
-    border-radius: var(--r-3);
-  }
-  .usb-port {
-    position: absolute;
-    right: -6px;
-    top: 50%;
-    width: 12px;
-    height: 24px;
-    margin-top: -12px;
-    border-radius: 2px;
-    background: #2c2d32;
-  }
   :global(html.world) .laptop-station {
-    padding-top: calc(var(--copy-h) - 220 * var(--u));
+    padding-top: var(--s-6);
+  }
+  :global(html.world) .laptop-station .container {
+    width: min(100% - 2 * var(--s-6), 1000px, 70cqw);
+  }
+  .laptop-station h2 {
+    margin-bottom: var(--s-4);
   }
   :global(.drawer) .head-line {
     color: var(--muted);

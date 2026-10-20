@@ -100,9 +100,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       sync();
       reduced.addEventListener('change', sync);
 
-      // same-page anchors glide; the URL and focus still follow
-      document.addEventListener('click', (e) => {
-        if (!lenis || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      // same-page anchors glide; the URL and focus still follow. Capture phase, ahead of the
+      // router's own link handler, which would otherwise take these as navigations
+      window.addEventListener('click', (e) => {
+        if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
         const a = (e.target as Element).closest?.('a[href*="#"]') as HTMLAnchorElement | null;
         if (!a || a.target || a.origin !== location.origin || a.pathname !== location.pathname) return;
         const id = decodeURIComponent(a.hash.slice(1));
@@ -114,14 +115,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
           return;
         }
         const el = document.getElementById(id);
-        if (!el) return;
+        if (!el || !lenis) return;
         e.preventDefault();
         const nav = parseFloat(getComputedStyle(root).scrollPaddingTop) || 0;
         lenis.scrollTo(el, { offset: -nav, duration: 0.9, easing: (t) => 1 - Math.pow(1 - t, 3) });
         history.replaceState(history.state, '', a.hash);
         if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
         el.focus({ preventScroll: true });
-      });
+      }, true);
 
       // the world asks for a vertical spot; Lenis glides there unless told to jump
       window.addEventListener('rk:scroll-to', (e) => {

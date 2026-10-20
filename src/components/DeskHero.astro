@@ -419,7 +419,8 @@ const LINKS = [
     const usb = [...root.querySelectorAll<SVGPathElement>('[data-usb]')];
     const route = () => {
       const port = document.querySelector('.usb-port');
-      if (!document.documentElement.classList.contains('world') || !port?.getClientRects().length) return;
+      const r = document.documentElement;
+      if (!r.classList.contains('world') || r.dataset.zoom || !port?.getClientRects().length) return;
       // offsets ignore the intro transform on the stage
       let x = 0;
       let y = 0;
