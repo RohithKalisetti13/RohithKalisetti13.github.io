@@ -3,11 +3,11 @@ import LedDot from './LedDot.astro';
 
 // scroll order down the desk; IRQ leads off to the IDE world on the left
 const SECTIONS = [
-  { id: 'boot', label: 'BOOT', addr: '0x0000', plain: 'INTRO', color: 'var(--pa0)' },
-  { id: 'regs', label: 'REGS', addr: '0x0800', plain: 'SKILLS', color: 'var(--pa3)' },
-  { id: 'trace', label: 'TRACE', addr: '0x1000', plain: 'WORK EXP', color: 'var(--pa1)' },
-  { id: 'builds', label: 'BUILDS', addr: '0x2000', plain: 'PROJECTS', color: 'var(--pa2)' },
-  { id: 'irq', label: 'IRQ', addr: '0x4000', plain: 'CONTACT', color: 'var(--pa4)' },
+  { id: 'boot', label: 'BOOT', addr: '0x0000', plain: 'Home', color: 'var(--pa0)' },
+  { id: 'regs', label: 'REGS', addr: '0x0800', plain: 'Skills', color: 'var(--pa3)' },
+  { id: 'trace', label: 'TRACE', addr: '0x1000', plain: 'Work', color: 'var(--pa1)' },
+  { id: 'builds', label: 'BUILDS', addr: '0x2000', plain: 'Projects', color: 'var(--pa2)' },
+  { id: 'irq', label: 'IRQ', addr: '0x4000', plain: 'Contact', color: 'var(--pa4)' },
 ];
 
 const home = Astro.url.pathname === '/';
@@ -16,14 +16,16 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
 
 <header class="nav" transition:name="site-nav" transition:animate="none">
   <div class="container bar">
+    <a class="mono-mark" href={home ? '#boot' : '/#boot'} aria-label="Rohith Kalisetti, home">RK</a>
     <nav aria-label="Primary">
       <ul>
         {
           SECTIONS.map((s) => (
             <li>
-              <a href={href(s.id)} data-sec={s.id} data-addr={s.addr} data-plain={s.plain}>
+              <a href={href(s.id)} data-sec={s.id} data-addr={s.addr} data-plain={s.plain} data-tag={s.label}>
                 <LedDot color={s.color} />
-                {s.label}
+                <span class="tag">{s.label}</span>
+                <span class="plain">{s.plain}</span>
               </a>
             </li>
           ))
@@ -54,8 +56,8 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
         a.classList.toggle('active', on);
         if (on) {
           a.setAttribute('aria-current', 'location');
-          r1.textContent = pad(`${a.dataset.addr} ${a.textContent!.trim()}`);
-          r2.textContent = pad(a.dataset.plain!);
+          r1.textContent = pad(`${a.dataset.addr} ${a.dataset.tag}`);
+          r2.textContent = pad(a.dataset.plain!.toUpperCase());
         } else a.removeAttribute('aria-current');
       }
     };
@@ -90,20 +92,44 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
     top: 0;
     z-index: 50;
     height: var(--nav-h);
-    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
+  }
+  /* faint row of gold-finger pads along the bottom edge */
+  .nav::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 5px;
+    background: repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 10px);
+    opacity: 0.22;
+    pointer-events: none;
   }
   .bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: var(--s-2);
     height: 100%;
   }
+  .mono-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: var(--r-2);
+    color: var(--text);
+    font: 700 var(--fs-label-lg) var(--font-mono);
+    letter-spacing: 0.06em;
+    text-decoration: none;
+  }
+  nav {
+    margin-right: auto;
+  }
   ul {
     display: flex;
-    gap: var(--s-1);
+    gap: 2px;
   }
   nav a {
     position: relative;
@@ -114,9 +140,17 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
     padding-inline: 10px;
     border-radius: 999px;
     color: var(--text-2);
-    font: 500 var(--fs-label) var(--font-mono);
-    letter-spacing: 0.04em;
+    font-size: var(--fs-label-lg);
     text-decoration: none;
+  }
+  .tag {
+    color: var(--muted);
+    font: 500 10px var(--font-mono);
+    letter-spacing: 0.1em;
+  }
+  a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   /* pill sits behind the label and fades in, so only opacity animates */
   nav a::before {
@@ -130,9 +164,7 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
     transition: opacity var(--t-med) var(--ease);
     z-index: -1;
   }
-  nav a:hover {
-    color: var(--text);
-  }
+  nav a:hover,
   nav a.active {
     color: var(--text);
   }
@@ -140,7 +172,7 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
     opacity: 1;
   }
   nav a :global(.led) {
-    opacity: 0.35;
+    opacity: 0.4;
     transition: opacity var(--t-med) var(--ease);
   }
   nav a.active :global(.led) {
@@ -182,20 +214,25 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : home ? `#${id}` : `/#${id
     opacity: 1;
     transform: none;
   }
-  @media (min-width: 760px) {
+  @media (min-width: 1040px) {
     .status {
       display: flex;
     }
   }
-  @media (max-width: 480px) {
-    ul {
+  @media (max-width: 720px) {
+    .tag {
+      display: none;
+    }
+    .bar {
       gap: 0;
     }
-    nav a {
-      padding-inline: 6px;
+    .mono-mark {
+      min-width: 36px;
     }
-    nav a :global(.led) {
-      display: none;
+    nav a {
+      gap: 4px;
+      padding-inline: 5px;
+      font-size: 11px;
     }
   }
   @media (prefers-reduced-motion: reduce) {

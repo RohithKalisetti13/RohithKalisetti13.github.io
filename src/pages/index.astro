@@ -2,9 +2,6 @@
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
-import Section from '../components/Section.astro';
-import GpioButton from '../components/GpioButton.astro';
-import Panel from '../components/Panel.astro';
 import DeskHero from '../components/DeskHero.astro';
 import SideDrawer from '../components/SideDrawer.astro';
 import site from '../content/site.json';
@@ -58,39 +55,6 @@ const slugOf = (id: string) => id.replace(/^\d+-/, '');
       </svg>
     </a>
 
-    <Section id="irq" addr="0x4000" title="Interrupt line" plain="contact" pin="PA4">
-      <div class="irq">
-        <Panel as="section" class="about">
-          <h3>Device descriptor</h3>
-          <p class="mono sub">about</p>
-          <div class="photo" role="img" aria-label="Photo placeholder">[photo]</div>
-          <p>{site.about}</p>
-          <ul class="facts">
-            <li>{site.location}</li>
-            <li>{site.education}</li>
-            <li>{site.looking}</li>
-          </ul>
-        </Panel>
-        <Panel as="section">
-          <h3>Flash image</h3>
-          <p class="mono sub">resume</p>
-          <p class="mono file">{site.resumeName}</p>
-          <div class="actions">
-            <GpioButton href={site.resume} download pin="PB3">Download</GpioButton>
-            <GpioButton href={site.resume} external pin="PB4" variant="secondary">View</GpioButton>
-          </div>
-        </Panel>
-        <Panel as="section">
-          <h3>Pinout</h3>
-          <p class="mono sub">contact</p>
-          <ul class="pinout">
-            <li><span class="mono">MAIL</span> <a href={`mailto:${site.email}`}>{site.email}</a></li>
-            <li><span class="mono">LNKD</span> <a href={site.linkedin}>LinkedIn</a></li>
-            <li><span class="mono">GITH</span> <a href={site.github}>GitHub</a></li>
-          </ul>
-        </Panel>
-      </div>
-    </Section>
   </main>
   <SideDrawer route="work" label="TRACE / work">
     {
@@ -105,7 +69,12 @@ const slugOf = (id: string) => id.replace(/^\d+-/, '');
     }
   </SideDrawer>
   <footer class="foot">
-    <div class="container mono">__stack_top</div>
+    <div class="container silk">
+      <span>Rohith Kalisetti</span>
+      <a href={`mailto:${site.email}`}>Email</a>
+      <a href={site.github} rel="noopener">GitHub</a>
+      <a href={site.linkedin} rel="noopener">LinkedIn</a>
+    </div>
   </footer>
 </Base>
 
@@ -200,64 +169,35 @@ const slugOf = (id: string) => id.replace(/^\d+-/, '');
     margin-block: var(--s-1) var(--s-2);
     color: var(--text);
   }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-2);
-  }
-  .dates,
-  .sub {
-    color: var(--muted);
-  }
-  .role {
-    color: var(--text);
-    margin-bottom: var(--s-1);
-  }
-  .irq {
-    display: grid;
-    gap: var(--s-3);
-  }
-  .photo {
-    display: grid;
-    place-items: center;
-    width: 160px;
-    height: 200px;
-    margin-block: var(--s-2);
-    border: 1px dashed var(--line);
-    border-radius: var(--r-2);
-    color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: var(--fs-label);
-  }
-  .facts,
-  .pinout {
-    display: grid;
-    gap: var(--s-1);
-    margin-top: var(--s-2);
-    color: var(--text-2);
-  }
-  .pinout li {
-    display: flex;
-    gap: var(--s-2);
-    align-items: baseline;
-    flex-wrap: wrap;
-  }
-  .pinout .mono {
-    color: var(--muted);
-    min-width: 4ch;
-  }
-  .file {
-    margin-block: var(--s-2) var(--s-3);
-    color: var(--text);
-  }
   .foot {
-    padding-block: var(--s-6);
+    position: relative;
+    z-index: 1;
+    padding-block: var(--s-4);
     border-top: 1px solid var(--line);
-    color: var(--muted);
+    background: var(--bg);
   }
-  @media (min-width: 820px) {
-    .irq {
-      grid-template-columns: 1.2fr 1fr 1fr;
-    }
+  .silk {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-1) var(--s-3);
+    color: var(--text-2);
+    font: 500 var(--fs-label) var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .silk span {
+    margin-right: auto;
+    color: var(--text);
+  }
+  .silk a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--text-2);
+    text-decoration: none;
+  }
+  .silk a:hover {
+    color: var(--accent);
   }
 </style>
