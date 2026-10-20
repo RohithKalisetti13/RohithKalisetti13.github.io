@@ -118,3 +118,10 @@ a:hover {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* silkscreen in the drawings is part of the picture, not copy to select */
+svg[aria-hidden='true'] text,
+svg[role='img'] text {
+  -webkit-user-select: none;
+  user-select: none;
+}
