@@ -1,0 +1,76 @@
+---
+// Gradients shared by every bench drawing, defined once in a zero-size SVG so that hidden copies of a
+// part never take their paint with them. One light, from the top-left.
+---
+
+<svg class="bench-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="bd-led-green-off" cx="0.38" cy="0.34" r="0.75">
+      <stop offset="0" stop-color="#cfe5d3" />
+      <stop offset="1" stop-color="#7fa98a" />
+    </radialGradient>
+    <radialGradient id="bd-led-amber-off" cx="0.38" cy="0.34" r="0.75">
+      <stop offset="0" stop-color="#f1dcb8" />
+      <stop offset="1" stop-color="#c39a5c" />
+    </radialGradient>
+    <radialGradient id="bd-led-green-on" cx="0.45" cy="0.42" r="0.6">
+      <stop offset="0" stop-color="#f2fff5" />
+      <stop offset="0.45" stop-color="#7ee3a2" />
+      <stop offset="1" stop-color="#2f9f5f" />
+    </radialGradient>
+    <radialGradient id="bd-led-amber-on" cx="0.45" cy="0.42" r="0.6">
+      <stop offset="0" stop-color="#fff6e0" />
+      <stop offset="0.45" stop-color="#ffc265" />
+      <stop offset="1" stop-color="#d88521" />
+    </radialGradient>
+    <radialGradient id="bd-halo-green">
+      <stop offset="0.45" stop-color="#7ee3a2" stop-opacity="0.5" />
+      <stop offset="1" stop-color="#7ee3a2" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="bd-halo-amber">
+      <stop offset="0.45" stop-color="#ffc265" stop-opacity="0.5" />
+      <stop offset="1" stop-color="#ffc265" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bd-res" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9d8b2" />
+      <stop offset="0.55" stop-color="#d3bb8c" />
+      <stop offset="1" stop-color="#b59b6b" />
+    </linearGradient>
+    <radialGradient id="bd-cap" cx="0.38" cy="0.34" r="0.7">
+      <stop offset="0" stop-color="#3a3b40" />
+      <stop offset="1" stop-color="#151619" />
+    </radialGradient>
+    <linearGradient id="bd-silver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e2e4e6" />
+      <stop offset="0.5" stop-color="#c3c6c9" />
+      <stop offset="1" stop-color="#9da1a5" />
+    </linearGradient>
+    <linearGradient id="bd-tube" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9da1a5" />
+      <stop offset="0.3" stop-color="#eef0f1" />
+      <stop offset="0.65" stop-color="#c3c6c9" />
+      <stop offset="1" stop-color="#8f9397" />
+    </linearGradient>
+    <radialGradient id="bd-disc" cx="0.36" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#e9a27c" />
+      <stop offset="1" stop-color="#c16f49" />
+    </radialGradient>
+    <radialGradient id="bd-ring" cx="0.4" cy="0.36" r="0.7">
+      <stop offset="0.7" stop-color="#d9dbdd" />
+      <stop offset="1" stop-color="#a3a7ab" />
+    </radialGradient>
+    <radialGradient id="bd-glass" cx="0.4" cy="0.36" r="0.7">
+      <stop offset="0" stop-color="#3a5168" />
+      <stop offset="1" stop-color="#0b1118" />
+    </radialGradient>
+  </defs>
+</svg>
+
+<style>
+  .bench-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+</style>

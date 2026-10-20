@@ -1,0 +1,31 @@
+---
+// 5 mm LED seen from above: a tinted lens on its flange (flat side = cathode). The lit layer adds a
+// bright core and a soft halo of about 1.8x the lens radius; CSS decides when it shows.
+interface Props {
+  color: 'green' | 'amber';
+}
+const { color } = Astro.props;
+const R = 8.2;
+---
+
+<svg class="led" viewBox="-19 -19 38 38" data-color={color} aria-hidden="true" focusable="false">
+  <ellipse cx="1.8" cy="2.6" rx="9.6" ry="9.2" fill="#000" opacity="0.22" />
+  <path d="M7 -6.6A9.6 9.6 0 1 0 7 6.6Z" fill={color === 'green' ? '#a9c9b0' : '#dcc396'} />
+  <circle r={R} fill={`url(#bd-led-${color}-off)`} />
+  <g class="lit">
+    <circle r={R * 1.8} fill={`url(#bd-halo-${color})`} />
+    <circle r={R} fill={`url(#bd-led-${color}-on)`} />
+  </g>
+  <ellipse cx="-3" cy="-3.4" rx="2.6" ry="1.8" fill="#fff" opacity="0.55" transform="rotate(-35 -3 -3.4)" />
+</svg>
+
+<style>
+  .led {
+    display: block;
+    overflow: visible;
+  }
+  .lit {
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+  }
+</style>
