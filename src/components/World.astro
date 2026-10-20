@@ -35,15 +35,18 @@
     right: 'Bench: work and projects',
   };
   const HEADINGS: Record<Station, string> = { left: '#about-title', center: '#home-title', right: '#work-title' };
-  // where a hash lands inside its station; null is the top of the page
-  const TARGETS: Record<string, string | null> = {
-    home: null,
-    skills: '#s-regs',
-    work: '#work',
-    projects: '#projects-title',
-    about: null,
-    contact: null,
+  // every hash is an anchor: a station plus a scroll position. The section heading lands in the top
+  // quarter of the viewport; Skills has no visible heading, so the board's middle lands at 40%.
+  const TARGETS: Record<string, { sel: string | null; at?: number }> = {
+    home: { sel: null },
+    skills: { sel: '#s-regs', at: 0.4 },
+    work: { sel: '#work-title' },
+    projects: { sel: '#projects-title' },
+    about: { sel: '#about-title' },
+    contact: { sel: '#about-title' },
   };
+  // where a station lands when it is reached without a hash (arrows, edge buttons, swipe)
+  const HOME_OF: Record<Station, string> = { left: 'contact', center: 'home', right: 'work' };
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const wide = window.matchMedia('(min-width: 1024px)');
 
@@ -111,7 +114,16 @@
     };
     camera.addEventListener('transitionend', (e) => e.target === camera && e.propertyName === 'transform' && settled(), { signal });
 
-    const go = (s: Station, opts: { y?: number | 'keep'; focus?: boolean } = {}) => {
+    // scroll position of an anchor; headings sit one nav height plus a margin below the top edge
+    const anchorY = (id: string) => {
+      const t = TARGETS[id];
+      const el = t?.sel ? document.querySelector<HTMLElement>(t.sel) : null;
+      if (!el) return 0;
+      const y = t.at !== undefined ? docY(el) - window.innerHeight * t.at : docY(el) - navH() - 56;
+      return Math.max(0, y);
+    };
+
+    const go = (s: Station, opts: { y?: number | 'keep'; focus?: boolean; immediate?: boolean } = {}) => {
       if (!on()) return;
       const from = current();
       const instant = reduced.matches;
@@ -123,11 +135,9 @@
         live.textContent = NAMES[s];
         if (instant) settled();
       }
-      // shorter stations are top-aligned; never leave the view past the end of this one
-      const el = stations.get(s)!;
-      const max = el.offsetHeight - window.innerHeight + navH();
-      const y = opts.y === undefined || opts.y === 'keep' ? Math.min(window.scrollY, Math.max(0, max)) : opts.y;
-      if (Math.abs(y - window.scrollY) > 1) scrollTo(y, instant);
+      // a new station always lands on its anchor; the same station stays put unless told where to go
+      const y = opts.y === 'keep' && s === from ? window.scrollY : typeof opts.y === 'number' ? opts.y : anchorY(HOME_OF[s]);
+      if (Math.abs(y - window.scrollY) > 1) scrollTo(y, instant || !!opts.immediate);
       if (opts.focus !== false && s !== from) {
         const h = document.querySelector<HTMLElement>(HEADINGS[s]);
         if (h) {
@@ -142,19 +152,13 @@
     };
 
     // hash targets: station first, then the vertical spot
-    const goHash = (id: string, focus = true) => {
+    const goHash = (id: string, focus = true, immediate = false) => {
       const s = stationOf(`#${id}`);
       if (!s || !(id in TARGETS)) return false;
-      const sel = TARGETS[id];
-      const el = sel ? document.querySelector<HTMLElement>(sel) : null;
-      let y = 0;
-      if (el && id === 'skills') y = docY(el) - window.innerHeight * 0.3;
-      else if (el && id === 'projects') y = docY(el) - navH() - 160;
-      else if (el) y = docY(el) - navH();
       // anywhere else, leave the laptop screen first
       if (s !== 'left' && root.dataset.zoom === 'in') window.dispatchEvent(new Event('rk:zoom-out'));
       if (id === 'contact' || id === 'about') window.dispatchEvent(new CustomEvent('rk:laptop', { detail: id }));
-      go(s, { y, focus });
+      go(s, { y: anchorY(id), focus, immediate });
       return true;
     };
 
@@ -183,7 +187,7 @@
         const s = stationOf(location.hash);
         if (!on() || !s) return;
         if (id in TARGETS) goHash(id);
-        else go(s, { focus: false });
+        else go(s, { y: 'keep', focus: false });
       },
       { signal },
     );
@@ -243,7 +247,7 @@
     settled();
     // a hash on arrival picks its spot once layout has settled
     const id = decodeURIComponent(location.hash.slice(1));
-    if (on() && !traverse && id in TARGETS && id !== 'home') requestAnimationFrame(() => goHash(id, false));
+    if (on() && !traverse && id in TARGETS && id !== 'home') requestAnimationFrame(() => goHash(id, false, true));
     traverse = false;
   };
   document.addEventListener('astro:after-swap', init);
