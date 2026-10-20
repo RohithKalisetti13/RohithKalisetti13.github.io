@@ -358,23 +358,15 @@ const LINKS = [
     let step = 0;
     const later = (fn, ms) => (step = setTimeout(fn, ms));
     const run = () => {
-      if (reduced) {
-        const pages = ['    EMBEDDED', '    FIRMWARE', '    ENGINEER'];
-        let p = 0;
-        const flip = () => {
-          show(NAME, pages[p]);
-          p = (p + 1) % pages.length;
-          later(flip, 2200);
-        };
-        return flip();
-      }
-      const s = TAG + '    ';
+      if (reduced) return show(NAME, 'EMBEDDED FW ENG');
+      // hold at the start, scroll one character per 300 ms, hold at the end, loop
+      const last = TAG.length - COLS;
       let k = 0;
       const tick = () => {
-        show(NAME, (s + s).slice(k, k + COLS));
-        const hold = k === 0 ? 1600 : 360;
-        k = (k + 1) % s.length;
-        later(tick, hold);
+        show(NAME, TAG.slice(k, k + COLS));
+        const hold = k === 0 || k === last;
+        k = k === last ? 0 : k + 1;
+        later(tick, hold ? 2000 : 300);
       };
       tick();
     };

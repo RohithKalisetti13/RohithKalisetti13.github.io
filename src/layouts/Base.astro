@@ -26,9 +26,91 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta name="twitter:card" content="summary" />
+    <script is:inline>
+      // dark unless the visitor chose otherwise; set before first paint
+      (() => {
+        let t = 'dark';
+        try {
+          if (localStorage.getItem('rk-theme') === 'light') t = 'light';
+        } catch {
+          /* storage blocked: stay dark */
+        }
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <slot />
+    <button type="button" class="theme-toggle" aria-label="Toggle light or dark theme" aria-pressed="false">
+      <svg class="i-sun" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6" />
+      </svg>
+      <svg class="i-moon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" />
+      </svg>
+    </button>
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+        const btn = document.querySelector('.theme-toggle');
+        const sync = () => btn.setAttribute('aria-pressed', String(root.dataset.theme === 'light'));
+        sync();
+        btn.addEventListener('click', () => {
+          const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+          root.dataset.theme = next;
+          try {
+            localStorage.setItem('rk-theme', next);
+          } catch {
+            /* storage blocked: choice lasts for this page only */
+          }
+          sync();
+        });
+      })();
+    </script>
   </body>
 </html>
+
+<style is:global>
+  .theme-toggle {
+    position: fixed;
+    right: var(--s-2);
+    bottom: var(--s-2);
+    z-index: 90;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--board);
+    color: var(--text);
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    transition:
+      transform var(--t-fast) var(--ease),
+      border-color var(--t-fast) var(--ease);
+  }
+  .theme-toggle:hover {
+    border-color: var(--accent);
+    transform: scale(1.06);
+  }
+  .theme-toggle svg {
+    grid-area: 1 / 1;
+  }
+  /* dark shows the sun (switch to light); light shows the moon */
+  :root[data-theme='light'] .theme-toggle .i-sun,
+  :root:not([data-theme='light']) .theme-toggle .i-moon {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .theme-toggle {
+      transition: none;
+    }
+    .theme-toggle:hover {
+      transform: none;
+    }
+  }
+</style>
