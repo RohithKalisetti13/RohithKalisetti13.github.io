@@ -183,15 +183,21 @@ const LINKS = [
             <stop offset="1" stop-color="#1e5a29" />
           </linearGradient>
           <linearGradient id="lcd-back" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#c9d6df" />
-            <stop offset=".6" stop-color="#b3c3cf" />
-            <stop offset="1" stop-color="#a2b4c2" />
+            <stop offset="0" style="stop-color: var(--lcd-a)" />
+            <stop offset=".6" style="stop-color: var(--lcd-b)" />
+            <stop offset="1" style="stop-color: var(--lcd-c)" />
           </linearGradient>
+          <radialGradient id="lcd-halo-g">
+            <stop offset="0" stop-color="#9fe6cc" stop-opacity=".55" />
+            <stop offset=".5" stop-color="#7fd6b8" stop-opacity=".2" />
+            <stop offset="1" stop-color="#7fd6b8" stop-opacity="0" />
+          </radialGradient>
           <pattern id="lcd-cell" patternUnits="userSpaceOnUse" x={TX} y={TY} width={D} height={D}>
             <rect width={DOT} height={DOT} fill="#1c2733" opacity=".07" />
           </pattern>
         </defs>
 
+        <ellipse class="lcd-halo" cx={LCD.x + 205} cy={LCD.y + 95} rx="470" ry="300" fill="url(#lcd-halo-g)" />
         <g class="lcd" transform={`translate(${LCD.x} ${LCD.y})`}>
           <rect x="14" y="22" width={LCD.w} height={LCD.h} rx="9" fill="#000" opacity=".22" />
           <rect x="5" y="8" width={LCD.w} height={LCD.h} rx="8" fill="#000" opacity=".35" />
@@ -227,7 +233,7 @@ const LINKS = [
           <g class="lcd-on">
             <rect x={WIN.x} y={WIN.y} width={WIN.w} height={WIN.h} rx="2" fill="url(#lcd-back)" />
             {CELLS.map(([x, y]) => <rect x={x} y={y} width={5 * D} height={8 * D} fill="url(#lcd-cell)" />)}
-            <path class="lcd-lit" d={frame(NAME, TAG)} fill="#1c2733" opacity=".86" />
+            <path class="lcd-lit" d={frame(NAME, TAG)} fill="#1c2733" opacity=".92" />
           </g>
           <path d={`M${WIN.x + 4} ${WIN.y + WIN.h - 3}L${WIN.x + 70} ${WIN.y + 3}H${WIN.x + 108}L${WIN.x + 42} ${WIN.y + WIN.h - 3}Z`} fill="#fff" opacity=".06" />
 
@@ -718,6 +724,29 @@ const LINKS = [
     height: calc(2400 * var(--u));
   }
 
+  .desk {
+    --lcd-a: #d3f3e6;
+    --lcd-b: #bfead8;
+    --lcd-c: #a9dcc7;
+    --halo: 1;
+  }
+  :global(:root[data-theme='light']) .desk {
+    --lcd-a: #98a592;
+    --lcd-b: #8f9d8a;
+    --lcd-c: #859382;
+    --halo: 0;
+  }
+  :global(#lcd-back stop) {
+    transition: stop-color 400ms ease-out;
+  }
+  .lcd-halo {
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 400ms ease-out;
+  }
+  .desk[data-power='on'] .lcd-halo {
+    opacity: var(--halo);
+  }
   .lcd-on {
     opacity: 0;
     transition: opacity 220ms ease-out;
@@ -790,6 +819,12 @@ const LINKS = [
     filter: none;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    :global(#lcd-back stop),
+    .lcd-halo {
+      transition: none;
+    }
+  }
   @media (max-width: 720px) {
     .desk-inner {
       --stage-w: 84cqw;
