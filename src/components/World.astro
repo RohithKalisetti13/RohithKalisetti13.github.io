@@ -26,7 +26,7 @@
 </div>
 
 <script>
-  import { STATIONS, stationOf, type Station } from '../lib/world';
+  import { STATIONS, stationOf, readPos, type Pos, type Station } from '../lib/world';
 
   const root = document.documentElement;
   const NAMES: Record<Station, string> = {
@@ -179,10 +179,33 @@
       { signal },
     );
 
+    // back and forward inside the page: the entry's own station and scrollY, with no glide and no anchor
+    let popped = -1e9;
+    const jump = (pos: Pos) => {
+      world.classList.remove('ready', 'moving');
+      root.dataset.station = pos.st;
+      save(pos.st);
+      sync();
+      settled();
+      window.scrollTo({ top: pos.y, left: 0, behavior: 'instant' });
+      scrollTo(pos.y, true);
+      requestAnimationFrame(() => requestAnimationFrame(() => world.classList.add('ready')));
+    };
+    window.addEventListener(
+      'popstate',
+      () => {
+        popped = performance.now();
+        const pos = readPos();
+        if (on() && pos && root.dataset.zoom !== 'in') jump(pos);
+      },
+      { signal },
+    );
+
     // a hash changed in place (typed, or a drawer deep link) moves the camera too
     window.addEventListener(
       'hashchange',
       () => {
+        if (performance.now() - popped < 200) return;
         const id = decodeURIComponent(location.hash.slice(1));
         const s = stationOf(location.hash);
         if (!on() || !s) return;
@@ -245,9 +268,21 @@
     requestAnimationFrame(() => requestAnimationFrame(() => world.classList.add('ready')));
     setTimeout(() => world.classList.add('ready'), 100);
     settled();
-    // a hash on arrival picks its spot once layout has settled
-    const id = decodeURIComponent(location.hash.slice(1));
-    if (on() && !traverse && id in TARGETS && id !== 'home') requestAnimationFrame(() => goHash(id, false, true));
+    // a hash on arrival picks its spot once layout has settled; the bench slides into place a moment
+    // after first paint, so the anchor is placed again until the visitor takes over
+    const arrival = decodeURIComponent(location.hash.slice(1));
+    const arrivalStation = stationOf(location.hash);
+    if (on() && !traverse && arrivalStation) {
+      const place = () => (arrival in TARGETS ? goHash(arrival, false, true) : go(arrivalStation, { focus: false, immediate: true }));
+      let taken = false;
+      for (const t of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) window.addEventListener(t, () => (taken = true), { once: true, passive: true, signal });
+      requestAnimationFrame(place);
+      const again = () => !taken && !signal.aborted && place();
+      window.addEventListener('rk:layout', again, { signal });
+      for (const ms of [250, 700, 1500]) setTimeout(again, ms);
+      // layout settles by the end of the intro; after that the anchor belongs to the visitor
+      setTimeout(() => window.removeEventListener('rk:layout', again), 5000);
+    }
     traverse = false;
   };
   document.addEventListener('astro:after-swap', init);

@@ -22,3 +22,24 @@ export const usbLeft = (x: number, y: number) => {
     `C${bend - 230} ${CABLE_Y} ${bend - 190} ${y} ${bend - 420} ${y}L${x} ${y}`
   );
 };
+
+// Station and scroll position remembered per history entry, so back and forward land exactly where
+// that entry was left. Astro numbers its entries in history.state.index; the path guards against
+// two separate page loads that both start at index 0.
+export type Pos = { y: number; st: Station };
+const posKey = () => `rk-pos:${history.state?.index ?? 0}:${location.pathname}${location.search}`;
+export const writePos = (y: number, st: string | undefined) => {
+  try {
+    sessionStorage.setItem(posKey(), JSON.stringify({ y: Math.round(y), st: STATIONS.includes(st as Station) ? st : 'center' }));
+  } catch {
+    /* storage blocked: back lands where the router puts it */
+  }
+};
+export const readPos = (): Pos | null => {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(posKey()) ?? 'null');
+    return v && typeof v.y === 'number' && STATIONS.includes(v.st) ? v : null;
+  } catch {
+    return null;
+  }
+};

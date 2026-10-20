@@ -76,7 +76,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     </button>
     <script>
       import Lenis from 'lenis';
-      import { stationOf } from '../lib/world';
+      import { stationOf, readPos, writePos } from '../lib/world';
 
       const root = document.documentElement;
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -165,41 +165,33 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         });
       };
 
-      // scroll: our own per-URL memory, restored in one jump while Lenis holds still
+      // scroll: our own memory per history entry (station and scrollY), restored in one jump while
+      // Lenis holds still. Written as the page moves, so leaving never has to catch it in time
       history.scrollRestoration = 'manual';
-      const key = (u: URL | Location) => `rk-scroll:${u.pathname}${u.search}`;
-      // on a traverse, location already names the destination, so the caller says whose position this is
-      const save = (u: URL | Location = location) => {
-        try {
-          sessionStorage.setItem(key(u), String(Math.round(window.scrollY)));
-        } catch {
-          /* storage blocked: back lands where the router puts it */
-        }
+      let remembering = 0;
+      const remember = () => {
+        if (root.classList.contains('rk-swapping')) return;
+        writePos(window.scrollY, root.dataset.station);
       };
-      const saved = (u: URL) => {
-        try {
-          const v = sessionStorage.getItem(key(u));
-          return v === null ? null : Number(v);
-        } catch {
-          return null;
-        }
-      };
+      window.addEventListener(
+        'scroll',
+        () => {
+          cancelAnimationFrame(remembering);
+          remembering = requestAnimationFrame(remember);
+        },
+        { passive: true },
+      );
+      new MutationObserver(remember).observe(root, { attributes: true, attributeFilter: ['data-station'] });
+      window.addEventListener('pagehide', remember);
+      document.addEventListener('rk:remember', remember);
+
       let traverse = false;
       document.addEventListener('astro:before-preparation', (e) => {
         traverse = e.navigationType === 'traverse';
-        if (e.from.pathname !== e.to.pathname) save(e.from);
       });
-      window.addEventListener('pagehide', () => save());
 
       // pick the page transition: forward to a case study slides in from the right, home fades
       const side = (p: string) => (p.startsWith('/projects/') ? 1 : 0);
-      const savedStation = () => {
-        try {
-          return sessionStorage.getItem('rk-station');
-        } catch {
-          return null;
-        }
-      };
       let restoreY: number | null = null;
       document.addEventListener('astro:before-swap', (e) => {
         const next = e.newDocument.documentElement;
@@ -209,11 +201,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         const from = side(e.from.pathname);
         const to = side(e.to.pathname);
         next.dataset.slide = e.to.pathname === '/' && e.from.pathname !== '/' ? 'fade' : to < from ? 'left' : to > from ? 'right' : 'none';
-        restoreY = traverse && e.from.pathname !== e.to.pathname ? saved(e.to) : null;
-        // the world class and station travel with the document; back home returns to the same station
+        // on a traverse the location already names the destination entry
+        const pos = traverse && e.from.pathname !== e.to.pathname ? readPos() : null;
+        restoreY = pos ? pos.y : null;
+        // the world class and station travel with the document; back home returns to the entry's own station
         next.classList.toggle('world', root.classList.contains('world'));
-        const hashed = stationOf(e.to.hash);
-        const st = traverse ? (savedStation() ?? hashed) : hashed;
+        const st = pos ? pos.st : stationOf(e.to.hash);
         next.dataset.station = st === 'left' || st === 'right' ? st : 'center';
       });
       document.addEventListener('astro:after-swap', () => {

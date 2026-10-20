@@ -57,6 +57,8 @@
     const W2 = Math.max(32, W - e1 - D / 2);
     if (Math.abs(W2 - W) > 1) right.style.setProperty('--work-y', `${Math.round(W2)}px`);
     if (Math.abs(P2 - P) > 1) right.style.setProperty('--projects-y', `${Math.round(P2)}px`);
+    // the bench moved, so anything placed by its position (scroll anchors) is stale
+    if (Math.abs(W2 - W) > 1 || Math.abs(P2 - P) > 1) window.dispatchEvent(new Event('rk:layout'));
   };
 
   let teardown: (() => void) | null = null;
