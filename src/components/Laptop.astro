@@ -92,6 +92,9 @@ const keys = ROWS.flatMap((row, r) => {
     <rect x="-3" y="728" width="7" height="24" rx="2" fill="#1b1c1f" />
   </svg>
 
+  <!-- zoomed in, this fills the viewport behind the screen and hides the laptop body -->
+  <span class="veil" aria-hidden="true"></span>
+
   <!-- the live screen, sized to the painted one -->
   <div
     class="screen"
@@ -110,7 +113,8 @@ const keys = ROWS.flatMap((row, r) => {
 <script>
   const root = document.documentElement;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const MS = 700;
+  const MS = 600;
+  const EASE = 'cubic-bezier(0.2, 0.7, 0.2, 1)';
 
   let ac: AbortController | null = null;
   document.addEventListener('astro:before-swap', () => {
@@ -121,9 +125,8 @@ const keys = ROWS.flatMap((row, r) => {
 
   const init = () => {
     const lap = document.querySelector<HTMLElement>('.laptop');
-    const camera = lap?.closest<HTMLElement>('.camera');
     const world = lap?.closest<HTMLElement>('[data-world]');
-    if (!lap || !camera || !world || lap.dataset.bound) return;
+    if (!lap || !world || lap.dataset.bound) return;
     lap.dataset.bound = '1';
     ac?.abort();
     ac = new AbortController();
@@ -137,50 +140,71 @@ const keys = ROWS.flatMap((row, r) => {
     const preview = () => (screen.inert = root.classList.contains('world') && !zoomed());
     preview();
 
-    let timer = 0;
-    const animate = (transform: string, done?: () => void) => {
-      clearTimeout(timer);
-      const ms = reduced.matches ? 0 : MS;
-      camera.style.transition = ms ? `transform ${ms}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none';
-      camera.style.transformOrigin = '0 0';
-      camera.style.transform = transform;
-      timer = window.setTimeout(() => {
-        camera.style.transition = '';
+    // FLIP on the screen alone: only its transform moves (translate and scale, from the painted
+    // screen to the whole viewport under the nav); the veil fades in behind it and the laptop body
+    // goes with it. No width, height or layout is animated.
+    const veil = lap.querySelector<HTMLElement>('.veil')!;
+    let anim: Animation | null = null;
+    const flip = (to: string, done?: () => void, start?: string) => {
+      const from = start ?? getComputedStyle(screen).transform;
+      anim?.cancel();
+      anim = null;
+      screen.style.transform = to;
+      if (reduced.matches || from === to) {
         done?.();
-      }, ms + 20);
+        return;
+      }
+      screen.style.willChange = 'transform';
+      const a = screen.animate([{ transform: from }, { transform: to }], { duration: MS, easing: EASE });
+      anim = a;
+      a.onfinish = () => {
+        if (anim !== a) return;
+        anim = null;
+        screen.style.willChange = '';
+        done?.();
+      };
+    };
+    // the veil covers exactly the viewport under the nav, so it never stretches the page
+    const cover = () => {
+      const nav = document.querySelector<HTMLElement>('.nav')?.offsetHeight ?? 52;
+      const l = lap.getBoundingClientRect();
+      Object.assign(veil.style, {
+        left: `${-l.left}px`,
+        top: `${nav - l.top}px`,
+        width: `${document.documentElement.clientWidth}px`,
+        height: `${window.innerHeight - nav}px`,
+      });
     };
 
-    // scale the camera until the screen fills the space under the nav, centred
     const zoomIn = (tab: 'about' | 'contact' = 'about') => {
       if (!root.classList.contains('world') || document.querySelector('dialog[open]')) return;
       ide.dispatchEvent(new CustomEvent('rk:tab', { detail: tab }));
       if (zoomed()) return;
-      const nav = document.querySelector<HTMLElement>('.nav')?.offsetHeight ?? 52;
-      const vw = document.documentElement.clientWidth;
-      const vh = window.innerHeight - nav;
-      const s0 = screen.getBoundingClientRect();
-      const c = camera.getBoundingClientRect();
-      const w = world.getBoundingClientRect();
-      const s = Math.min((vw - 32) / s0.width, (vh - 24) / s0.height);
-      const lx = s0.left - c.left;
-      const ly = s0.top - c.top;
-      const tx = (vw - s0.width * s) / 2 - w.left - s * lx;
-      const ty = nav + (vh - s0.height * s) / 2 - w.top - s * ly;
       root.dataset.zoom = 'in';
       lock(true);
       preview();
       open.setAttribute('aria-expanded', 'true');
-      animate(`translate3d(${tx}px, ${ty}px, 0) scale(${s})`, () => {
-        ide.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus({ preventScroll: true });
-      });
+      // measure only once the page has taken its locked layout, from the screen as it rests
+      const start = getComputedStyle(screen).transform;
+      anim?.cancel();
+      screen.style.transform = 'none';
+      void screen.offsetWidth;
+      cover();
+      const nav = document.querySelector<HTMLElement>('.nav')?.offsetHeight ?? 52;
+      const vw = document.documentElement.clientWidth;
+      const vh = window.innerHeight - nav;
+      const r = screen.getBoundingClientRect();
+      const s = Math.min(vw / r.width, vh / r.height);
+      const to = `translate(${(vw - r.width * s) / 2 - r.left}px, ${nav + (vh - r.height * s) / 2 - r.top}px) scale(${s})`;
+      flip(to, () => ide.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus({ preventScroll: true }), start);
     };
     const zoomOut = () => {
       if (!zoomed()) return;
       delete root.dataset.zoom;
       open.setAttribute('aria-expanded', 'false');
       preview();
-      animate('', () => {
-        camera.style.transformOrigin = '';
+      flip('none', () => {
+        screen.style.transform = '';
         lock(false);
         window.dispatchEvent(new Event('rk:world-moved'));
       });
@@ -216,9 +240,10 @@ const keys = ROWS.flatMap((row, r) => {
       () => {
         if (zoomed()) {
           delete root.dataset.zoom;
-          camera.style.transform = '';
-          camera.style.transition = '';
-          camera.style.transformOrigin = '';
+          anim?.cancel();
+          anim = null;
+          screen.style.transform = '';
+          screen.style.willChange = '';
           lock(false);
         }
         preview();
@@ -247,10 +272,25 @@ const keys = ROWS.flatMap((row, r) => {
     position: absolute;
     overflow: hidden;
     border-radius: 3px;
+    transform-origin: 0 0;
   }
-  /* on the desk: a dim preview behind glass */
+  .veil {
+    position: absolute;
+    background: var(--ide-bg);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  :global(html[data-zoom='in']) .veil {
+    opacity: 1;
+  }
+  /* on the desk: a dim preview behind glass. The editor's own brightness joins in once the screen
+     is 60% of the way up (240 ms of 600), and leads on the way back */
   .screen > :global(.ide) {
-    transition: opacity 400ms var(--ease);
+    transition: opacity 240ms var(--ease);
+  }
+  :global(html[data-zoom='in']) .screen > :global(.ide) {
+    transition-delay: 360ms;
   }
   /* dim, but still readable at 4.5:1; the light theme's pale editor cannot dim and keep that */
   :global(html.world[data-theme='dark']:not([data-zoom='in'])) .screen > :global(.ide) {
@@ -324,6 +364,7 @@ const keys = ROWS.flatMap((row, r) => {
   }
   @media (prefers-reduced-motion: reduce) {
     .screen > :global(.ide),
+    .veil,
     .glare,
     .lap-hint {
       transition: none;
