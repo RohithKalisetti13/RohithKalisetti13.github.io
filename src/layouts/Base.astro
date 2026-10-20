@@ -57,24 +57,6 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         <text x="28" y="14" text-anchor="middle" font-family="'JetBrains Mono Variable', ui-monospace, monospace" font-size="6.5" font-weight="700" fill="#e8efe9" letter-spacing=".6">LDR</text>
       </svg>
     </button>
-    <script is:inline>
-      (() => {
-        const root = document.documentElement;
-        const btn = document.querySelector('.theme-toggle');
-        const sync = () => btn.setAttribute('aria-pressed', String(root.dataset.theme === 'light'));
-        sync();
-        btn.addEventListener('click', () => {
-          const next = root.dataset.theme === 'light' ? 'dark' : 'light';
-          root.dataset.theme = next;
-          try {
-            localStorage.setItem('rk-theme', next);
-          } catch {
-            /* storage blocked: choice lasts for this page only */
-          }
-          sync();
-        });
-      })();
-    </script>
     <script>
       import Lenis from 'lenis';
 
@@ -124,23 +106,91 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         else lenis?.start();
       });
 
-      // keep theme across client-side swaps; pick the slide direction
+      // theme switch: the button is replaced on every swap, so bind each new one once
+      const readTheme = () => {
+        try {
+          return localStorage.getItem('rk-theme') === 'light' ? 'light' : 'dark';
+        } catch {
+          return root.dataset.theme === 'light' ? 'light' : 'dark';
+        }
+      };
+      const bindTheme = () => {
+        const btn = document.querySelector<HTMLButtonElement>('.theme-toggle');
+        if (!btn || btn.dataset.bound) return;
+        btn.dataset.bound = '1';
+        const sync = () => btn.setAttribute('aria-pressed', String(root.dataset.theme === 'light'));
+        sync();
+        btn.addEventListener('click', () => {
+          const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+          root.dataset.theme = next;
+          try {
+            localStorage.setItem('rk-theme', next);
+          } catch {
+            /* storage blocked: choice lasts until the next full load */
+          }
+          sync();
+        });
+      };
+
+      // scroll: our own per-URL memory, restored in one jump while Lenis holds still
+      history.scrollRestoration = 'manual';
+      const key = (u: URL | Location) => `rk-scroll:${u.pathname}${u.search}`;
+      // on a traverse, location already names the destination, so the caller says whose position this is
+      const save = (u: URL | Location = location) => {
+        try {
+          sessionStorage.setItem(key(u), String(Math.round(window.scrollY)));
+        } catch {
+          /* storage blocked: back lands where the router puts it */
+        }
+      };
+      const saved = (u: URL) => {
+        try {
+          const v = sessionStorage.getItem(key(u));
+          return v === null ? null : Number(v);
+        } catch {
+          return null;
+        }
+      };
+      let traverse = false;
+      document.addEventListener('astro:before-preparation', (e) => {
+        traverse = e.navigationType === 'traverse';
+        if (e.from.pathname !== e.to.pathname) save(e.from);
+      });
+      window.addEventListener('pagehide', () => save());
+
+      // pick the page transition: forward to a case study slides in from the right, home fades
       const side = (p: string) => (p.startsWith('/ide') ? -1 : p.startsWith('/projects/') ? 1 : 0);
+      let restoreY: number | null = null;
       document.addEventListener('astro:before-swap', (e) => {
         const next = e.newDocument.documentElement;
-        next.dataset.theme = root.dataset.theme;
+        next.dataset.theme = readTheme();
+        next.classList.add('rk-swapping');
+        lenis?.stop();
         const from = side(e.from.pathname);
         const to = side(e.to.pathname);
-        // new page comes in from the side of the world it lives on
-        next.dataset.slide = to < from ? 'left' : to > from ? 'right' : 'none';
+        next.dataset.slide = e.to.pathname === '/' && e.from.pathname !== '/' ? 'fade' : to < from ? 'left' : to > from ? 'right' : 'none';
+        restoreY = traverse && e.from.pathname !== e.to.pathname ? saved(e.to) : null;
       });
       document.addEventListener('astro:after-swap', () => {
         root.classList.remove('scroll-locked');
-        if (!lenis) return;
-        lenis.start();
-        lenis.resize();
-        root.classList.add(...lenis.className.split(' '));
+        history.scrollRestoration = 'manual';
+        // the router has just scrolled (smoothly, if CSS asks); land exactly, with no animation
+        if (restoreY !== null) window.scrollTo({ top: restoreY, left: 0, behavior: 'instant' });
+        restoreY = null;
+        if (lenis) {
+          root.classList.add(...lenis.className.split(' '));
+          lenis.resize();
+          lenis.scrollTo(window.scrollY, { immediate: true, force: true });
+          lenis.start();
+        }
+        bindTheme();
+        setTimeout(() => root.classList.remove('rk-swapping'), 0);
       });
+      document.addEventListener('astro:page-load', () => {
+        root.classList.remove('rk-swapping');
+        bindTheme();
+      });
+      bindTheme();
     </script>
   </body>
 </html>
@@ -148,6 +198,26 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 <style is:global>
   html.scroll-locked {
     overflow: hidden;
+  }
+  html.rk-swapping {
+    scroll-behavior: auto !important;
+  }
+  /* back home: a short crossfade, no travel */
+  html[data-slide='fade']::view-transition-old(root) {
+    animation: 150ms linear both fade-out;
+  }
+  html[data-slide='fade']::view-transition-new(root) {
+    animation: 150ms linear both fade-in;
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
   }
   /* world travel: the new page slides in from its side, the old one moves away */
   html[data-slide='left']::view-transition-old(root) {

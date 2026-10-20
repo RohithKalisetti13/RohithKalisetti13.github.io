@@ -2,56 +2,13 @@
 // Hero: the board lying on a desk, a USB cable in CN1 with an inline power switch,
 // and a 1602 character LCD on an I2C backpack wired to CN5.
 // Overlays share the board's 1500x2000 user space, so every coordinate below is board units.
-// Markup is the powered-on state; the inline script switches to off before first paint.
+// Markup is the powered-on state; a tiny inline script applies the saved state before first paint.
 import McuBoard from './McuBoard.astro';
 import LedDot from './LedDot.astro';
 import site from '../content/site.json';
 import skills from '../content/skills.json';
 
-// 1602 module, lying on the desk above the top-right corner (local coordinates inside it)
-const LCD = { x: 1105, y: -186, w: 410, h: 176 };
-const WIN = { x: 22, y: 40, w: 366, h: 108 };
-// 5x8 dot cells: dot pitch D, a one-dot gap between characters and between the two rows
-const D = 3.6;
-const DOT = 3;
-const COLS = 16;
-const TX = WIN.x + (WIN.w - (COLS * 6 - 1) * D) / 2;
-const TY = WIN.y + (WIN.h - 17 * D) / 2;
-const CELLS = Array.from({ length: COLS * 2 }, (_, i) => [TX + (i % COLS) * 6 * D, TY + Math.floor(i / COLS) * 9 * D]);
-
-// HD44780-style glyphs, seven rows of five bits; the eighth row is the cursor line
-const FONT: Record<string, number[]> = {
-  A: [14, 17, 17, 17, 31, 17, 17], B: [30, 17, 17, 30, 17, 17, 30], C: [14, 17, 16, 16, 16, 17, 14],
-  D: [28, 18, 17, 17, 17, 18, 28], E: [31, 16, 16, 30, 16, 16, 31], F: [31, 16, 16, 30, 16, 16, 16],
-  G: [14, 17, 16, 23, 17, 17, 15], H: [17, 17, 17, 31, 17, 17, 17], I: [14, 4, 4, 4, 4, 4, 14],
-  J: [7, 2, 2, 2, 2, 18, 12], K: [17, 18, 20, 24, 20, 18, 17], L: [16, 16, 16, 16, 16, 16, 31],
-  M: [17, 27, 21, 21, 17, 17, 17], N: [17, 17, 25, 21, 19, 17, 17], O: [14, 17, 17, 17, 17, 17, 14],
-  P: [30, 17, 17, 30, 16, 16, 16], Q: [14, 17, 17, 17, 21, 18, 13], R: [30, 17, 17, 30, 20, 18, 17],
-  S: [15, 16, 16, 14, 1, 1, 30], T: [31, 4, 4, 4, 4, 4, 4], U: [17, 17, 17, 17, 17, 17, 14],
-  V: [17, 17, 17, 17, 17, 10, 4], W: [17, 17, 17, 21, 21, 21, 10], X: [17, 17, 10, 4, 10, 17, 17],
-  Y: [17, 17, 17, 10, 4, 4, 4], Z: [31, 1, 2, 4, 8, 16, 31], x: [0, 0, 17, 10, 4, 10, 17],
-  0: [14, 17, 19, 21, 25, 17, 14], 1: [4, 12, 4, 4, 4, 4, 14], 2: [14, 17, 1, 2, 4, 8, 31],
-  3: [31, 2, 4, 2, 1, 17, 14], 4: [2, 6, 10, 18, 31, 2, 2], 5: [31, 16, 30, 1, 1, 17, 14],
-  6: [6, 8, 16, 30, 17, 17, 14], 7: [31, 1, 2, 4, 8, 8, 8], 8: [14, 17, 17, 14, 17, 17, 14],
-  9: [14, 17, 17, 15, 1, 2, 12], ':': [0, 12, 12, 0, 12, 12, 0], '.': [0, 0, 0, 0, 0, 12, 12],
-  '-': [0, 0, 0, 31, 0, 0, 0], '/': [0, 1, 2, 4, 8, 16, 0],
-};
-// lit dots for two 16-character lines, as one path
-const frame = (a: string, b: string) =>
-  [a, b]
-    .flatMap((line, r) =>
-      [...line.slice(0, COLS)].flatMap((ch, c) =>
-        (FONT[ch] ?? []).flatMap((bits, y) =>
-          [0, 1, 2, 3, 4]
-            .filter((x) => bits & (16 >> x))
-            .map((x) => `M${+(TX + (c * 6 + x) * D).toFixed(1)} ${+(TY + (r * 9 + y) * D).toFixed(1)}h${DOT}v${DOT}h-${DOT}z`),
-        ),
-      ),
-    )
-    .join('');
-const NAME = 'ROHITH KALISETTI';
-const TAG = 'EMBEDDED FIRMWARE ENGINEER';
-const LOG = ['RK-FW1 REV A', 'RST: POWER-ON', 'CLK: PLL LOCKED', 'I2C1: 0x27 ACK', 'RTOS: SCHED UP', 'APP: READY'];
+import { LCD, WIN, D, DOT, TX, TY, CELLS, frame, NAME, TAG } from '../lib/lcd';
 
 // backpack pins, left to right; the left pin takes the inner lane and the shallowest socket
 type Wire = { pin: string; px: number; to: string; y: number; color: string };
@@ -336,51 +293,76 @@ const LINKS = [
   <slot />
 </div>
 
-<script is:inline define:vars={{ FONT, LOG, NAME, TAG, TX, TY, D, DOT, COLS }}>
+<script is:inline>
+  // saved power for this session, else off until the first-visit auto-on; runs before first paint
   (() => {
-    const root = document.querySelector('.desk');
-    const board = root && root.querySelector('.mcu-board');
-    if (!root || !board) return;
-    const stage = root.querySelector('.stage');
-    const sw = root.querySelector('.pwr');
-    const lit = root.querySelector('.lcd-lit');
-    const store = {
-      get(k) {
-        try {
-          return window.sessionStorage.getItem(k);
-        } catch {
-          return null;
-        }
-      },
-      set(k, v) {
-        try {
-          window.sessionStorage.setItem(k, v);
-        } catch {
-          /* storage blocked: every visit is a first visit */
-        }
-      },
-    };
-    const mq = (q) => window.matchMedia(q).matches;
-    const reduced = mq('(prefers-reduced-motion: reduce)');
+    const desk = document.querySelector('.desk');
+    if (!desk) return;
+    let v = null;
+    try {
+      v = sessionStorage.getItem('rk-power');
+    } catch {
+      /* storage blocked: treat as a first visit */
+    }
+    const p = v === 'on' ? 'on' : 'off';
+    desk.dataset.power = p;
+    desk.querySelector('.mcu-board')?.setAttribute('data-power', p);
+    desk.querySelector('.pwr')?.setAttribute('aria-pressed', String(p === 'on'));
+  })();
+</script>
 
-    // same lit-dot path as the server render
-    const frame = (a, b) =>
-      [a, b]
-        .flatMap((line, r) =>
-          [...line.slice(0, COLS)].flatMap((ch, c) =>
-            (FONT[ch] || []).flatMap((bits, y) =>
-              [0, 1, 2, 3, 4]
-                .filter((x) => bits & (16 >> x))
-                .map((x) => `M${+(TX + (c * 6 + x) * D).toFixed(1)} ${+(TY + (r * 9 + y) * D).toFixed(1)}h${DOT}v${DOT}h-${DOT}z`),
-            ),
-          ),
-        )
-        .join('');
-    const show = (a, b) => lit.setAttribute('d', frame(a, b));
+<script>
+  import { frame, NAME, TAG, LOG, COLS } from '../lib/lcd';
+
+  const store = {
+    get(k: string) {
+      try {
+        return sessionStorage.getItem(k);
+      } catch {
+        return null;
+      }
+    },
+    set(k: string, v: string) {
+      try {
+        sessionStorage.setItem(k, v);
+      } catch {
+        /* storage blocked: every visit is a first visit */
+      }
+    },
+  };
+  const mq = (q: string) => window.matchMedia(q).matches;
+
+  // one live binding per desk element; window listeners and timers die with the page
+  let ac: AbortController | null = null;
+  let timers: number[] = [];
+  const teardown = () => {
+    ac?.abort();
+    ac = null;
+    timers.forEach(clearTimeout);
+    timers = [];
+  };
+  document.addEventListener('astro:before-swap', teardown);
+
+  const init = () => {
+    const root = document.querySelector<HTMLElement>('.desk');
+    const board = root?.querySelector('.mcu-board');
+    if (!root || !board || root.dataset.bound) return;
+    root.dataset.bound = '1';
+    teardown();
+    ac = new AbortController();
+    const signal = ac.signal;
+    const stage = root.querySelector<HTMLElement>('.stage')!;
+    const sw = root.querySelector<HTMLButtonElement>('.pwr')!;
+    const lit = root.querySelector('.lcd-lit')!;
+    const reduced = mq('(prefers-reduced-motion: reduce)');
+    const show = (a: string, b: string) => lit.setAttribute('d', frame(a, b));
 
     // one pending LCD step at a time, so power-off cancels whatever is running
     let step = 0;
-    const later = (fn, ms) => (step = setTimeout(fn, ms));
+    const later = (fn: () => void, ms: number) => {
+      step = window.setTimeout(fn, ms);
+      timers.push(step);
+    };
     const run = () => {
       if (reduced) return show(NAME, 'EMBEDDED FW ENG');
       // hold at the start, scroll one character per 300 ms, hold at the end, loop
@@ -406,10 +388,11 @@ const LINKS = [
       later(tick, 450);
     };
 
-    let on = true;
-    const setPower = (v, animate) => {
+    let on = false;
+    const setPower = (v: boolean, animate = false) => {
       on = v;
       clearTimeout(step);
+      store.set('rk-power', v ? 'on' : 'off');
       root.dataset.power = v ? 'on' : 'off';
       board.setAttribute('data-power', v ? 'on' : 'off');
       sw.setAttribute('aria-pressed', String(v));
@@ -418,30 +401,32 @@ const LINKS = [
       else run();
     };
 
-    root.querySelector('.lcd-hit').addEventListener('click', () => {
+    root.querySelector('.lcd-hit')!.addEventListener('click', () => {
       const ev = new CustomEvent('rk:about', { cancelable: true });
       if (window.dispatchEvent(ev)) document.querySelector('#irq .about')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
     });
 
-    // a repeat visit in this session comes back powered, with no intro
-    const repeat = store.get('rk-seen') === '1';
-    store.set('rk-seen', '1');
-    let touched = repeat;
+    // a return in this session restores the saved state as is: no intro, no auto-on
+    const saved = store.get('rk-power');
+    let touched = saved !== null;
     let idle = 0;
     sw.addEventListener('click', () => {
       touched = true;
       clearTimeout(idle);
       setPower(!on, true);
     });
-    if (repeat) return run();
+    if (saved !== null) return setPower(saved === 'on');
 
     setPower(false);
     // an unattended first visit still gets a powered board, unless the switch was used
     const arm = () => {
       clearTimeout(idle);
-      if (!touched && !on) idle = setTimeout(() => !touched && setPower(true, true), 6000);
+      if (!touched && !on) {
+        idle = window.setTimeout(() => !touched && setPower(true, true), 6000);
+        timers.push(idle);
+      }
     };
-    ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((e) => window.addEventListener(e, arm, { passive: true }));
+    (['pointerdown', 'keydown', 'wheel', 'touchstart'] as const).forEach((e) => window.addEventListener(e, arm, { passive: true, signal }));
 
     const intro = !reduced && !mq('(max-width: 720px)') && window.scrollY < 8 && 'animate' in stage;
     if (!intro) return arm();
@@ -468,12 +453,14 @@ const LINKS = [
       root.dataset.intro = 'done';
       window.removeEventListener('pointerdown', skip);
       window.removeEventListener('keydown', skip);
-      arm();
+      if (!signal.aborted) arm();
     };
-    window.addEventListener('pointerdown', skip);
-    window.addEventListener('keydown', skip);
+    window.addEventListener('pointerdown', skip, { signal });
+    window.addEventListener('keydown', skip, { signal });
     anim.finished.then(done, done);
-  })();
+  };
+  document.addEventListener('astro:after-swap', init);
+  document.addEventListener('astro:page-load', init);
 </script>
 
 <style>
