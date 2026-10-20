@@ -2,7 +2,9 @@
 // Runtime jumper layer over the whole desk world. Any element with data-wire-from="<selector>" is a pad;
 // a wire runs from the header pin that selector finds to that pad.
 // Optional on the pad: data-wire-color, data-wire-group (each group gets its own block of lanes),
-// data-wire-shared (the pin already carries a housing, so the wire leaves from its end).
+// data-wire-shared (the pin already carries a housing, so the wire leaves from its end),
+// data-wire-side on the bench units (top or bottom: the jumper runs above or below the breadboard and
+// drops onto its hole from that side).
 // A selector may end in "@n" to pick the nth match. Missing or hidden anchors drop the wire.
 // Desk world: wires leave the headers to the right, drop or rise in the gap between the stations,
 // and land on the bench, which this script first slides level with the headers it is wired to.
@@ -16,7 +18,8 @@
   const LCD_OUTER = 1542 + 4.5; // outer edge of the LCD jumpers, board units
   const BOARD_W = 1500;
 
-  type Wire = { pin: DOMRect; pad: DOMRect; color: string; group: string; shared: boolean };
+  type Wire = { pin: DOMRect; pad: DOMRect; color: string; group: string; shared: boolean; side: string };
+  type Seg = { h: boolean; c: number; a: number; b: number };
 
   const pick = (sel: string) => {
     const [q, n] = sel.split('@');
@@ -33,6 +36,27 @@
     return e;
   };
   const midY = (r: DOMRect) => r.top + r.height / 2;
+  // a polyline with rounded corners, each radius clipped to half its shorter leg
+  const rounded = (pts: [number, number][], rmax: number) => {
+    const p = pts.filter((q, i) => !i || Math.hypot(q[0] - pts[i - 1][0], q[1] - pts[i - 1][1]) > 0.5);
+    let d = `M${p[0][0]} ${p[0][1]}`;
+    for (let i = 1; i < p.length - 1; i++) {
+      const [x0, y0] = p[i - 1];
+      const [x1, y1] = p[i];
+      const [x2, y2] = p[i + 1];
+      const l1 = Math.hypot(x1 - x0, y1 - y0);
+      const l2 = Math.hypot(x2 - x1, y2 - y1);
+      const r = Math.min(rmax, l1 / 2, l2 / 2);
+      d += `L${x1 - ((x1 - x0) / l1) * r} ${y1 - ((y1 - y0) / l1) * r}Q${x1} ${y1} ${x1 + ((x2 - x1) / l2) * r} ${y1 + ((y2 - y1) / l2) * r}`;
+    }
+    const last = p[p.length - 1];
+    return `${d}L${last[0]} ${last[1]}`;
+  };
+  const crosses = (s: Seg, t: Seg) => {
+    if (s.h === t.h) return false;
+    const [h, v] = s.h ? [s, t] : [t, s];
+    return v.c > h.a && v.c < h.b && h.c > v.a && h.c < v.b;
+  };
   const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / (a.length || 1);
 
   // slide the bench so J1 sits level with CN5 and the breadboard holes level with D2-D7;
@@ -47,8 +71,9 @@
       return mean(pads.map((t) => midY(t.getBoundingClientRect()))) - mean(pins.map(midY));
     };
     const e1 = band('trace', 'cn5');
-    const e2 = band('builds', 'cn9');
-    if (e1 === null || e2 === null) return;
+    if (e1 === null) return;
+    // the bench units take their jumpers from above and below, so only a level group pulls on the bench
+    const e2 = band('builds', 'cn9') ?? e1;
     const cs = getComputedStyle(right);
     const W = parseFloat(cs.getPropertyValue('--work-y')) || 120;
     const P = parseFloat(cs.getPropertyValue('--projects-y')) || 48;
@@ -97,7 +122,7 @@
         if (!pin || (!pad && world)) return;
         const g = t.dataset.wireGroup ?? 'a';
         if (!groups.has(g)) groups.set(g, []);
-        groups.get(g)!.push({ pin, pad: pad ?? new DOMRect(), color: t.dataset.wireColor ?? '#8a8a86', group: g, shared: 'wireShared' in t.dataset });
+        groups.get(g)!.push({ pin, pad: pad ?? new DOMRect(), color: t.dataset.wireColor ?? '#8a8a86', group: g, shared: 'wireShared' in t.dataset, side: t.dataset.wireSide ?? '' });
       });
       if (!groups.size) return;
 
@@ -135,8 +160,10 @@
       // power has its own route in the desk world (below); the ribbon lanes are for the signal groups
       const ownRoute = (g: string) => world && g === 'power';
       const ribbon = [...groups].filter(([g]) => !ownRoute(g)).map(([, w]) => w);
-      // lanes fill the gap between the board's LCD jumpers and the nearest landing pad
-      const pads = ribbon.flat().map((w) => w.pad.left - d.left);
+      // lanes fill the gap between the board's LCD jumpers and the nearest landing pad; the bench units'
+      // jumpers turn before the breadboard's edge
+      const bench = document.querySelector('.bb')?.getBoundingClientRect();
+      const pads = ribbon.flat().map((w) => (w.side && bench ? bench.left : w.pad.left) - d.left);
       const start = X(LCD_OUTER) + 3 * pitch;
       const end = Math.min(...pads) - housingW - 2 * pitch;
       const total = ribbon.reduce((n, g) => n + g.length, 0) + 2 * (ribbon.length - 1);
@@ -187,9 +214,92 @@
         });
       };
 
+      // vertical Dupont housing on a breadboard hole, the wire arriving from above (dir -1) or below (1)
+      const housingV = (cx: number, cy: number, dir: number) => {
+        const y0 = dir < 0 ? cy - housingW * 0.6 : cy - housingW * 0.3;
+        caps.append(
+          el('rect', { x: cx - housingH / 2 + 3, y: y0 + 4, width: housingH, height: housingW * 0.9, rx: 2.5, fill: '#000', opacity: 0.28 }),
+          el('rect', { x: cx - housingH / 2, y: y0, width: housingH, height: housingW * 0.9, rx: 2.5, fill: '#18191c' }),
+          el('path', { d: `M${cx - housingH / 2 + 1.5} ${y0 + 2}V${y0 + housingW * 0.9 - 2}`, stroke: '#4a4b51', 'stroke-width': 1.5 }),
+          el('rect', { x: cx - 3, y: cy - 3, width: 6, height: 6, rx: 1, fill: '#2c2d32' }),
+        );
+        return dir < 0 ? y0 : y0 + housingW * 0.9;
+      };
+
+      // bench units: off the pin, along a lane, out to a channel above (top half) or below (bottom half)
+      // the breadboard, across, and a short drop onto the switch's hole. The nearest drop takes the channel
+      // closest to the board; lanes are ordered by a few passes of swaps that cut crossings
+      const units = (wires: Wire[]) => {
+        if (!bench) return;
+        const chGap = Math.max(wireW * 1.7, 6);
+        const chan = new Map<Wire, number>();
+        const ends = new Map<Wire, number>();
+        for (const side of ['top', 'bottom']) {
+          const list = wires.filter((w) => (w.side === 'top') === (side === 'top')).sort((a, b) => a.pad.left - b.pad.left);
+          list.forEach((w, i) => chan.set(w, side === 'top' ? bench.top - d.top - 14 - i * chGap : bench.bottom - d.top + 14 + i * chGap));
+        }
+        const geo = wires.map((w) => {
+          const px = w.pin.left + w.pin.width / 2 - d.left;
+          const py = midY(w.pin) - d.top;
+          const out = px + 28 * u;
+          const tx = w.pad.left + w.pad.width / 2 - d.left;
+          const ty = midY(w.pad) - d.top;
+          return { w, px, py, out, tx, ty, cy: chan.get(w)!, dir: w.side === 'top' ? -1 : 1 };
+        });
+        const segs = (g: (typeof geo)[number], L: number): Seg[] => [
+          { h: true, c: g.py, a: g.out, b: L },
+          { h: false, c: L, a: Math.min(g.py, g.cy), b: Math.max(g.py, g.cy) },
+          { h: true, c: g.cy, a: L, b: g.tx },
+          { h: false, c: g.tx, a: Math.min(g.cy, g.ty), b: Math.max(g.cy, g.ty) },
+        ];
+        const cost = (order: typeof geo) => {
+          const all = order.map((g, i) => segs(g, lane + i * gap));
+          let n = 0;
+          for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) for (const s of all[i]) for (const t of all[j]) n += +crosses(s, t);
+          return n;
+        };
+        const order = [...geo].sort((a, b) => a.py - b.py);
+        let best = cost(order);
+        for (let pass = 0; pass < order.length; pass++) {
+          let moved = false;
+          for (let i = 0; i + 1 < order.length; i++) {
+            [order[i], order[i + 1]] = [order[i + 1], order[i]];
+            const c = cost(order);
+            if (c < best) {
+              best = c;
+              moved = true;
+            } else [order[i], order[i + 1]] = [order[i + 1], order[i]];
+          }
+          if (!moved) break;
+        }
+        order.forEach((g, i) => {
+          housing(g.px, g.py, g.px - 24 * u, g.out);
+          ends.set(g.w, housingV(g.tx, g.ty, g.dir));
+          const L = lane + i * gap;
+          stroke(
+            rounded(
+              [
+                [g.out, g.py],
+                [L, g.py],
+                [L, g.cy],
+                [g.tx, g.cy],
+                [g.tx, ends.get(g.w)!],
+              ],
+              Math.min(30, chGap * 2),
+            ),
+            g.w.color,
+          );
+        });
+      };
+
       for (const [name, wires] of groups) {
         if (ownRoute(name)) {
           power(wires);
+          continue;
+        }
+        if (world && name === 'units') {
+          units(wires);
+          lane += (wires.length + 2) * gap;
           continue;
         }
         wires.sort((a, b) => a.pin.top - b.pin.top);

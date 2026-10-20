@@ -1,331 +1,301 @@
 ---
-// Projects as parts on a solderless breadboard. Jumpers from CN9 (D2 to D7) and the power pins
-// land on the end nearest the board; each featured part is a link to its case study.
+// Projects as units on one solderless breadboard. Each unit is its part, then a tactile switch, a 220R
+// and an LED in a row, with a jumper from the switch to a header pin on the board (drawn by WireLayer).
+// The part, the switch and the plate are one link to the case study: pressing it drops the switch,
+// lights the LED, then the page slides in. Under 720px the units become cards with the same drawings.
 import type { Project } from '../content.config';
-import PartArt, { type Kind } from './PartArt.astro';
 import StatusLed from './StatusLed.astro';
 import BoardArt from './bench/BoardArt.astro';
+import BenchDefs from './bench/BenchDefs.astro';
+import Part from './bench/Part.astro';
+import TactButton from './bench/TactButton.astro';
+import Resistor from './bench/Resistor.astro';
+import Led from './bench/Led.astro';
+import { BB_W, BB_H, colX, rowY, railHole } from '../lib/breadboard';
+import { PART_BOX, BUTTON, RESISTOR, LED, type PartKind, type Box } from '../lib/parts';
 
 interface Props {
   projects: { id: string; data: Project }[];
 }
 const { projects } = Astro.props;
 
-const ART: Record<string, { kind: Kind; span?: number; pin?: string }> = {
-  'iio-sensor-hub': { kind: 'iio', span: 2, pin: 'D2' },
-  'openwrt-fault-injection': { kind: 'rj45', pin: 'D3' },
-  'freertos-host-shim': { kind: 'esp32', pin: 'D4' },
-  'gesture-wheelchair': { kind: 'gesture', pin: 'D5' },
-  'gpu-beamformer': { kind: 'antenna', span: 2, pin: 'D6' },
-  'cuda-image-processing': { kind: 'matrix', pin: 'D7' },
-  'hardware-debloat-ghidra': { kind: 'swd' },
-  'hdc-pi-vs-gpu': { kind: 'sbc' },
-  'captcha-cnn': { kind: 'camera' },
-};
-const art = (id: string) => ART[id] ?? { kind: 'sbc' as Kind };
-const featured = projects.slice(0, 6);
-const more = projects.slice(6);
-const STATUS = { wip: 'In progress', shipped: 'Shipped' };
-
-// landing holes, top to bottom in CN9 order, so the jumpers from the board never cross
-const GPIO = [
-  { silk: 'D7', pin: 'PA8', color: '#c9a43a' },
-  { silk: 'D6', pin: 'PB10', color: '#3f6fa8' },
-  { silk: 'D5', pin: 'PB4', color: '#6d5596' },
-  { silk: 'D4', pin: 'PB5', color: '#c77a33' },
-  { silk: 'D3', pin: 'PB3', color: '#4f8a4f' },
-  { silk: 'D2', pin: 'PA10', color: '#d9d6cf' },
+type Half = 'top' | 'bottom';
+// left to right, top half then bottom half; pin = silkscreen name, from = the header pin the jumper leaves
+const UNITS: { slug: string; kind: PartKind; half: Half; silk: string; from: string; color: string }[] = [
+  { slug: 'iio-sensor-hub', kind: 'msa311', half: 'top', silk: 'D2', from: "#hero-cn9 [data-pin='PA10']", color: '#d9d6cf' },
+  { slug: 'openwrt-fault-injection', kind: 'wifi', half: 'top', silk: 'D3', from: "#hero-cn9 [data-pin='PB3']", color: '#4f8a4f' },
+  { slug: 'freertos-host-shim', kind: 'crystal', half: 'top', silk: 'D4', from: "#hero-cn9 [data-pin='PB5']", color: '#c77a33' },
+  { slug: 'gesture-wheelchair', kind: 'adxl335', half: 'top', silk: 'D5', from: "#hero-cn9 [data-pin='PB4']", color: '#6d5596' },
+  { slug: 'gpu-beamformer', kind: 'hcsr04', half: 'top', silk: 'D6', from: "#hero-cn9 [data-pin='PB10']", color: '#3f6fa8' },
+  { slug: 'cuda-image-processing', kind: 'matrix', half: 'bottom', silk: 'D7', from: "#hero-cn9 [data-pin='PA8']", color: '#c9a43a' },
+  { slug: 'hardware-debloat-ghidra', kind: 'swd', half: 'bottom', silk: 'D1', from: "#hero-cn9 [data-pin='PA2']", color: '#7a5136' },
+  { slug: 'hdc-pi-vs-gpu', kind: 'oled', half: 'bottom', silk: 'D0', from: "#hero-cn9 [data-pin='PA3']", color: '#7d7f84' },
+  // A0 (PA0) sits on the far side of the board; its jumper leaves the nearest free CN10 morpho pin
+  { slug: 'captcha-cnn', kind: 'camera', half: 'bottom', silk: 'PC4', from: "#hero-cn10 [data-pin='PC4']", color: '#3f86d8' },
 ];
+const STATUS = { wip: 'In progress', shipped: 'Shipped' };
+const byId = new Map(projects.map((p) => [p.id, p]));
+
+// unit frames: five per half, twelve columns apart; origin on the first column at row a (top) or j (bottom)
+const START = [2, 14, 26, 38, 50];
+const BAND: Record<Half, { li: [number, number]; art: [number, number]; plate: [number, number]; row: 'a' | 'j'; dy: number }> = {
+  top: { li: [0, 95.5], art: [0, 76], plate: [76.5, 95], row: 'a', dy: BUTTON.dy },
+  bottom: { li: [96.5, 196], art: [116, 196], plate: [97, 115.5], row: 'j', dy: -BUTTON.dy },
+};
+const pct = (v: number, of: number) => `${+((v / of) * 100).toFixed(4)}%`;
+// a box in unit coordinates, placed inside the art rectangle of that unit
+const place = (b: Box, ox: number, oy: number, art: { x: number; y: number; w: number; h: number }) =>
+  `left:${pct(ox + b.x - art.x, art.w)};top:${pct(oy + b.y - art.y, art.h)};width:${pct(b.w, art.w)};height:${pct(b.h, art.h)}`;
+
+const units = UNITS.map((u, i) => {
+  const p = byId.get(u.slug);
+  if (!p) return null;
+  const band = BAND[u.half];
+  const ox = colX(START[i % 5]);
+  const oy = rowY(band.row);
+  const li = { x: ox - 5, y: band.li[0], w: 120, h: band.li[1] - band.li[0] };
+  const art = { x: li.x, y: band.art[0], w: li.w, h: band.art[1] - band.art[0] };
+  const dy = band.dy;
+  return {
+    ...u,
+    p,
+    li: `left:${pct(li.x, BB_W)};top:${pct(li.y, BB_H)};width:${pct(li.w, BB_W)};height:${pct(li.h, BB_H)}`,
+    art: `top:${pct(art.y - li.y, li.h)};height:${pct(art.h, li.h)}`,
+    plate: `top:${pct(band.plate[0] - li.y, li.h)};height:${pct(band.plate[1] - band.plate[0], li.h)};left:${pct(3, li.w)};width:${pct(114, li.w)}`,
+    part: place(PART_BOX[u.kind], ox, oy, art),
+    btn: place({ x: BUTTON.cx - 17, y: dy - 17, w: 34, h: 34 }, ox, oy, art),
+    res: place({ x: RESISTOR.x0 - 3, y: dy - 7, w: 46, h: 14 }, ox, oy, art),
+    led: place({ x: LED.cx - 19, y: dy - 19, w: 38, h: 38 }, ox, oy, art),
+    pad: `left:${pct(ox, BB_W)};top:${pct(oy, BB_H)}`,
+  };
+}).filter((u) => u !== null);
+const next = `left:${pct(colX(50) - 5, BB_W)};top:${pct(97, BB_H)};width:${pct(120, BB_W)};height:${pct(62, BB_H)}`;
+
 const POWER = [
-  { silk: '+5V', from: "#hero-cn10 [data-pin='U5V']", color: '#c4473c' },
-  { silk: 'GND', from: "#hero-cn11 [data-pin='GND']@1", color: '#2a2b2f' },
+  { from: "#hero-cn10 [data-pin='U5V']", color: '#c4473c', at: railHole(61, 'bot+') },
+  { from: "#hero-cn11 [data-pin='GND']@1", color: '#2a2b2f', at: railHole(61, 'bot-') },
 ];
 ---
 
 <div class="bbw">
+  <BenchDefs />
   <div class="bb">
     <BoardArt />
-    <div class="rail" aria-hidden="true">
-      <i class="row plus"></i>
-      <i class="row minus"></i>
-    </div>
-
-    <div class="field">
-      <p class="letters" aria-hidden="true"><span>a</span><span>e</span><span>f</span><span>j</span></p>
-      <ul class="parts">
-        {
-          featured.map((p) => {
-            const a = art(p.id);
-            return (
-              <li style={a.span ? `grid-column: span ${a.span}` : undefined} data-kind={a.kind}>
-                <a class="part" href={`/projects/${p.id}/`}>
-                  <span class="art">
-                    <PartArt kind={a.kind} />
-                  </span>
-                  <span class="lbl" aria-hidden="true">
-                    <StatusLed status={p.data.status} />
-                    <span class="ttl">{p.data.title}</span>
-                    {a.pin && <span class="pin">{a.pin}</span>}
-                  </span>
-                  <span class="tip">
-                    <span class="tt">{p.data.title}</span>
-                    <span class="tp">
-                      {p.data.period}
-                      <span class="sr-only">, {STATUS[p.data.status]}</span>
-                    </span>
-                  </span>
-                </a>
-              </li>
-            );
-          })
-        }
-      </ul>
-      <ul class="gpio" aria-hidden="true">
-        {
-          GPIO.map((g) => (
-            <li>
-              <span class="silk">{g.silk}</span>
-              <span class="hole" data-wire-from={`#hero-cn9 [data-pin='${g.pin}']`} data-wire-color={g.color} data-wire-group="builds" />
-            </li>
-          ))
-        }
-      </ul>
-    </div>
-
-    <div class="rail low" aria-hidden="true">
+    <ul class="units">
       {
-        POWER.map((g, i) => (
-          <i class:list={['row', i ? 'minus' : 'plus']}>
-            <span class="silk">{g.silk}</span>
-            <span class="hole" data-wire-from={g.from} data-wire-color={g.color} data-wire-group="power" />
-          </i>
-        ))
-      }
-    </div>
-  </div>
-
-  <p class="legend mono">
-    <span><StatusLed status="wip" /> In progress</span>
-    <span><StatusLed status="shipped" /> Shipped</span>
-  </p>
-
-  <h3 class="more-title mono">MORE BUILDS</h3>
-  <ul class="strip">
-    {
-      more.map((p) => {
-        const a = art(p.id);
-        return (
-          <li data-kind={a.kind}>
-            <a class="part" href={`/projects/${p.id}/`}>
-              <span class="art">
-                <PartArt kind={a.kind} />
+        units.map((u) => (
+          <li class:list={['unit', u.half]} style={u.li} data-status={u.p.data.status}>
+            <a class="hit" href={`/projects/${u.slug}/`} data-unit>
+              <span class="art" style={u.art} aria-hidden="true">
+                <span class="u-part" style={u.part}>
+                  <Part kind={u.kind} />
+                </span>
+                <span class="u-res" style={u.res}>
+                  <Resistor />
+                </span>
+                <span class="u-led" style={u.led}>
+                  <Led color={u.p.data.status === 'wip' ? 'amber' : 'green'} />
+                </span>
+                <span class="u-btn" style={u.btn}>
+                  <TactButton />
+                </span>
               </span>
-              <span class="lbl" aria-hidden="true">
-                <StatusLed status={p.data.status} />
-                <span class="ttl">{p.data.title}</span>
+              <span class="plate" style={u.plate} aria-hidden="true">
+                <StatusLed status={u.p.data.status} />
+                <span class="ttl">{u.p.data.title}</span>
+                <span class="pin">{u.silk}</span>
               </span>
               <span class="tip">
-                <span class="tt">{p.data.title}</span>
+                <span class="tt">{u.p.data.title}</span>
                 <span class="tp">
-                  {p.data.period}
-                  <span class="sr-only">, {STATUS[p.data.status]}</span>
+                  {u.p.data.period}
+                  <span class="sr-only">, {STATUS[u.p.data.status]}</span>
                 </span>
               </span>
             </a>
           </li>
-        );
-      })
+        ))
+      }
+      <li class="unit bottom next" style={next}>
+        <span class="mono">next build</span>
+      </li>
+    </ul>
+    {
+      units.map((u) => (
+        <span class="pad" style={u.pad} data-wire-from={u.from} data-wire-color={u.color} data-wire-group="units" data-wire-side={u.half} aria-hidden="true" />
+      ))
     }
-  </ul>
+    {
+      POWER.map((g) => (
+        <span
+          class="pad"
+          style={`left:${pct(g.at.x, BB_W)};top:${pct(g.at.y, BB_H)}`}
+          data-wire-from={g.from}
+          data-wire-color={g.color}
+          data-wire-group="power"
+          aria-hidden="true"
+        />
+      ))
+    }
+  </div>
+
+  <p class="legend mono">
+    <span><StatusLed status="wip" /> Blinking amber: in progress</span>
+    <span><StatusLed status="shipped" /> Green on press: shipped</span>
+  </p>
 </div>
+
+<script>
+  import { navigate } from 'astro:transitions/client';
+
+  // the switch drops and the LED lights, then the case study slides in
+  const init = () => {
+    document.querySelectorAll<HTMLAnchorElement>('a[data-unit]').forEach((a) => {
+      if (a.dataset.bound) return;
+      a.dataset.bound = '1';
+      a.addEventListener('click', (e) => {
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        if (a.classList.contains('pressed')) return;
+        a.classList.add('pressed');
+        setTimeout(() => navigate(a.href), 300);
+      });
+    });
+  };
+  document.addEventListener('astro:page-load', init);
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) document.querySelectorAll('a[data-unit].pressed').forEach((a) => a.classList.remove('pressed'));
+  });
+</script>
 
 <style>
   .bbw {
-    --ivory: #eeeadf;
-    --ivory-2: #e2ddcf;
-    --hole: radial-gradient(circle, #5b564b 1.5px, transparent 2px) 0 0 / 14px 14px;
+    --ivory: #f3efe5;
+    --ivory-2: #ddd6c5;
     --ink: #2a2620;
     --ink-2: #4a443a;
-    width: min(100%, 1160px, 80cqw - 48px);
+    width: min(100%, 1160px);
     margin: var(--s-4) auto 0;
   }
   .bb {
     position: relative;
+    container-type: inline-size;
     color: var(--ink);
   }
-  /* parts and landing holes sit over the drawn board */
-  .bb > .rail:not(.low) {
-    display: none;
-  }
-  .bb > .field {
+  .units {
     position: absolute;
-    inset: 18% 2% 14% 2%;
-    background: none;
+    inset: 0;
   }
-  .bb > .rail.low {
+  .unit {
     position: absolute;
-    right: 2%;
-    bottom: 1%;
-    border: 0;
-    padding: 0;
   }
-  .bb .row {
-    background: none;
+  .unit:has(.hit:hover, .hit:focus-visible) {
+    z-index: 3;
   }
-  .bb .row::before {
-    display: none;
-  }
-  .bb .parts {
-    grid-auto-rows: minmax(0, 1fr);
-    height: 100%;
-    row-gap: 12px;
-  }
-
-  /* power rails: two hole rows each, a red and a blue stripe */
-  .rail {
-    display: grid;
-    gap: 6px;
-    padding: 12px 28px 10px;
-    border-bottom: 1px solid var(--ivory-2);
-  }
-  .rail.low {
-    gap: 14px;
-    border-top: 1px solid var(--ivory-2);
-    border-bottom: 0;
-    padding-block: 12px 14px;
-  }
-  .row {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 14px;
-    height: 14px;
-    padding-right: 4px;
-    background: var(--hole);
-    background-position: 0 center;
-  }
-  .row::before {
-    content: '';
+  .hit {
     position: absolute;
-    left: 0;
-    right: 0;
-    height: 2px;
-  }
-  .rail:not(.low) .plus::before,
-  .low .minus::before {
-    top: -5px;
-  }
-  .rail:not(.low) .minus::before,
-  .low .plus::before {
-    bottom: -5px;
-  }
-  .low .plus::before {
-    top: -5px;
-    bottom: auto;
-  }
-  .low .minus::before {
-    top: auto;
-    bottom: -5px;
-  }
-  .plus::before {
-    background: #c4473c;
-  }
-  .minus::before {
-    background: #3f6fa8;
-  }
-
-  .field {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: var(--s-2);
-    padding: 18px 20px 18px 40px;
-    /* centre channel between the two halves */
-    background:
-      linear-gradient(transparent calc(50% - 7px), #d6d0c0 calc(50% - 7px), #cfc9b9 calc(50% + 7px), transparent calc(50% + 7px)),
-      var(--hole);
-  }
-  .letters {
-    position: absolute;
-    left: 14px;
-    top: 18px;
-    bottom: 18px;
-    display: grid;
-    grid-template-rows: auto 1fr auto auto 1fr auto;
-    color: var(--ink-2);
-    font: 500 11px var(--font-mono);
-  }
-  .letters span:nth-child(2) {
-    grid-row: 3;
-  }
-  .letters span:nth-child(3) {
-    grid-row: 4;
-  }
-  .letters span:nth-child(4) {
-    grid-row: 6;
-  }
-
-  .parts {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: 200px;
-    row-gap: 32px;
-    column-gap: var(--s-2);
-  }
-  .part {
-    position: relative;
-    display: grid;
-    grid-template-rows: 1fr auto;
-    gap: 6px;
-    height: 100%;
-    padding: 6px;
+    inset: 0;
     border-radius: 6px;
     color: var(--ink);
     text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
   }
-  .part:hover {
-    background: rgba(42, 38, 32, 0.05);
-    color: var(--ink);
-  }
-  .part:focus-visible {
+  .hit:focus-visible {
     outline: 2px solid #8a4a00;
     outline-offset: 2px;
   }
   .art {
-    display: block;
-    min-height: 0;
+    position: absolute;
+    left: 0;
+    width: 100%;
+  }
+  .art > span {
+    position: absolute;
+  }
+  .art :global(svg) {
+    width: 100%;
+    height: 100%;
+  }
+  .u-part {
     transition: translate var(--t-fast) var(--ease);
   }
-  .part:hover .art {
-    translate: 0 -2px;
+  .hit:hover .u-part {
+    translate: 0 -1px;
   }
-  /* printed on a small label so it reads over the hole grid */
-  .lbl {
+
+  /* switch: the cap drops while held and through the press */
+  .hit:active .u-btn :global(.cap),
+  .hit.pressed .u-btn :global(.cap) {
+    transform: translateY(0.7px);
+    filter: brightness(0.75);
+  }
+
+  /* LEDs: dim at rest; in progress blinks amber at 1 Hz; shipped lights green on hover or press */
+  .unit[data-status='wip'] .u-led :global(.lit) {
+    animation: unit-blink 1s steps(1, end) infinite;
+  }
+  @keyframes unit-blink {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+  .unit[data-status='shipped'] .hit:is(:hover, :focus-visible) .u-led :global(.lit),
+  .hit.pressed .u-led :global(.lit) {
+    opacity: 1;
+    animation: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .unit[data-status='wip'] .u-led :global(.lit) {
+      animation: none;
+      opacity: 1;
+    }
+  }
+  /* board power off: every LED stays dark, the links still work */
+  :global(html:has(.desk[data-power='off'])) .u-led :global(.lit) {
+    opacity: 0 !important;
+    animation: none !important;
+  }
+
+  /* label strip over the centre channel */
+  .plate {
+    position: absolute;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 6px;
+    gap: 0.6em;
+    padding: 0 0.6em;
     border-radius: 3px;
     background: var(--ivory);
-    box-shadow: 0 0 0 1px var(--ivory-2);
-    font: 500 12px/1.3 var(--font-mono);
+    box-shadow:
+      0 0 0 1px var(--ivory-2),
+      1px 2px 3px rgba(0, 0, 0, 0.12);
+    font: 500 max(9px, calc(100cqw * 6 / 680)) / 1.2 var(--font-mono);
+  }
+  .hit:hover .plate {
+    background: #fbf8f1;
   }
   .ttl {
+    display: -webkit-box;
     flex: 1;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
   .pin {
-    padding: 0 5px;
+    flex: none;
+    padding: 0 0.35em;
     border: 1px solid var(--ink-2);
     border-radius: 3px;
     color: var(--ink-2);
-    font-size: 11px;
+    font-size: 0.9em;
   }
 
   .tip {
     position: absolute;
     left: 50%;
-    bottom: calc(100% - 8px);
     z-index: 3;
     display: grid;
     width: max-content;
@@ -346,91 +316,48 @@ const POWER = [
       translate var(--t-fast) var(--ease),
       visibility 0s var(--t-fast);
   }
+  /* tips open over the board's middle, away from the jumpers above and below it */
+  .top .tip {
+    top: calc(100% + 6px);
+  }
+  .bottom .tip {
+    bottom: calc(100% + 6px);
+  }
   .tp {
     color: #b9ccc5;
     font: 400 var(--fs-label) var(--font-mono);
   }
-  .part:hover .tip,
-  .part:focus-visible .tip {
+  .hit:hover .tip,
+  .hit:focus-visible .tip {
     opacity: 1;
     visibility: visible;
     translate: -50% 0;
     transition-delay: 0s;
   }
 
-  /* desk world: the landing holes face the board on the left */
-  :global(html.world) .bbw {
-    margin: var(--s-2) 0 0;
-  }
-  /* the decorative top rail goes: the holes for D2-D7 start at the board's top edge, close to CN9 */
-  :global(html.world) .rail:not(.low) {
-    display: none;
-  }
-  :global(html.world) .field {
-    grid-template-columns: auto 1fr;
-    padding-left: 20px;
-  }
-  :global(html.world) .letters {
-    left: auto;
-    right: 6px;
-  }
-  :global(html.world) .gpio {
-    order: -1;
-    padding-left: 0;
-    padding-right: 12px;
-    border-left: 0;
-    border-right: 1px dashed #cfc9b9;
-  }
-  :global(html.world) .gpio li {
-    flex-direction: row-reverse;
-  }
-  /* holes at the header's pitch, high on the board so the jumpers from D2-D7 run level */
-  :global(html.world) .gpio {
-    align-content: start;
-    gap: max(4px, calc(53 * var(--u) - 16px));
-    padding-top: 6px;
+  .next {
+    display: grid;
+    place-items: center;
+    border: 1.5px dashed #a59d8a;
+    border-radius: 6px;
+    background: rgba(243, 239, 229, 0.82);
+    color: var(--ink-2);
+    font-size: max(9px, calc(100cqw * 6 / 680));
   }
 
-  /* landing holes for the jumpers */
-  .gpio {
-    display: grid;
-    align-content: space-evenly;
-    gap: 10px;
-    padding-left: 12px;
-    border-left: 1px dashed #cfc9b9;
-  }
-  .gpio li {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-  }
-  .silk {
-    color: var(--ink-2);
-    font: 500 11px var(--font-mono);
-  }
-  .hole {
-    display: block;
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-    background: #3a362e;
-    box-shadow: inset 1px 1px 1px rgba(0, 0, 0, 0.5);
-  }
-  .row .silk {
-    position: relative;
-    padding-inline: 4px;
-    background: var(--ivory);
-  }
-  .row .hole {
-    margin-right: 6px;
+  /* jumper landing holes; WireLayer draws the wire into each */
+  .pad {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    margin: -2px 0 0 -2px;
   }
 
   .legend {
     display: flex;
     flex-wrap: wrap;
     gap: var(--s-1) var(--s-3);
-    margin-top: var(--s-2);
+    margin-top: var(--s-3);
     color: var(--text-2);
   }
   .legend span {
@@ -438,102 +365,78 @@ const POWER = [
     align-items: center;
     gap: var(--s-1);
   }
-  .more-title {
-    margin-top: var(--s-5);
-    color: var(--text-2);
-    font-size: var(--fs-label);
-    font-weight: 500;
-    letter-spacing: 0.12em;
+
+  /* desk world: room above and below the board for the jumpers' runs */
+  :global(html.world) .bbw {
+    margin: 72px 0 0;
   }
-  .strip {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--s-2);
-    margin-top: var(--s-2);
-    padding: 14px 20px;
-    border-radius: 6px;
-    background: var(--hole), var(--ivory);
-    box-shadow:
-      inset 0 1px 0 #fff,
-      0 2px 0 #c9c3b3,
-      8px 12px 20px rgba(0, 0, 0, 0.26);
-  }
-  .strip .part {
-    grid-template-columns: 96px 1fr;
-    grid-template-rows: auto;
-    align-items: center;
-    min-height: 88px;
-    background: var(--ivory);
-  }
-  .strip .part:hover {
-    background: var(--ivory-2);
-  }
-  .strip .art {
-    height: 72px;
+  :global(html.world) .legend {
+    margin-top: 64px;
   }
 
-  @media (max-width: 960px) {
-    .parts {
-      grid-template-columns: repeat(2, 1fr);
-      grid-auto-rows: 180px;
-    }
-    .field {
-      background: var(--hole);
-    }
-    .strip {
-      grid-template-columns: 1fr;
-    }
-  }
-  /* phones: one column of cards, same drawings */
+  /* phones: one column of cards, the same drawings; the switch is the big target */
   @media (max-width: 720px) {
     .bbw {
       width: 100%;
     }
-    .rail,
-    .gpio,
-    .letters {
+    .bb {
+      container-type: normal;
+    }
+    .bb > :global(.bb-art),
+    .pad {
       display: none;
     }
-    .field {
-      display: block;
-      padding: 12px;
+    .units {
+      position: static;
+      display: grid;
+      gap: var(--s-1);
     }
-    .parts {
-      grid-template-columns: 1fr;
-      grid-auto-rows: auto;
-      row-gap: var(--s-1);
+    .unit {
+      position: static;
+      width: auto !important;
+      height: auto !important;
     }
-    .parts li {
-      grid-column: auto !important;
-    }
-    .part,
-    .strip .part {
-      grid-template-columns: 96px 1fr;
+    .hit {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 11fr) minmax(0, 9fr);
       grid-template-rows: auto auto;
       column-gap: var(--s-2);
       align-items: center;
-      padding: 10px;
-      background: var(--ivory);
-      box-shadow: 0 0 0 1px var(--ivory-2);
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: radial-gradient(circle, #cfc8b7 1.1px, transparent 1.5px) 0 0 / 10px 10px, var(--ivory);
+      box-shadow:
+        0 0 0 1px var(--ivory-2),
+        2px 4px 10px rgba(0, 0, 0, 0.16);
     }
-    .art,
-    .strip .art {
+    .art {
+      position: relative;
       grid-row: span 2;
-      height: 80px;
+      top: auto !important;
+      height: auto !important;
+      aspect-ratio: 120 / 80;
     }
-    [data-kind='iio'] .art,
-    [data-kind='antenna'] .art {
-      height: 60px;
+    .top .art {
+      aspect-ratio: 120 / 76;
     }
-    .lbl {
+    .plate {
+      position: static;
       align-self: end;
+      width: auto !important;
+      height: auto !important;
+      padding: 6px 8px;
+      font-size: var(--fs-label);
+    }
+    .ttl {
+      display: block;
     }
     .tip {
       position: static;
       align-self: start;
       width: auto;
       max-width: none;
-      padding: 0;
+      padding: 4px 8px 0;
       border: 0;
       background: none;
       box-shadow: none;
@@ -541,8 +444,8 @@ const POWER = [
       visibility: visible;
       translate: none;
     }
-    .part:hover .tip,
-    .part:focus-visible .tip {
+    .hit:hover .tip,
+    .hit:focus-visible .tip {
       translate: none;
     }
     .tt {
@@ -556,8 +459,10 @@ const POWER = [
     .tp {
       color: var(--ink-2);
     }
-    .strip {
-      padding: 12px;
+    .next {
+      min-height: 64px;
+      border-radius: 8px;
+      font-size: var(--fs-label);
     }
   }
 </style>
