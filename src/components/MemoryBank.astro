@@ -447,7 +447,7 @@ const J1 = [
     grid-template-columns: auto 1fr;
     width: max(calc(760 * var(--u)), 560px);
     margin-inline: 0;
-    padding: 30px 28px 26px 24px;
+    padding: 30px 28px 20px 24px;
   }
   :global(html.world) .j1 {
     order: -1;
@@ -463,6 +463,13 @@ const J1 = [
   }
   :global(html.world) .j1 ul {
     gap: max(4px, calc(53 * var(--u) - 16px));
+  }
+  /* the bus label rides under the title, so the pads sit at the board's foot and the board ends close below CN5 */
+  :global(html.world) .j1 > p:first-child {
+    order: -2;
+  }
+  :global(html.world) .j1 .bus {
+    order: -1;
   }
   :global(html.world) .j1 ul::after {
     right: auto;

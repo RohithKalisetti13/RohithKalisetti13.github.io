@@ -132,13 +132,6 @@ const projects = await getProjects();
     padding-left: 120px;
     padding-right: 120px;
   }
-  /* the builds heading sits beside the half-width memory board, so the breadboard can tuck in below it */
-  :global(html.world) .proj-head {
-    position: absolute;
-    left: calc(120px + max(760 * var(--u), 560px) + var(--s-4));
-    right: 120px;
-    bottom: calc(100% + var(--s-3));
-  }
   :global(html.world) .laptop-station {
     padding-top: var(--s-6);
   }

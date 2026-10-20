@@ -920,6 +920,24 @@ const LINKS = [
     --stage-w: calc(97.5vh);
     --board-top: calc(var(--copy-h) + 140 * var(--u));
   }
+  /* the links sit top right, level with the name, so the band below holds only the cable and its switch */
+  :global(html.world) .copy {
+    padding-top: clamp(20px, 3.5svh, 32px);
+  }
+  :global(html.world) .tact {
+    position: absolute;
+    top: clamp(24px, 4.5svh, 40px);
+    right: 0;
+    grid-template-columns: repeat(2, auto);
+    margin-top: 0;
+    padding-inline: 24px;
+  }
+  @container (min-width: 1240px) {
+    :global(html.world) .tact {
+      grid-template-columns: repeat(4, auto);
+      padding-inline: 26px;
+    }
+  }
   :global(html.world) .usb-up {
     display: none;
   }

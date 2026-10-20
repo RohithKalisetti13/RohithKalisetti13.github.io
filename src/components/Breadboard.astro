@@ -336,7 +336,11 @@ const POWER = [
 
   /* desk world: the landing holes face the board on the left */
   :global(html.world) .bbw {
-    margin-inline: 0;
+    margin: var(--s-2) 0 0;
+  }
+  /* the decorative top rail goes: the holes for D2-D7 start at the board's top edge, close to CN9 */
+  :global(html.world) .rail:not(.low) {
+    display: none;
   }
   :global(html.world) .field {
     grid-template-columns: auto 1fr;

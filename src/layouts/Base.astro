@@ -127,6 +127,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       // the world asks for a vertical spot; Lenis glides there unless told to jump
       window.addEventListener('rk:scroll-to', (e) => {
         const { y, immediate } = (e as CustomEvent<{ y: number; immediate: boolean }>).detail;
+        // the page may have just grown; Lenis measures on its own schedule, so measure now
+        lenis?.resize();
         if (lenis) lenis.scrollTo(y, { immediate, force: true, duration: 0.8, easing: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2) });
         else window.scrollTo({ top: y, behavior: immediate || reduced.matches ? 'instant' : 'smooth' });
       });

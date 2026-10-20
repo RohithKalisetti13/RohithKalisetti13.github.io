@@ -52,7 +52,7 @@
     const cs = getComputedStyle(right);
     const W = parseFloat(cs.getPropertyValue('--work-y')) || 120;
     const P = parseFloat(cs.getPropertyValue('--projects-y')) || 48;
-    const P2 = Math.max(4, P - (e2 - e1));
+    const P2 = Math.max(20, P - (e2 - e1));
     const D = e2 - e1 + (P2 - P);
     const W2 = Math.max(32, W - e1 - D / 2);
     if (Math.abs(W2 - W) > 1) right.style.setProperty('--work-y', `${Math.round(W2)}px`);

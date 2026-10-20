@@ -324,8 +324,9 @@
     /* one board unit: the board's 2000-unit height is 1.3 viewport heights */
     --u: calc(130vh / 2000);
     --right-w: calc(1500 * var(--u) + 240px);
-    /* the desk above the board: hero copy, then a band for the cable and the switch */
-    --copy-h: calc(300px + 340 * var(--u));
+    /* the desk above the board: hero copy, then a band for the cable and the switch. Sized so the
+       CN5 header (798 board units down) lands one viewport below the top of the page */
+    --copy-h: max(290px, calc(100vh - var(--nav-h) - 798 * var(--u)));
   }
   html.world .camera {
     --cam: calc(-100cqw);
