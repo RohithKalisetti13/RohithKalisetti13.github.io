@@ -250,13 +250,11 @@ const keys = ROWS.flatMap((row, r) => {
   }
   /* on the desk: a dim preview behind glass */
   .screen > :global(.ide) {
-    transition:
-      opacity 400ms var(--ease),
-      filter 400ms var(--ease);
+    transition: opacity 400ms var(--ease);
   }
-  :global(html.world:not([data-zoom='in'])) .screen > :global(.ide) {
-    opacity: 0.55;
-    filter: saturate(0.7) brightness(0.8);
+  /* dim, but still readable at 4.5:1; the light theme's pale editor cannot dim and keep that */
+  :global(html.world[data-theme='dark']:not([data-zoom='in'])) .screen > :global(.ide) {
+    opacity: 0.86;
   }
   .glare {
     position: absolute;

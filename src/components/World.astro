@@ -64,6 +64,10 @@
     return y;
   };
 
+  // back and forward restore their own scroll position; a hash must not override it
+  let traverse = false;
+  document.addEventListener('astro:before-preparation', (e) => (traverse = e.navigationType === 'traverse'));
+
   let ac: AbortController | null = null;
   document.addEventListener('astro:before-swap', () => {
     ac?.abort();
@@ -171,6 +175,19 @@
       { signal },
     );
 
+    // a hash changed in place (typed, or a drawer deep link) moves the camera too
+    window.addEventListener(
+      'hashchange',
+      () => {
+        const id = decodeURIComponent(location.hash.slice(1));
+        const s = stationOf(location.hash);
+        if (!on() || !s) return;
+        if (id in TARGETS) goHash(id);
+        else go(s, { focus: false });
+      },
+      { signal },
+    );
+
     prev.addEventListener('click', () => step(-1));
     next.addEventListener('click', () => step(1));
 
@@ -226,7 +243,8 @@
     settled();
     // a hash on arrival picks its spot once layout has settled
     const id = decodeURIComponent(location.hash.slice(1));
-    if (on() && id in TARGETS && id !== 'home') requestAnimationFrame(() => goHash(id, false));
+    if (on() && !traverse && id in TARGETS && id !== 'home') requestAnimationFrame(() => goHash(id, false));
+    traverse = false;
   };
   document.addEventListener('astro:after-swap', init);
   document.addEventListener('astro:page-load', init);
