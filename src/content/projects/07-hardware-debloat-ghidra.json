@@ -1,0 +1,16 @@
+{
+  "slug": "hardware-debloat-ghidra",
+  "title": "Hardware Debloat Ghidra plugin",
+  "status": "shipped",
+  "period": "Aug 2024 – Dec 2024",
+  "stack": [
+    "Python (Jython)",
+    "Ghidra",
+    "DECAF",
+    "QEMU"
+  ],
+  "highlights": [
+    "Engineered a Ghidra plugin for static control-flow analysis, extracting direct and computed call graphs with overestimation handling and recursive depth tracing, with accurate CFGs across 40+ binaries.",
+    "Integrated the plugin with DECAF (QEMU-based full-system introspection) to enforce real-time control-flow integrity, with under 1% performance overhead on tested embedded use cases."
+  ]
+}

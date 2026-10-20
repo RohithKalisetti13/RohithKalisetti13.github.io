@@ -1,0 +1,16 @@
+{
+  "slug": "gpu-beamformer",
+  "title": "Digital beamformer on GPUs",
+  "status": "shipped",
+  "period": "Jan 2024 – May 2024",
+  "stack": [
+    "CUDA",
+    "cuFFT",
+    "C",
+    "signal processing"
+  ],
+  "highlights": [
+    "Implemented GPU-accelerated digital beamforming with CUDA, speeding up signal processing and reducing computation times, achieving 66.89% adjusted R-squared in variance explanation.",
+    "Optimized real-time CUDA kernels for signal manipulation and used cuFFT for fast frequency transformations, contributing to a dynamic beamforming architecture used in radar and communication systems."
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "slug": "cuda-image-processing",
+  "title": "CPU and GPU parallel image processing",
+  "status": "shipped",
+  "period": "Jan 2024 – May 2024",
+  "stack": [
+    "C",
+    "CUDA",
+    "Pthreads",
+    "NVIDIA Nsight"
+  ],
+  "highlights": [
+    "Multithreaded CPU (Pthreads) and CUDA implementations for edge detection, bitmap flipping, rotation, Gaussian filtering, convolution and color transformations.",
+    "Optimized with workload partitioning, shared and constant memory, coalesced access, precomputation and tuned thread-block configurations, achieving 4-8x speedups over CPU.",
+    "Analyzed latency, occupancy, throughput, cache behavior and PCIe transfer overhead."
+  ]
+}

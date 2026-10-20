@@ -1,0 +1,20 @@
+{
+  "slug": "iio-sensor-hub",
+  "title": "STM32 sensor hub with a Linux IIO driver",
+  "status": "wip",
+  "period": "Ongoing",
+  "stack": [
+    "STM32 NUCLEO-F446RE (STM32F446RE, Cortex-M4)",
+    "Raspberry Pi 4",
+    "MSA311 3-axis accelerometer",
+    "HC-SR04 ultrasonic sensor (optional)",
+    "TFT display",
+    "Linux IIO subsystem"
+  ],
+  "summary": "A small but realistic embedded system where the STM32 handles time-sensitive sensor work and the Raspberry Pi handles Linux-side integration, buffering, and user access.",
+  "highlights": [
+    "Pipeline: sensors, STM32 NUCLEO-F446RE, UART or SPI link (interface still to be chosen), Raspberry Pi 4, custom Linux kernel driver, Linux IIO subsystem, userspace tools and data logging.",
+    "Hardware on the bench: breadboard, jumper wires, resistors for pull-ups, dividers and protection, buttons for GPIO and user-control experiments, status and debug LEDs.",
+    "Status: the STM32 firmware side is about 70% complete; the Linux driver work is still ahead."
+  ]
+}

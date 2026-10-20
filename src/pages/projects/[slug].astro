@@ -1,14 +1,14 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Nav from '../../components/Nav.astro';
-import Panel from '../../components/Panel.astro';
 import Chip from '../../components/Chip.astro';
 import GpioButton from '../../components/GpioButton.astro';
+import StatusLed from '../../components/StatusLed.astro';
+import { getProjects } from '../../lib/projects';
 import site from '../../content/site.json';
 
 export async function getStaticPaths() {
-  const projects = await getCollection('projects');
+  const projects = await getProjects();
   return projects.map((p) => ({ params: { slug: p.id }, props: { project: p } }));
 }
 
@@ -16,49 +16,45 @@ const { project } = Astro.props;
 const d = project.data;
 ---
 
-<Base title={`${d.title} · ${site.name}`} description={d.summary}>
+<Base title={`${d.title} · ${site.name}`} description={d.summary ?? d.title}>
   <Nav />
   <main id="main" class="container case">
     <p class="mono crumb"><a href="/#builds">← Back to builds</a></p>
     <h1>{d.title}</h1>
-    <p class="outcome">{d.outcome}</p>
-    <p class="summary">{d.summary}</p>
+    <p class="mono meta">
+      <span class="status"><StatusLed status={d.status} />{d.status === 'wip' ? 'In progress' : 'Shipped'}</span>
+      <span>{d.period}</span>
+    </p>
+    <ul class="chips" aria-label="Stack">
+      {
+        d.stack.map((s) => (
+          <li>
+            <Chip>{s}</Chip>
+          </li>
+        ))
+      }
+    </ul>
+    {d.summary && <p class="summary">{d.summary}</p>}
 
-    <section aria-labelledby="problem">
-      <h2 id="problem">Problem</h2>
-      <p>{d.problem}</p>
-    </section>
-
-    <section aria-labelledby="architecture">
-      <h2 id="architecture">Architecture</h2>
-      <Panel>
-        <div class="diagram" role="img" aria-label="Placeholder for architecture diagram">{d.architecture}</div>
-      </Panel>
-    </section>
-
-    <section aria-labelledby="contribution">
-      <h2 id="contribution">My contribution</h2>
-      <p>{d.contribution}</p>
-    </section>
-
-    <section aria-labelledby="decisions">
-      <h2 id="decisions">Key design decisions</h2>
-      <ul class="decisions">
-        {d.decisions.map((x) => <li>{x}</li>)}
+    <section aria-labelledby="highlights">
+      <h2 id="highlights">Highlights</h2>
+      <ul class="highlights">
+        {d.highlights.map((x) => <li>{x}</li>)}
       </ul>
     </section>
 
-    <section aria-labelledby="results">
-      <h2 id="results">Results</h2>
-      <p>{d.results}</p>
-    </section>
+    {d.note && <p class="note">{d.note}</p>}
 
-    <section aria-labelledby="stack">
-      <h2 id="stack">Stack</h2>
-      <div class="chips">{d.stack.map((s) => <Chip>{s}</Chip>)}</div>
-    </section>
-
-    <div class="back"><GpioButton href="/#builds" pin="PB0" variant="secondary">Back to builds</GpioButton></div>
+    <div class="actions">
+      {
+        d.repo && (
+          <GpioButton href={d.repo} pin="PB1" external>
+            View repository
+          </GpioButton>
+        )
+      }
+      <GpioButton href="/#builds" pin="PB0" variant="secondary">Back to builds</GpioButton>
+    </div>
   </main>
 </Base>
 
@@ -70,42 +66,60 @@ const d = project.data;
   .crumb {
     margin-bottom: var(--s-3);
   }
-  .outcome {
+  .crumb a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-1) var(--s-3);
     margin-top: var(--s-2);
+    color: var(--text-2);
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-1);
+    color: var(--text);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+    margin-top: var(--s-3);
+  }
+  .summary {
+    margin-top: var(--s-4);
     color: var(--text);
     font-size: 1.25rem;
   }
-  .summary {
-    margin-top: var(--s-1);
-  }
   section {
-    margin-top: var(--s-8);
+    margin-top: var(--s-6);
   }
   section h2 {
     margin-bottom: var(--s-2);
   }
-  .diagram {
-    display: grid;
-    place-items: center;
-    min-height: 200px;
-    color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: var(--fs-label-lg);
-    text-align: center;
-  }
-  .decisions {
+  .highlights {
     display: grid;
     gap: var(--s-2);
     padding-left: var(--s-3);
     list-style: disc;
     color: var(--text-2);
   }
-  .chips {
+  .note {
+    margin-top: var(--s-4);
+    padding: var(--s-2) var(--s-3);
+    border-left: 3px solid var(--line);
+    color: var(--text-2);
+    font-size: var(--fs-body);
+  }
+  .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--s-1);
-  }
-  .back {
+    gap: var(--s-2);
     margin-top: var(--s-8);
   }
 </style>

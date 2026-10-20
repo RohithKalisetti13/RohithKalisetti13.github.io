@@ -6,12 +6,14 @@ import DeskHero from '../components/DeskHero.astro';
 import SideDrawer from '../components/SideDrawer.astro';
 import MemoryBank from '../components/MemoryBank.astro';
 import WireLayer from '../components/WireLayer.astro';
+import Breadboard from '../components/Breadboard.astro';
+import { getProjects } from '../lib/projects';
 import { hexAt } from '../lib/hex';
 import site from '../content/site.json';
 
 // resume order comes from the file names ("01-...")
 const work = (await getCollection('work')).sort((a, b) => (a.filePath ?? '').localeCompare(b.filePath ?? ''));
-const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+const projects = await getProjects();
 ---
 
 <Base>
@@ -30,16 +32,7 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
         <div class="container">
           <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa2)">PA2</span> 0x2000 / projects</p>
           <h2 id="builds-title">Firmware builds</h2>
-          <p class="placeholder mono">[Projects: breadboard goes here]</p>
-          <ul class="case-links">
-            {
-              projects.map((p) => (
-                <li>
-                  <a href={`/projects/${p.id}/`}>{p.data.title} →</a>
-                </li>
-              ))
-            }
-          </ul>
+          <Breadboard projects={projects} />
         </div>
       </section>
       <WireLayer />
@@ -109,27 +102,6 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
     border-radius: var(--r-1);
     color: var(--text);
     font-size: var(--fs-label);
-  }
-  .placeholder {
-    display: grid;
-    place-items: center;
-    min-height: 40svh;
-    margin-top: var(--s-4);
-    border: 1px dashed var(--line);
-    border-radius: var(--r-3);
-    color: var(--muted);
-    text-align: center;
-  }
-  .case-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-1) var(--s-3);
-    margin-top: var(--s-3);
-  }
-  .case-links a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
   }
   .to-ide {
     position: fixed;

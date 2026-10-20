@@ -1,4 +1,5 @@
 {
+  "draft": true,
   "title": "Embedded AI security research",
   "order": 3,
   "summary": "Research at George Mason University, including fuzzing the client-to-trusted-application interface of TEEs (OP-TEE on TrustZone).",
@@ -6,7 +7,15 @@
   "problem": "[what problem this solves, in two or three sentences]",
   "architecture": "[architecture diagram: stage 4]",
   "contribution": "[what I built and owned]",
-  "decisions": ["[decision and why]", "[decision and why]", "[decision and why]"],
+  "decisions": [
+    "[decision and why]",
+    "[decision and why]",
+    "[decision and why]"
+  ],
   "results": "[results, with real numbers only]",
-  "stack": ["OP-TEE", "TrustZone", "[add]"]
+  "stack": [
+    "OP-TEE",
+    "TrustZone",
+    "[add]"
+  ]
 }

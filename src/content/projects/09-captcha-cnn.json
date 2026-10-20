@@ -1,0 +1,17 @@
+{
+  "slug": "captcha-cnn",
+  "title": "CAPTCHA recognition with a deep CNN",
+  "status": "shipped",
+  "period": "Jan 2024 – May 2024",
+  "stack": [
+    "Python",
+    "TensorFlow",
+    "Keras",
+    "OpenCV"
+  ],
+  "highlights": [
+    "End-to-end CAPTCHA recognition pipeline trained on 50K+ labeled samples, reaching about 70% decoding accuracy across diverse formats.",
+    "Preprocessing (denoising, segmentation, morphological operations, normalization) to improve character isolation under distortion, noise and varying fonts.",
+    "Tuned architecture and hyperparameters (convolution depth, learning rate scheduling, regularization, augmentation)."
+  ]
+}

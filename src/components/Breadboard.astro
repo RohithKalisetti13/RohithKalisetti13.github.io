@@ -1,0 +1,506 @@
+---
+// Projects as parts on a solderless breadboard. Jumpers from CN9 (D2 to D7) and the power pins
+// land on the right end; each featured part is a link to its case study.
+import type { Project } from '../content.config';
+import PartArt, { type Kind } from './PartArt.astro';
+import StatusLed from './StatusLed.astro';
+
+interface Props {
+  projects: { id: string; data: Project }[];
+}
+const { projects } = Astro.props;
+
+const ART: Record<string, { kind: Kind; span?: number; pin?: string }> = {
+  'iio-sensor-hub': { kind: 'iio', span: 2, pin: 'D2' },
+  'openwrt-fault-injection': { kind: 'rj45', pin: 'D3' },
+  'freertos-host-shim': { kind: 'esp32', pin: 'D4' },
+  'gesture-wheelchair': { kind: 'gesture', pin: 'D5' },
+  'gpu-beamformer': { kind: 'antenna', span: 2, pin: 'D6' },
+  'cuda-image-processing': { kind: 'matrix', pin: 'D7' },
+  'hardware-debloat-ghidra': { kind: 'swd' },
+  'hdc-pi-vs-gpu': { kind: 'sbc' },
+  'captcha-cnn': { kind: 'camera' },
+};
+const art = (id: string) => ART[id] ?? { kind: 'sbc' as Kind };
+const featured = projects.slice(0, 6);
+const more = projects.slice(6);
+const STATUS = { wip: 'In progress', shipped: 'Shipped' };
+
+// right-end landing holes, top to bottom; the lowest MCU pin lands highest, so no jumpers cross
+const GPIO = [
+  { silk: 'D2', pin: 'PA10', color: '#d9d6cf' },
+  { silk: 'D3', pin: 'PB3', color: '#4f8a4f' },
+  { silk: 'D4', pin: 'PB5', color: '#c77a33' },
+  { silk: 'D5', pin: 'PB4', color: '#6d5596' },
+  { silk: 'D6', pin: 'PB10', color: '#3f6fa8' },
+  { silk: 'D7', pin: 'PA8', color: '#c9a43a' },
+];
+const POWER = [
+  { silk: '+5V', from: "#hero-cn10 [data-pin='U5V']", color: '#c4473c' },
+  { silk: 'GND', from: "#hero-cn11 [data-pin='GND']@1", color: '#2a2b2f' },
+];
+---
+
+<div class="bbw">
+  <div class="bb">
+    <div class="rail" aria-hidden="true">
+      <i class="row plus"></i>
+      <i class="row minus"></i>
+    </div>
+
+    <div class="field">
+      <p class="letters" aria-hidden="true"><span>a</span><span>e</span><span>f</span><span>j</span></p>
+      <ul class="parts">
+        {
+          featured.map((p) => {
+            const a = art(p.id);
+            return (
+              <li style={a.span ? `grid-column: span ${a.span}` : undefined} data-kind={a.kind}>
+                <a class="part" href={`/projects/${p.id}/`}>
+                  <span class="art">
+                    <PartArt kind={a.kind} />
+                  </span>
+                  <span class="lbl" aria-hidden="true">
+                    <StatusLed status={p.data.status} />
+                    <span class="ttl">{p.data.title}</span>
+                    {a.pin && <span class="pin">{a.pin}</span>}
+                  </span>
+                  <span class="tip">
+                    <span class="tt">{p.data.title}</span>
+                    <span class="tp">
+                      {p.data.period}
+                      <span class="sr-only">, {STATUS[p.data.status]}</span>
+                    </span>
+                  </span>
+                </a>
+              </li>
+            );
+          })
+        }
+      </ul>
+      <ul class="gpio" aria-hidden="true">
+        {
+          GPIO.map((g) => (
+            <li>
+              <span class="silk">{g.silk}</span>
+              <span class="hole" data-wire-from={`#hero-cn9 [data-pin='${g.pin}']`} data-wire-color={g.color} data-wire-group="builds" />
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="rail low" aria-hidden="true">
+      {
+        POWER.map((g, i) => (
+          <i class:list={['row', i ? 'minus' : 'plus']}>
+            <span class="silk">{g.silk}</span>
+            <span class="hole" data-wire-from={g.from} data-wire-color={g.color} data-wire-group="builds" />
+          </i>
+        ))
+      }
+    </div>
+  </div>
+
+  <p class="legend mono">
+    <span><StatusLed status="wip" /> In progress</span>
+    <span><StatusLed status="shipped" /> Shipped</span>
+  </p>
+
+  <h3 class="more-title mono">MORE BUILDS</h3>
+  <ul class="strip">
+    {
+      more.map((p) => {
+        const a = art(p.id);
+        return (
+          <li data-kind={a.kind}>
+            <a class="part" href={`/projects/${p.id}/`}>
+              <span class="art">
+                <PartArt kind={a.kind} />
+              </span>
+              <span class="lbl" aria-hidden="true">
+                <StatusLed status={p.data.status} />
+                <span class="ttl">{p.data.title}</span>
+              </span>
+              <span class="tip">
+                <span class="tt">{p.data.title}</span>
+                <span class="tp">
+                  {p.data.period}
+                  <span class="sr-only">, {STATUS[p.data.status]}</span>
+                </span>
+              </span>
+            </a>
+          </li>
+        );
+      })
+    }
+  </ul>
+</div>
+
+<style>
+  .bbw {
+    --ivory: #eeeadf;
+    --ivory-2: #e2ddcf;
+    --hole: radial-gradient(circle, #5b564b 1.5px, transparent 2px) 0 0 / 14px 14px;
+    --ink: #2a2620;
+    --ink-2: #4a443a;
+    width: min(100%, 1000px, 80cqw - 48px);
+    margin: var(--s-4) auto 0;
+  }
+  .bb {
+    border-radius: 8px;
+    background: var(--ivory);
+    box-shadow:
+      inset 0 1px 0 #fff,
+      0 3px 0 #c9c3b3,
+      10px 16px 28px rgba(0, 0, 0, 0.3);
+    color: var(--ink);
+  }
+
+  /* power rails: two hole rows each, a red and a blue stripe */
+  .rail {
+    display: grid;
+    gap: 6px;
+    padding: 12px 28px 10px;
+    border-bottom: 1px solid var(--ivory-2);
+  }
+  .rail.low {
+    gap: 14px;
+    border-top: 1px solid var(--ivory-2);
+    border-bottom: 0;
+    padding-block: 12px 14px;
+  }
+  .row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    height: 14px;
+    padding-right: 4px;
+    background: var(--hole);
+    background-position: 0 center;
+  }
+  .row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+  .rail:not(.low) .plus::before,
+  .low .minus::before {
+    top: -5px;
+  }
+  .rail:not(.low) .minus::before,
+  .low .plus::before {
+    bottom: -5px;
+  }
+  .low .plus::before {
+    top: -5px;
+    bottom: auto;
+  }
+  .low .minus::before {
+    top: auto;
+    bottom: -5px;
+  }
+  .plus::before {
+    background: #c4473c;
+  }
+  .minus::before {
+    background: #3f6fa8;
+  }
+
+  .field {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--s-2);
+    padding: 18px 20px 18px 40px;
+    /* centre channel between the two halves */
+    background:
+      linear-gradient(transparent calc(50% - 7px), #d6d0c0 calc(50% - 7px), #cfc9b9 calc(50% + 7px), transparent calc(50% + 7px)),
+      var(--hole);
+  }
+  .letters {
+    position: absolute;
+    left: 14px;
+    top: 18px;
+    bottom: 18px;
+    display: grid;
+    grid-template-rows: auto 1fr auto auto 1fr auto;
+    color: var(--ink-2);
+    font: 500 11px var(--font-mono);
+  }
+  .letters span:nth-child(2) {
+    grid-row: 3;
+  }
+  .letters span:nth-child(3) {
+    grid-row: 4;
+  }
+  .letters span:nth-child(4) {
+    grid-row: 6;
+  }
+
+  .parts {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 200px;
+    row-gap: 32px;
+    column-gap: var(--s-2);
+  }
+  .part {
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    gap: 6px;
+    height: 100%;
+    padding: 6px;
+    border-radius: 6px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .part:hover {
+    background: rgba(42, 38, 32, 0.05);
+    color: var(--ink);
+  }
+  .part:focus-visible {
+    outline: 2px solid #8a4a00;
+    outline-offset: 2px;
+  }
+  .art {
+    display: block;
+    min-height: 0;
+    transition: translate var(--t-fast) var(--ease);
+  }
+  .part:hover .art {
+    translate: 0 -2px;
+  }
+  /* printed on a small label so it reads over the hole grid */
+  .lbl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    background: var(--ivory);
+    box-shadow: 0 0 0 1px var(--ivory-2);
+    font: 500 12px/1.3 var(--font-mono);
+  }
+  .ttl {
+    flex: 1;
+  }
+  .pin {
+    padding: 0 5px;
+    border: 1px solid var(--ink-2);
+    border-radius: 3px;
+    color: var(--ink-2);
+    font-size: 11px;
+  }
+
+  .tip {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% - 8px);
+    z-index: 3;
+    display: grid;
+    width: max-content;
+    max-width: 280px;
+    padding: 8px 12px;
+    border: 1px solid #2c3a35;
+    border-radius: 8px;
+    background: #101614;
+    color: #e8efe9;
+    font: 600 var(--fs-label-lg) / 1.4 var(--font-sans);
+    box-shadow: 6px 10px 18px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    translate: -50% 4px;
+    transition:
+      opacity var(--t-fast) var(--ease),
+      translate var(--t-fast) var(--ease),
+      visibility 0s var(--t-fast);
+  }
+  .tp {
+    color: #b9ccc5;
+    font: 400 var(--fs-label) var(--font-mono);
+  }
+  .part:hover .tip,
+  .part:focus-visible .tip {
+    opacity: 1;
+    visibility: visible;
+    translate: -50% 0;
+    transition-delay: 0s;
+  }
+
+  /* landing holes for the jumpers */
+  .gpio {
+    display: grid;
+    align-content: space-evenly;
+    gap: 10px;
+    padding-left: 12px;
+    border-left: 1px dashed #cfc9b9;
+  }
+  .gpio li {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  .silk {
+    color: var(--ink-2);
+    font: 500 11px var(--font-mono);
+  }
+  .hole {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: #3a362e;
+    box-shadow: inset 1px 1px 1px rgba(0, 0, 0, 0.5);
+  }
+  .row .silk {
+    position: relative;
+    padding-inline: 4px;
+    background: var(--ivory);
+  }
+  .row .hole {
+    margin-right: 6px;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-3);
+    margin-top: var(--s-2);
+    color: var(--text-2);
+  }
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-1);
+  }
+  .more-title {
+    margin-top: var(--s-5);
+    color: var(--text-2);
+    font-size: var(--fs-label);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+  }
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-2);
+    margin-top: var(--s-2);
+    padding: 14px 20px;
+    border-radius: 6px;
+    background: var(--hole), var(--ivory);
+    box-shadow:
+      inset 0 1px 0 #fff,
+      0 2px 0 #c9c3b3,
+      8px 12px 20px rgba(0, 0, 0, 0.26);
+  }
+  .strip .part {
+    grid-template-columns: 96px 1fr;
+    grid-template-rows: auto;
+    align-items: center;
+    min-height: 88px;
+    background: var(--ivory);
+  }
+  .strip .part:hover {
+    background: var(--ivory-2);
+  }
+  .strip .art {
+    height: 72px;
+  }
+
+  @media (max-width: 960px) {
+    .parts {
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: 180px;
+    }
+    .field {
+      background: var(--hole);
+    }
+    .strip {
+      grid-template-columns: 1fr;
+    }
+  }
+  /* phones: one column of cards, same drawings */
+  @media (max-width: 720px) {
+    .bbw {
+      width: 100%;
+    }
+    .rail,
+    .gpio,
+    .letters {
+      display: none;
+    }
+    .field {
+      display: block;
+      padding: 12px;
+    }
+    .parts {
+      grid-template-columns: 1fr;
+      grid-auto-rows: auto;
+      row-gap: var(--s-1);
+    }
+    .parts li {
+      grid-column: auto !important;
+    }
+    .part,
+    .strip .part {
+      grid-template-columns: 96px 1fr;
+      grid-template-rows: auto auto;
+      column-gap: var(--s-2);
+      align-items: center;
+      padding: 10px;
+      background: var(--ivory);
+      box-shadow: 0 0 0 1px var(--ivory-2);
+    }
+    .art,
+    .strip .art {
+      grid-row: span 2;
+      height: 80px;
+    }
+    [data-kind='iio'] .art,
+    [data-kind='antenna'] .art {
+      height: 60px;
+    }
+    .lbl {
+      align-self: end;
+    }
+    .tip {
+      position: static;
+      align-self: start;
+      width: auto;
+      max-width: none;
+      padding: 0;
+      border: 0;
+      background: none;
+      box-shadow: none;
+      opacity: 1;
+      visibility: visible;
+      translate: none;
+    }
+    .part:hover .tip,
+    .part:focus-visible .tip {
+      translate: none;
+    }
+    .tt {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .tp {
+      color: var(--ink-2);
+    }
+    .strip {
+      padding: 12px;
+    }
+  }
+</style>

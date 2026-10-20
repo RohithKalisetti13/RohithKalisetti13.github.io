@@ -1,0 +1,18 @@
+{
+  "slug": "gesture-wheelchair",
+  "title": "Gesture-controlled wheelchair with hurdle detection",
+  "status": "shipped",
+  "period": "Aug 2020 – Oct 2020",
+  "stack": [
+    "Embedded C",
+    "ATmega32",
+    "UART/SPI",
+    "IR",
+    "MEMS"
+  ],
+  "highlights": [
+    "Designed a wheelchair control system using MEMS technology with an 8-bit ATmega32 microcontroller, improving accessibility for physically disabled users through hand gestures.",
+    "Wrote bare-metal firmware that translates MEMS accelerometer gestures into real-time motor control via interrupt-driven UART/SPI loops, tuning ISR timing to keep actuation latency stable under varying input rates.",
+    "Integrated infrared (IR) sensors with sensor fusion so motion commands are overridden to halt within a safe stopping threshold, improving obstacle-detection accuracy by 85% and reducing collision risk."
+  ]
+}

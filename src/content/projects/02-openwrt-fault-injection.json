@@ -1,0 +1,19 @@
+{
+  "slug": "openwrt-fault-injection",
+  "title": "OpenWrt fault-injection platform",
+  "status": "shipped",
+  "period": "Nov 2025 – Feb 2026, Mill Industries",
+  "stack": [
+    "OpenWrt",
+    "Linux",
+    "TCP/IP",
+    "DNS",
+    "DHCP",
+    "QEMU"
+  ],
+  "summary": "Designed an OpenWrt-based fault-injection platform that recreated Wi-Fi, DHCP, DNS, routing, port-blocking, and cloud-connectivity failures, turning intermittent device issues into repeatable engineering test cases for unattended regression runs.",
+  "highlights": [
+    "Drove root-cause analysis of field-reported defects and exercised TCP/IP, DNS, and DHCP troubleshooting on Linux."
+  ],
+  "note": "Written up from internal work. The company repository is private, so there is no public code."
+}

@@ -1,0 +1,18 @@
+{
+  "slug": "hdc-pi-vs-gpu",
+  "title": "Hyperdimensional computing benchmark, Raspberry Pi vs GPU",
+  "status": "shipped",
+  "period": "Aug 2024 – Dec 2024",
+  "stack": [
+    "Python",
+    "PyTorch",
+    "TorchHD",
+    "Raspberry Pi 4",
+    "Google Colab"
+  ],
+  "highlights": [
+    "Deployed an HDC model for MNIST classification on a Raspberry Pi 4 and Google Colab, with dimensionality 5000 vs 10000 for constrained and accelerated platforms.",
+    "Achieved 82.75% accuracy in 1741 s on the Pi (496 MB) versus 82.99% in 96.6 s on Colab (205 MB).",
+    "Used GPIO-triggered events, with PyTorch and TorchHD for implementation, evaluation and visualization of lightweight AI for edge computing."
+  ]
+}

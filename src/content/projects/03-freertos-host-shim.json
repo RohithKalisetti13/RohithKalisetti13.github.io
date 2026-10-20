@@ -1,0 +1,25 @@
+{
+  "slug": "freertos-host-shim",
+  "title": "FreeRTOS simulation layer and test framework",
+  "status": "shipped",
+  "period": "Nov 2025 – Feb 2026, Mill Industries",
+  "stack": [
+    "C/C++",
+    "FreeRTOS",
+    "ESP32",
+    "Ceedling",
+    "Docker",
+    "QEMU",
+    "GitHub Actions",
+    "ASAN",
+    "UBSAN",
+    "Valgrind"
+  ],
+  "summary": "Built a C/C++ FreeRTOS simulation layer that decoupled firmware logic from ESP32 hardware, enabling task, timer, delay, and concurrency behavior to be exercised reproducibly on Linux x86 systems.",
+  "highlights": [
+    "Used it to debug firmware issues before they reached the device, and as the core of an automated firmware test framework that supported design verification before hardware availability.",
+    "Modernized firmware test infrastructure by migrating Ceedling 0.31 to 1.x, rebuilding mocks and platform abstractions, and resolving preprocessing, dependency, include-path, and build-system incompatibilities across firmware modules, establishing objective and verifiable test methods.",
+    "Integrated the simulated firmware and validation stack into Dockerized QEMU and GitHub Actions workflows with ASAN, UBSAN, Valgrind, coverage analysis, packet captures, and device logs, so failures were detected and diagnosed before hardware testing. Managed VMs and virtual networking in QEMU for reproducible test environments, and handled Linux administration of the build and test hosts."
+  ],
+  "note": "Written up from internal work. The company repository is private, so there is no public code."
+}
