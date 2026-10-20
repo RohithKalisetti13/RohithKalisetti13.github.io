@@ -1,6 +1,7 @@
 ---
 // Work experience as a small memory daughterboard: SPI flash for the recent roles, I2C EEPROMs
-// for the earlier ones. Each chip opens the work drawer; the ribbon from CN5 lands on J1.
+// for the earlier ones. Each chip opens the work drawer; the ribbon from CN5 lands on J1, a row of
+// gold fingers on the board's edge. Green solder mask in both themes, copper showing through it.
 import type { CollectionEntry } from 'astro:content';
 import { hexAt } from '../lib/hex';
 
@@ -12,6 +13,27 @@ const flash = work.filter((w) => w.data.kind === 'flash');
 const rom = work.filter((w) => w.data.kind === 'rom');
 const short = (slug: string) => slug.replace(/-/g, ' ').toUpperCase();
 const span = (w: CollectionEntry<'work'>) => `${w.data.start} – ${w.data.end}`;
+// generic laser marks: a part description over a lot code
+const LOT = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+// copper under the mask: buses with 45-degree bends, and their vias (drawn in a 600x300 box, cropped to fit)
+const TRACES = [
+  'M0 46H120L140 66H300L318 48H600',
+  'M0 54H116L136 74H296L314 56H600',
+  'M0 62H112L132 82H292L310 64H600',
+  'M40 300V236L60 216H220L240 196V120',
+  'M48 300V240L68 220H228L248 200V124',
+  'M330 300V250L350 230H520L540 210V150L560 130H600',
+  'M338 300V254L358 234H524L544 214V154L564 134H600',
+  'M150 0V22L170 42',
+  'M450 0V20L470 40',
+  'M200 120V160L220 180H300',
+  'M420 120V170L440 190H500',
+  'M560 300V270L580 250H600',
+];
+const VIAS = [
+  [170, 42], [470, 40], [240, 120], [248, 124], [300, 180], [500, 190], [560, 130], [564, 134], [120, 46], [80, 230], [400, 254], [580, 250],
+];
 
 // J1, top to bottom, in CN5 order, so the ribbon from the board runs straight across without crossing
 const J1 = [
@@ -28,6 +50,22 @@ const J1 = [
 
 <div class="mb">
   <div class="db">
+    <svg class="copper" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <g fill="none" stroke="#2c7d49" stroke-width="2.2" stroke-linejoin="round">
+        {TRACES.map((d) => <path d={d} />)}
+      </g>
+      <g fill="none" stroke="#5aa874" stroke-width="0.6" opacity="0.5" transform="translate(-0.6 -0.6)">
+        {TRACES.map((d) => <path d={d} />)}
+      </g>
+      {
+        VIAS.map(([x, y]) => (
+          <g>
+            <circle cx={x} cy={y} r="3.4" fill="#2c7d49" />
+            <circle cx={x} cy={y} r="1.5" fill="#123d22" />
+          </g>
+        ))
+      }
+    </svg>
     <span class="hole" style="left:12px;top:12px"></span>
     <span class="hole" style="right:12px;top:12px"></span>
     <span class="hole" style="left:12px;bottom:12px"></span>
@@ -42,10 +80,12 @@ const J1 = [
               <button type="button" class="ic soic" data-drawer-open={`work/${w.id}`}>
                 <span class="pkg" aria-hidden="true">
                   <i class="legs" />
-                  <i class="body">
+                  <i class="body" data-mark="FLASH 16M" data-code={`2318 ${LOT[i]}`}>
                     <i class="dot" />
                   </i>
                   <i class="legs" />
+                  <i class="smd c" />
+                  <i class="smd r" />
                 </span>
                 <span class="led" aria-hidden="true" />
                 <span class="ref silk" aria-hidden="true">
@@ -66,13 +106,14 @@ const J1 = [
         {
           rom.map((w, i) => (
             <li>
-              <button type="button" class="ic dip" data-drawer-open={`work/${w.id}`}>
+              <button type="button" class="ic tssop" data-drawer-open={`work/${w.id}`}>
                 <span class="pkg" aria-hidden="true">
                   <i class="legs" />
-                  <i class="body">
+                  <i class="body" data-mark="24C256" data-code={`2207 ${LOT[i]}`}>
                     <i class="dot" />
                   </i>
                   <i class="legs" />
+                  <i class="smd c" />
                 </span>
                 <span class="led" aria-hidden="true" />
                 <span class="ref silk" aria-hidden="true">
@@ -146,11 +187,11 @@ const J1 = [
 
 <style>
   .mb {
-    --teal: #0f3b3c;
-    --teal-2: #0b2f30;
+    --mask: #1c5a33;
+    --mask-2: #143f24;
     --gold: #c9a24a;
-    --silk: #e4ede8;
-    --silk-dim: #b9ccc5;
+    --silk: #eef3ef;
+    --silk-dim: #c6d8cf;
     margin-top: var(--s-4);
   }
   .db {
@@ -161,14 +202,26 @@ const J1 = [
     width: min(100%, 960px, 80cqw - 48px);
     margin-inline: auto;
     padding: 34px 28px 40px 40px;
-    border-radius: 10px;
+    border-radius: 6px;
     background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 40%),
-      var(--teal);
+      linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 45%),
+      var(--mask);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 2px 0 var(--teal-2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 0 0 1px rgba(0, 0, 0, 0.18),
+      0 2px 0 var(--mask-2),
       10px 16px 28px rgba(0, 0, 0, 0.38);
+    isolation: isolate;
+  }
+  /* copper under the mask; the chips and silkscreen sit above it */
+  .copper {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    opacity: 0.85;
   }
   .hole {
     position: absolute;
@@ -224,24 +277,72 @@ const J1 = [
   .pkg {
     position: relative;
     display: grid;
-    width: 100%;
-    margin-bottom: 8px;
+    width: 78%;
+    margin: 6px 0 12px 6px;
   }
+  /* white silkscreen corner brackets around the footprint */
+  .pkg::before {
+    --k: var(--silk);
+    content: '';
+    position: absolute;
+    inset: -5px -7px;
+    background:
+      linear-gradient(var(--k), var(--k)) left top / 9px 1.5px,
+      linear-gradient(var(--k), var(--k)) left top / 1.5px 9px,
+      linear-gradient(var(--k), var(--k)) right top / 9px 1.5px,
+      linear-gradient(var(--k), var(--k)) right top / 1.5px 9px,
+      linear-gradient(var(--k), var(--k)) left bottom / 9px 1.5px,
+      linear-gradient(var(--k), var(--k)) left bottom / 1.5px 9px,
+      linear-gradient(var(--k), var(--k)) right bottom / 9px 1.5px,
+      linear-gradient(var(--k), var(--k)) right bottom / 1.5px 9px;
+    background-repeat: no-repeat;
+    opacity: 0.85;
+  }
+  /* matte black package with laser-etched marks */
   .body {
     position: relative;
     display: block;
-    border-radius: 3px;
-    background: linear-gradient(160deg, #2a2b2f, #141518 70%);
+    border-radius: 2px;
+    background: linear-gradient(160deg, #26272b, #151619 70%);
     box-shadow:
-      inset 1px 1px 0 rgba(255, 255, 255, 0.1),
-      5px 7px 9px rgba(0, 0, 0, 0.45);
+      inset 1px 1px 0 rgba(255, 255, 255, 0.08),
+      4px 6px 7px rgba(0, 0, 0, 0.42);
+  }
+  .body::after {
+    content: attr(data-mark) '\A' attr(data-code);
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    color: #8b8d92;
+    font: 500 10px / 1.35 var(--font-mono);
+    letter-spacing: 0.06em;
+    text-align: center;
+    white-space: pre;
+  }
+  /* 0603 parts beside each chip: a decoupling cap, a pull-up */
+  .smd {
+    position: absolute;
+    right: -24px;
+    width: 9px;
+    height: 16px;
+    border-radius: 1px;
+    box-shadow: 1px 2px 2px rgba(0, 0, 0, 0.35);
+  }
+  .smd.c {
+    top: 14%;
+    background: linear-gradient(#c7c9cc 0 22%, #b38f63 22% 78%, #c7c9cc 78%);
+  }
+  .smd.r {
+    bottom: 14%;
+    background: linear-gradient(#c7c9cc 0 22%, #1d1e21 22% 78%, #c7c9cc 78%);
   }
   .dot {
     position: absolute;
-    left: 10px;
-    bottom: 10px;
-    width: 8px;
-    height: 8px;
+    left: 8px;
+    bottom: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: #0a0a0b;
     box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.12);
@@ -259,36 +360,42 @@ const J1 = [
       );
   }
   .soic .body {
-    height: 64px;
+    height: 52px;
   }
-  .dip .pkg {
-    width: 62%;
+  /* legacy EEPROMs: a smaller TSSOP-8, finer legs, dimmer marks */
+  .tssop .pkg {
+    width: 52%;
   }
-  .dip .body {
-    height: 44px;
-    border-radius: 2px;
+  .tssop .body {
+    height: 30px;
+    border-radius: 1.5px;
   }
-  /* DIP notch at the pin-1 end */
-  .dip .body::before {
-    content: '';
-    position: absolute;
-    left: -1px;
-    top: 50%;
-    width: 9px;
-    height: 16px;
-    margin-top: -8px;
-    border-radius: 0 9px 9px 0;
-    background: var(--teal);
+  .tssop .body::after {
+    color: #707277;
+    font-size: 8.5px;
+    line-height: 1.25;
   }
-  .dip .legs {
-    height: 8px;
-    background: repeating-linear-gradient(to right, transparent 0 8%, #b9bbbe 8% 17%, transparent 17% 25%);
-  }
-  .dip .dot {
-    left: 14px;
-    bottom: 8px;
-    width: 6px;
+  .tssop .legs {
     height: 6px;
+    margin-inline: 16%;
+    background: repeating-linear-gradient(to right, transparent 0 9%, #a9abae 9% 16%, transparent 16% 25%);
+  }
+  .tssop .dot {
+    left: 5px;
+    bottom: 5px;
+    width: 4px;
+    height: 4px;
+  }
+  .tssop .pkg::before {
+    --k: var(--silk-dim);
+    opacity: 0.6;
+  }
+  .tssop .smd {
+    right: -20px;
+    top: 50%;
+    width: 7px;
+    height: 12px;
+    margin-top: -6px;
   }
   .led {
     position: absolute;
@@ -330,8 +437,8 @@ const J1 = [
     font: 500 var(--fs-label) var(--font-mono);
     letter-spacing: 0.08em;
   }
-  .dip .addr,
-  .dip .name {
+  .tssop .addr,
+  .tssop .name {
     color: var(--silk-dim);
   }
 
@@ -390,17 +497,9 @@ const J1 = [
     gap: 6px;
     padding-block: 6px;
   }
-  /* the black header housing sits behind the pads only */
-  .j1 ul::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: -6px;
-    bottom: 0;
-    width: 28px;
-    border-radius: 3px;
-    background: #141517;
-    box-shadow: 4px 6px 8px rgba(0, 0, 0, 0.35);
+  /* the fingers run off the board's edge */
+  .j1 ul {
+    margin-right: -28px;
   }
   .j1 li {
     display: flex;
@@ -412,15 +511,18 @@ const J1 = [
     font-size: 11px;
     white-space: nowrap;
   }
+  /* gold finger: plated strip with a lit upper edge, worn a little where the contact rides */
   .pad {
     position: relative;
     z-index: 1;
     display: block;
-    width: 16px;
+    width: 34px;
     height: 16px;
-    border-radius: 2px;
-    background: linear-gradient(135deg, #e3c46e, #a8852f);
-    box-shadow: inset 0 0 0 4px #b08d3a, inset 0 0 0 5px rgba(0, 0, 0, 0.25);
+    border-radius: 2px 0 0 2px;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.35), transparent 30%, transparent 70%, rgba(0, 0, 0, 0.18)),
+      linear-gradient(90deg, #a8852f, #e2c46c 45%, #c9a24a);
+    box-shadow: inset 0 0 0 1px rgba(110, 82, 24, 0.55);
   }
   .j1 .bus {
     color: var(--silk-dim);
@@ -471,9 +573,15 @@ const J1 = [
   :global(html.world) .j1 .bus {
     order: -1;
   }
-  :global(html.world) .j1 ul::after {
-    right: auto;
-    left: -6px;
+  :global(html.world) .j1 ul {
+    margin-right: 0;
+    margin-left: -24px;
+  }
+  :global(html.world) .pad {
+    border-radius: 0 2px 2px 0;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.35), transparent 30%, transparent 70%, rgba(0, 0, 0, 0.18)),
+      linear-gradient(270deg, #a8852f, #e2c46c 45%, #c9a24a);
   }
   :global(html.world) .j1 li {
     flex-direction: row-reverse;
@@ -514,14 +622,17 @@ const J1 = [
       grid-row: 1 / span 3;
       margin: 0;
     }
-    .dip .pkg {
-      width: 56px;
+    .tssop .pkg {
+      width: 52px;
     }
     .soic .body {
       height: 44px;
     }
-    .dip .body {
-      height: 32px;
+    .tssop .body {
+      height: 28px;
+    }
+    .smd {
+      display: none;
     }
     .addr,
     .name {
