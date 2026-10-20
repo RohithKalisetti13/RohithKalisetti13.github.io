@@ -12,14 +12,17 @@ export const stationOf = (hash: string): Station | null =>
         ? 'center'
         : null;
 
-// Hero USB cable in the desk world, in board units: up out of CN1, left along CABLE_Y, then a
-// smooth drop to the laptop port at (x, y).
+// Hero USB cable in the desk world, in board units: up out of CN1, left along CABLE_Y past the
+// inline switch with a little slack, then a long swoop down to the laptop port at (x, y). The swoop
+// starts past the board's left edge, so with only the board in view the cable simply runs off the
+// side; it arrives at the plug level, heading left into it.
 export const CABLE_Y = -250;
 export const usbLeft = (x: number, y: number) => {
-  const bend = Math.max(-80, x + 420);
+  const ax = Math.max(x + 260, -380);
   return (
-    `M1015 -160C1015 ${CABLE_Y + 40} 1000 ${CABLE_Y} 940 ${CABLE_Y}L${bend} ${CABLE_Y}` +
-    `C${bend - 230} ${CABLE_Y} ${bend - 190} ${y} ${bend - 420} ${y}L${x} ${y}`
+    `M1015 -160C1015 ${CABLE_Y + 40} 1000 ${CABLE_Y} 940 ${CABLE_Y}L560 ${CABLE_Y}` +
+    `C380 ${CABLE_Y} 200 ${CABLE_Y + 40} ${ax + 200} ${CABLE_Y + 40}L${ax} ${CABLE_Y + 40}` +
+    `C${ax - 300} ${CABLE_Y + 40} ${x + 300} ${y} ${x} ${y}`
   );
 };
 
