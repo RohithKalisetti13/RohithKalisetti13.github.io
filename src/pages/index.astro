@@ -6,8 +6,7 @@ import Section from '../components/Section.astro';
 import GpioButton from '../components/GpioButton.astro';
 import Panel from '../components/Panel.astro';
 import Chip from '../components/Chip.astro';
-import IdeWindow from '../components/IdeWindow.astro';
-import NucleoBoard from '../components/NucleoBoard.astro';
+import DeskHero from '../components/DeskHero.astro';
 import site from '../content/site.json';
 import skills from '../content/skills.json';
 
@@ -18,22 +17,7 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
 <Base>
   <Nav />
   <main id="main">
-    <Section id="boot" addr="0x0000" title="Reset_Handler" plain="boot" pin="PA0" hero>
-      <div class="hero">
-        <div class="hero-copy">
-          <h1>{site.headline}</h1>
-          <p class="lede">{site.summary}</p>
-          <div class="actions">
-            <GpioButton href="#builds" pin="PB0">View builds</GpioButton>
-            <GpioButton href="#irq" pin="PB1" variant="secondary">Resume and contact</GpioButton>
-          </div>
-        </div>
-        <div class="hero-visual">
-          <IdeWindow />
-          <NucleoBoard />
-        </div>
-      </div>
-    </Section>
+    <DeskHero />
 
     <Section id="trace" addr="0x1000" title="Execution trace" plain="work experience" pin="PA1">
       <ol class="trace">
@@ -138,44 +122,6 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
 </Base>
 
 <style>
-  .hero {
-    display: grid;
-    gap: var(--s-6);
-  }
-  .hero-visual {
-    display: grid;
-    gap: var(--s-3);
-    min-width: 0;
-  }
-  @media (min-width: 1100px) {
-    .hero {
-      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-      align-items: center;
-      gap: var(--s-8);
-    }
-    .hero-visual {
-      gap: 0;
-    }
-    .hero-visual > :global(.ide) {
-      position: relative;
-      z-index: 1;
-      width: 94%;
-    }
-    .hero-visual > :global(.nucleo) {
-      justify-self: end;
-      width: 74%;
-      margin-top: -40px;
-    }
-  }
-  .hero-copy {
-    display: grid;
-    gap: var(--s-3);
-    justify-items: start;
-  }
-  .lede {
-    max-width: 56ch;
-    font-size: 1.25rem;
-  }
   .actions {
     display: flex;
     flex-wrap: wrap;

@@ -1,5 +1,5 @@
 ---
-// Hand-traced NUCLEO-64 (MB1136 rev C) with an STM32F446RET6, top view.
+// Hand-traced 64-pin STM32 development board (RK-FW1 rev A), STM32F446RET6, top view.
 // Units: viewBox 1500x2000, about 20.6 units per mm, header pitch 53.
 // Light comes from the top-left; every shadow is offset down-right.
 interface Props {
@@ -109,8 +109,8 @@ const headerLabels: Label[] = [
   { t: 'JP4', x: 90, y: 503, a: 'middle' },
   { t: 'JP1', x: 800, y: 196 },
   { t: 'USB PWR', x: 866, y: 228, a: 'middle', r: -90 },
-  { t: 'ST-LINK', x: 420, y: 287, a: 'middle', r: -90 },
-  { t: 'NUCLEO', x: 578, y: 281, a: 'middle', r: -90 },
+  { t: 'DEBUG', x: 420, y: 287, a: 'middle', r: -90 },
+  { t: 'TARGET', x: 578, y: 281, a: 'middle', r: -90 },
   { t: 'CN2', x: 475, y: 400, a: 'middle' },
   { t: 'JP5', x: 1019, y: 833, a: 'middle' },
   { t: 'E5V', x: 884, y: 868, a: 'middle', r: -90 },
@@ -131,6 +131,9 @@ const qfp = (cx: number, cy: number, body: number, n: number, pitch = 10.3) =>
 const U5 = { cx: 694, cy: 1361, b: 208 };
 const U2 = { cx: 750, cy: 453, b: 146 };
 const u5Legs = qfp(U5.cx, U5.cy, U5.b, 16);
+// soft land strip under each leg row, so the legs read as a row of pins, not a comb
+const qfpBands = (c: { cx: number; cy: number; b: number }, n: number, pitch = 10.3) =>
+  [0, 90, 180, 270].map((a) => ({ t: `translate(${c.cx} ${c.cy}) rotate(${a})`, x: -(n * pitch) / 2, y: -c.b / 2 - 38, w: n * pitch, hh: 38 }));
 const u2Legs = qfp(U2.cx, U2.cy, U2.b, 12);
 
 // 45 degree pad outlines at the U5 corners
@@ -262,7 +265,7 @@ const TRACES = [
   viewBox="0 0 1500 2000"
   data-power={power}
   role="img"
-  aria-label="Illustration of an STM32 NUCLEO-64 board"
+  aria-label="Illustration of an STM32 development board"
 >
   <defs>
     <linearGradient id={`${p}g-mask`} x1="0" y1="0" x2="1" y2="1">
@@ -308,10 +311,10 @@ const TRACES = [
     </radialGradient>
     <!-- QFP leg with solder fillet, pointing up from y=0 -->
     <g id={`${p}ql`}>
-      <path d="M-3.6-38H3.6V-21Q3.6-19 0-19Q-3.6-19-3.6-21Z" fill="#bdb59c" />
-      <rect x="-2.1" y="-35" width="4.2" height="35" fill={u('g-leg')} />
-      <rect x="-2.1" y="-35" width="1.2" height="21" fill="#fff" opacity=".3" />
-      <path d="M-3.6-38H3.6V-35H-3.6Z" fill="#d9d5c9" />
+      <path d="M-3.8-37H3.8V-22Q3.8-18 0-18Q-3.8-18-3.8-22Z" fill="#c9c3b0" opacity=".85" />
+      <path d="M-2.3-33H2.3L2.6 0H-2.6Z" fill={u('g-leg')} />
+      <path d="M-1.6-33H-.6V-17H-1.6Z" fill="#fff" opacity=".18" />
+      <path d="M-2.6-6H2.6V0H-2.6Z" fill="#000" opacity=".3" />
     </g>
     <!-- 0603 LED: tin ends, clear lens -->
     <g id={`${p}led`}>
@@ -321,11 +324,11 @@ const TRACES = [
     </g>
 
     <linearGradient id={`${p}g-leg`} x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0" stop-color="#3d382c" />
-      <stop offset=".28" stop-color="#7a6c4c" />
-      <stop offset=".4" stop-color="#f3e8c6" />
-      <stop offset=".55" stop-color="#cdbb8c" />
-      <stop offset="1" stop-color="#d9c99d" />
+      <stop offset="0" stop-color="#5a5446" />
+      <stop offset=".3" stop-color="#8e8670" />
+      <stop offset=".45" stop-color="#d6cfb9" />
+      <stop offset=".7" stop-color="#bdb59d" />
+      <stop offset="1" stop-color="#cbc4ad" />
     </linearGradient>
     <linearGradient id={`${p}g-tin`} x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#e9e7e1" />
@@ -345,6 +348,40 @@ const TRACES = [
     <filter id={`${p}f-soft`} x="-5%" y="-5%" width="110%" height="110%">
       <feGaussianBlur stdDeviation="5" />
     </filter>
+    <filter id={`${p}f-shadow-wide`} x="-8%" y="-8%" width="116%" height="116%">
+      <feGaussianBlur stdDeviation="28" />
+    </filter>
+    <filter id={`${p}f-shadow-tight`} x="-3%" y="-3%" width="106%" height="106%">
+      <feGaussianBlur stdDeviation="6" />
+    </filter>
+    <linearGradient id={`${p}g-shell`} x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8f8e88" />
+      <stop offset=".08" stop-color="#e9e8e3" />
+      <stop offset=".22" stop-color="#bebdb6" />
+      <stop offset=".5" stop-color="#d4d3cd" />
+      <stop offset=".78" stop-color="#a9a8a1" />
+      <stop offset=".93" stop-color="#cfcec8" />
+      <stop offset="1" stop-color="#7d7c76" />
+    </linearGradient>
+    <linearGradient id={`${p}g-shell-v`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".35" />
+      <stop offset=".25" stop-color="#fff" stop-opacity="0" />
+      <stop offset=".8" stop-color="#000" stop-opacity="0" />
+      <stop offset="1" stop-color="#000" stop-opacity=".22" />
+    </linearGradient>
+    <radialGradient id={`${p}g-glow-red`}>
+      <stop offset="0" stop-color="#ff5a3c" stop-opacity=".55" />
+      <stop offset="1" stop-color="#ff5a3c" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id={`${p}g-glow-green`}>
+      <stop offset="0" stop-color="#4dff8a" stop-opacity=".5" />
+      <stop offset="1" stop-color="#4dff8a" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id={`${p}g-boss`} x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34353a" />
+      <stop offset=".45" stop-color="#1e1f22" />
+      <stop offset="1" stop-color="#121315" />
+    </linearGradient>
 
     <mask id={`${p}m-cut`} maskUnits="userSpaceOnUse" x="0" y="0" width="1500" height="2000">
       <rect width="1500" height="2000" fill="#fff" />
@@ -354,7 +391,8 @@ const TRACES = [
 
     <!-- male pin, top view: square post with a pyramid tip -->
     <g id={`${p}pm`}>
-      <rect x="-3" y="-2" width="14" height="14" fill="#000" opacity=".5" />
+      <rect x="-5" y="-4" width="16" height="16" rx="3" fill="#000" opacity=".22" />
+      <rect x="-5.5" y="-4.5" width="14" height="14" rx="1" fill="#000" opacity=".4" />
       <rect x="-7" y="-7" width="14" height="14" fill={u('g-gold')} />
       <path d="M-7-7H7L3-3H-3Z" fill="#fff" opacity=".38" />
       <path d="M-7-7L-3-3V3L-7 7Z" fill="#fff" opacity=".18" />
@@ -364,9 +402,11 @@ const TRACES = [
     </g>
     <!-- plastic boss around a male pin -->
     <g id={`${p}pb`}>
-      <rect x="-26.5" y="-26.5" width="53" height="53" fill={u('g-plastic')} />
-      <path d="M-25-25.5H25" stroke="#4a4b50" stroke-width="1.5" opacity=".55" />
-      <path d="M-26.5 26H26.5" stroke="#08090a" stroke-width="2" opacity=".8" />
+      <rect x="-26.5" y="-26.5" width="53" height="53" rx="1.5" fill={u('g-boss')} />
+      <path d="M-25.5 24V-25.5H24" stroke="#5a5b61" stroke-width="2" fill="none" opacity=".7" />
+      <path d="M-24-23H22" stroke="#7a7b80" stroke-width="1" opacity=".35" />
+      <path d="M-26.5 25.5H25.5V-26.5" stroke="#060607" stroke-width="2.5" fill="none" opacity=".85" />
+      <path d="M-14-14L-10-10M14-14L10-10M-14 14L-10 10M14 14L10 10" stroke="#0c0c0e" stroke-width="2" opacity=".6" />
       <rect x="-12" y="-12" width="24" height="24" rx="2" fill="#141517" opacity=".8" />
     </g>
     <!-- female socket hole -->
@@ -390,13 +430,18 @@ const TRACES = [
 
   <!-- board: cast shadow on the page, then the masked laminate -->
   <g id={`${p}board-base`}>
-    <g transform="translate(7 11)" mask={u('m-cut')} opacity=".32">
-      <path d={OUTLINE} fill="#0b1018" />
+    <!-- two-layer contact shadow: a wide soft one and a tight dark one -->
+    <g mask={u('m-cut')}>
+      <path d={OUTLINE} transform="translate(22 34)" fill="#05080c" opacity=".45" filter={u('f-shadow-wide')} />
+      <path d={OUTLINE} transform="translate(5 8)" fill="#05080c" opacity=".55" filter={u('f-shadow-tight')} />
     </g>
     <g mask={u('m-cut')}>
+      <!-- laminate edge, seen past the lower right of the top face -->
+      <path d={OUTLINE} transform="translate(2 3)" fill="#aab3bc" />
       <path d={OUTLINE} fill={u('g-mask')} />
       <path d={OUTLINE} fill={u('pt-noise')} opacity=".05" />
       <path d={OUTLINE} fill="none" stroke="#9aa6b3" stroke-width="2.5" opacity=".55" />
+      <path d={OUTLINE} transform="translate(1.5 1.5)" fill="none" stroke="#fff" stroke-width="2" opacity=".7" />
     </g>
     <!-- hole and slot walls catch the light on their lower right side -->
     {
@@ -452,8 +497,19 @@ const TRACES = [
         </text>
       ))
     }
-    <text x="182" y="808" font-size="38" letter-spacing="1">MB1136</text>
-    <text x="182" y="848" font-size="38" letter-spacing="1">rev C</text>
+    <!-- own marks: monogram and board id, site URL, a neutral handling mark -->
+    <g id={`${p}rk-mark`}>
+      <rect x="903" y="1616" width="92" height="92" rx="16" fill="none" stroke={SILK} stroke-width="5" />
+      <text x="949" y="1676" text-anchor="middle" font-size="44" font-weight="600" letter-spacing="-1">RK</text>
+      <text x="1012" y="1655" font-size="30" letter-spacing=".5">RK-FW1</text>
+      <text x="1012" y="1693" font-size="26">rev A</text>
+    </g>
+    <text x="640" y="1838" text-anchor="middle" font-size="30" letter-spacing=".3">rohithkalisetti13.github.io</text>
+    <g fill="none" stroke={SILK} stroke-width="3.5">
+      <circle cx="1394" cy="380" r="24" />
+      <circle cx="1394" cy="380" r="7" fill={SILK} />
+      <path d="M1394 344V356M1394 404V416M1358 380H1370M1418 380H1430" />
+    </g>
     <g fill="none" stroke={SILK} stroke-width="2.5">
       <path d="M1222 795V1330M1224 1352V1790" />
       <path d="M340 1146H364V1228M364 1316V1398H340" />
@@ -524,6 +580,7 @@ const TRACES = [
     </g>
 
     <g id={`${p}u5`}>
+      {qfpBands(U5, 16).map((q) => <rect x={q.x} y={q.y} width={q.w} height={q.hh} rx="3" transform={q.t} fill="#7c838b" opacity=".22" />)}
       {u5Legs.map((t) => <use href={h('ql')} transform={t} />)}
       <rect x={U5.cx - U5.b / 2} y={U5.cy - U5.b / 2} width={U5.b} height={U5.b} rx="4" fill="#1a1a1d" />
       <rect x={U5.cx - U5.b / 2 + 4} y={U5.cy - U5.b / 2 + 4} width={U5.b - 8} height={U5.b - 8} rx="3" fill={u('g-chip')} />
@@ -547,6 +604,7 @@ const TRACES = [
     </g>
 
     <g id={`${p}u2`}>
+      {qfpBands(U2, 12).map((q) => <rect x={q.x} y={q.y} width={q.w} height={q.hh} rx="3" transform={q.t} fill="#7c838b" opacity=".22" />)}
       {u2Legs.map((t) => <use href={h('ql')} transform={t} />)}
       <rect x={U2.cx - U2.b / 2} y={U2.cy - U2.b / 2} width={U2.b} height={U2.b} rx="4" fill="#1a1a1d" />
       <rect x={U2.cx - U2.b / 2 + 4} y={U2.cy - U2.b / 2 + 4} width={U2.b - 8} height={U2.b - 8} rx="3" fill={u('g-chip')} />
@@ -611,16 +669,26 @@ const TRACES = [
         ))
       }
       {[0, 1, 2, 3, 4].map((i) => <rect x={980 + i * 17} y="288" width="9" height="20" rx="1.5" fill={u('g-gold')} />)}
-      <rect x="936" y="100" width="158" height="192" rx="5" fill={u('g-metal')} />
-      <rect x="936" y="100" width="158" height="192" rx="5" fill={u('pt-noise')} opacity=".14" />
-      <path d="M938 288V105Q938 102 941 102H1090" stroke="#f4f2ea" stroke-width="2.5" fill="none" opacity=".6" />
-      <rect x="955" y="112" width="30" height="104" rx="3" fill="#2f2e2a" />
-      <rect x="1045" y="112" width="30" height="104" rx="3" fill="#2f2e2a" />
-      <rect x="961" y="120" width="18" height="64" rx="2" fill={u('g-silver')} />
-      <rect x="1051" y="120" width="18" height="64" rx="2" fill={u('g-silver')} />
-      <path d="M990 228H1040V205H1052" stroke="#5f5d56" stroke-width="5" fill="none" stroke-linejoin="round" />
-      <path d="M990 225H1038" stroke="#eeece4" stroke-width="2" opacity=".5" />
-      <rect x="944" y="262" width="142" height="24" rx="2" fill="#6d6b64" opacity=".45" />
+      <rect x="940" y="106" width="158" height="192" rx="6" fill="#0b1018" opacity=".3" />
+      <rect x="936" y="100" width="158" height="192" rx="5" fill="#6f6e68" />
+      <rect x="937.5" y="101.5" width="155" height="188" rx="4" fill={u('g-shell')} />
+      <rect x="937.5" y="101.5" width="155" height="188" rx="4" fill={u('g-shell-v')} />
+      <rect x="936" y="100" width="158" height="192" rx="5" fill={u('pt-noise')} opacity=".1" />
+      <path d="M939 286V106Q939 103 942 103H1089" stroke="#fbfaf5" stroke-width="2" fill="none" opacity=".75" />
+      <path d="M1091 106V287H942" stroke="#5c5b55" stroke-width="2" fill="none" opacity=".6" />
+      <!-- mouth of the receptacle on the board edge -->
+      <path d="M950 101H1080L1072 118H958Z" fill="#1c1c1e" />
+      <path d="M962 104H1068V110H962Z" fill="#c9a24c" opacity=".7" />
+      <!-- folded tabs and seam -->
+      <rect x="955" y="128" width="30" height="88" rx="4" fill="#4e4d48" />
+      <rect x="1045" y="128" width="30" height="88" rx="4" fill="#4e4d48" />
+      <rect x="957" y="130" width="26" height="84" rx="3" fill={u('g-shell')} />
+      <rect x="1047" y="130" width="26" height="84" rx="3" fill={u('g-shell')} />
+      <path d="M958 131H982M1048 131H1072" stroke="#fff" stroke-width="1.5" opacity=".6" />
+      <path d="M990 236H1040V214H1052" stroke="#56554f" stroke-width="4" fill="none" stroke-linejoin="round" />
+      <path d="M990 233H1038" stroke="#fbfaf5" stroke-width="1.5" opacity=".6" />
+      <path d="M1015 128V200" stroke="#7a7973" stroke-width="1.5" opacity=".5" />
+      <rect x="944" y="262" width="142" height="22" rx="2" fill="#5f5e58" opacity=".35" />
     </g>
 
     <!-- B1 USER and B2 RESET tact switches -->
@@ -774,6 +842,7 @@ const TRACES = [
       <rect x="1256" y="242" width="38" height="38" rx="9" fill="#ece0c4" stroke="#d5c7a6" stroke-width="2" />
       <path d="M1275 246V276M1260 261H1290" stroke="#d2c19a" stroke-width="2" />
       <g class="led-on">
+        <circle cx="1275" cy="261" r="58" fill={u('g-glow-red')} />
         <rect x="1256" y="242" width="38" height="38" rx="9" fill="#ff3a2e" />
         <ellipse cx="1268" cy="254" rx="7" ry="5" fill="#fff" opacity=".6" />
       </g>
@@ -781,6 +850,7 @@ const TRACES = [
     <g id={`${p}ld2`} data-led="ld2">
       <use href={h('led')} x="942" y="1036" />
       <g class="led-on">
+        <circle cx="942" cy="1036" r="44" fill={u('g-glow-green')} />
         <rect x="931" y="1029" width="22" height="14" rx="3" fill="#2fe06a" />
         <ellipse cx="937" cy="1033" rx="5" ry="2.5" fill="#fff" opacity=".7" />
       </g>
@@ -788,6 +858,7 @@ const TRACES = [
     <g id={`${p}ld3`} data-led="ld3">
       <use href={h('led')} x="492" y="1064" />
       <g class="led-on">
+        <circle cx="492" cy="1064" r="44" fill={u('g-glow-red')} />
         <rect x="481" y="1057" width="22" height="14" rx="3" fill="#ff3b2f" />
         <ellipse cx="487" cy="1061" rx="5" ry="2.5" fill="#fff" opacity=".7" />
       </g>
@@ -885,19 +956,29 @@ const TRACES = [
     width: 100%;
     height: auto;
   }
+  /* power-on order: LD3 (5V), then LD1 (COM), then LD2 starts its 1 Hz blink */
   .mcu-board .led-on {
     opacity: 0;
+    transition: opacity 160ms ease-out;
   }
   .mcu-board[data-power='on'] [data-led='ld3'] .led-on,
+  .mcu-board[data-power='on'] [data-led='ld1'] .led-on,
   .mcu-board[data-power='on'] [data-led='ld2'] .led-on {
     opacity: 1;
   }
+  .mcu-board[data-power='on'] [data-led='ld1'] .led-on {
+    transition-delay: 260ms;
+  }
   .mcu-board[data-power='on'] [data-led='ld2'] .led-on {
-    animation: mcu-blink 1s steps(1, end) infinite;
+    /* first half of each period is dark, so LD2 comes on about 520 ms after power */
+    animation: mcu-blink 1s steps(1, end) 20ms infinite backwards;
   }
   @keyframes mcu-blink {
-    50% {
+    0% {
       opacity: 0;
+    }
+    50% {
+      opacity: 1;
     }
   }
   @media (prefers-reduced-motion: reduce) {
