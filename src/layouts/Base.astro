@@ -39,6 +39,23 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         }
         document.documentElement.dataset.theme = t;
       })();
+      // wide screens get the desk world; pick the station before first paint (see lib/world.ts)
+      (() => {
+        const r = document.documentElement;
+        if (!matchMedia('(min-width: 1024px)').matches) return;
+        r.classList.add('world');
+        const h = location.hash;
+        let s = /^#(about|contact)$/.test(h) ? 'left' : /^#(work|projects)$/.test(h) || h.startsWith('#/work/') ? 'right' : /^#(home|skills)$/.test(h) ? 'center' : null;
+        if (!s) {
+          try {
+            const nav = performance.getEntriesByType('navigation')[0];
+            if (nav && nav.type !== 'navigate') s = sessionStorage.getItem('rk-station');
+          } catch {
+            /* storage blocked: start at the board */
+          }
+        }
+        r.dataset.station = s === 'left' || s === 'right' ? s : 'center';
+      })();
     </script>
     <ClientRouter />
   </head>
@@ -59,6 +76,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     </button>
     <script>
       import Lenis from 'lenis';
+      import { stationOf } from '../lib/world';
 
       const root = document.documentElement;
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -88,7 +106,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         const a = (e.target as Element).closest?.('a[href*="#"]') as HTMLAnchorElement | null;
         if (!a || a.target || a.origin !== location.origin || a.pathname !== location.pathname) return;
         const id = decodeURIComponent(a.hash.slice(1));
-        const el = id && !id.startsWith('/') ? document.getElementById(id) : null;
+        if (!id || id.startsWith('/')) return;
+        // the desk world moves its camera for its own hashes
+        if (!window.dispatchEvent(new CustomEvent('rk:goto', { detail: id, cancelable: true }))) {
+          e.preventDefault();
+          history.replaceState(history.state, '', a.hash);
+          return;
+        }
+        const el = document.getElementById(id);
         if (!el) return;
         e.preventDefault();
         const nav = parseFloat(getComputedStyle(root).scrollPaddingTop) || 0;
@@ -96,6 +121,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         history.replaceState(history.state, '', a.hash);
         if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
         el.focus({ preventScroll: true });
+      });
+
+      // the world asks for a vertical spot; Lenis glides there unless told to jump
+      window.addEventListener('rk:scroll-to', (e) => {
+        const { y, immediate } = (e as CustomEvent<{ y: number; immediate: boolean }>).detail;
+        if (lenis) lenis.scrollTo(y, { immediate, force: true, duration: 0.8, easing: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2) });
+        else window.scrollTo({ top: y, behavior: immediate || reduced.matches ? 'instant' : 'smooth' });
       });
 
       // the drawer asks for the page to hold still
@@ -159,7 +191,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       window.addEventListener('pagehide', () => save());
 
       // pick the page transition: forward to a case study slides in from the right, home fades
-      const side = (p: string) => (p.startsWith('/ide') ? -1 : p.startsWith('/projects/') ? 1 : 0);
+      const side = (p: string) => (p.startsWith('/projects/') ? 1 : 0);
+      const savedStation = () => {
+        try {
+          return sessionStorage.getItem('rk-station');
+        } catch {
+          return null;
+        }
+      };
       let restoreY: number | null = null;
       document.addEventListener('astro:before-swap', (e) => {
         const next = e.newDocument.documentElement;
@@ -170,6 +209,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         const to = side(e.to.pathname);
         next.dataset.slide = e.to.pathname === '/' && e.from.pathname !== '/' ? 'fade' : to < from ? 'left' : to > from ? 'right' : 'none';
         restoreY = traverse && e.from.pathname !== e.to.pathname ? saved(e.to) : null;
+        // the world class and station travel with the document; back home returns to the same station
+        next.classList.toggle('world', root.classList.contains('world'));
+        const hashed = stationOf(e.to.hash);
+        const st = traverse ? (savedStation() ?? hashed) : hashed;
+        next.dataset.station = st === 'left' || st === 'right' ? st : 'center';
       });
       document.addEventListener('astro:after-swap', () => {
         root.classList.remove('scroll-locked');

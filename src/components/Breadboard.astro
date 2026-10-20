@@ -1,6 +1,6 @@
 ---
 // Projects as parts on a solderless breadboard. Jumpers from CN9 (D2 to D7) and the power pins
-// land on the right end; each featured part is a link to its case study.
+// land on the end nearest the board; each featured part is a link to its case study.
 import type { Project } from '../content.config';
 import PartArt, { type Kind } from './PartArt.astro';
 import StatusLed from './StatusLed.astro';
@@ -26,14 +26,14 @@ const featured = projects.slice(0, 6);
 const more = projects.slice(6);
 const STATUS = { wip: 'In progress', shipped: 'Shipped' };
 
-// right-end landing holes, top to bottom; the lowest MCU pin lands highest, so no jumpers cross
+// landing holes, top to bottom in CN9 order, so the jumpers from the board never cross
 const GPIO = [
-  { silk: 'D2', pin: 'PA10', color: '#d9d6cf' },
-  { silk: 'D3', pin: 'PB3', color: '#4f8a4f' },
-  { silk: 'D4', pin: 'PB5', color: '#c77a33' },
-  { silk: 'D5', pin: 'PB4', color: '#6d5596' },
-  { silk: 'D6', pin: 'PB10', color: '#3f6fa8' },
   { silk: 'D7', pin: 'PA8', color: '#c9a43a' },
+  { silk: 'D6', pin: 'PB10', color: '#3f6fa8' },
+  { silk: 'D5', pin: 'PB4', color: '#6d5596' },
+  { silk: 'D4', pin: 'PB5', color: '#c77a33' },
+  { silk: 'D3', pin: 'PB3', color: '#4f8a4f' },
+  { silk: 'D2', pin: 'PA10', color: '#d9d6cf' },
 ];
 const POWER = [
   { silk: '+5V', from: "#hero-cn10 [data-pin='U5V']", color: '#c4473c' },
@@ -95,7 +95,7 @@ const POWER = [
         POWER.map((g, i) => (
           <i class:list={['row', i ? 'minus' : 'plus']}>
             <span class="silk">{g.silk}</span>
-            <span class="hole" data-wire-from={g.from} data-wire-color={g.color} data-wire-group="builds" />
+            <span class="hole" data-wire-from={g.from} data-wire-color={g.color} data-wire-group="power" />
           </i>
         ))
       }
@@ -332,6 +332,35 @@ const POWER = [
     visibility: visible;
     translate: -50% 0;
     transition-delay: 0s;
+  }
+
+  /* desk world: the landing holes face the board on the left */
+  :global(html.world) .bbw {
+    margin-inline: 0;
+  }
+  :global(html.world) .field {
+    grid-template-columns: auto 1fr;
+    padding-left: 20px;
+  }
+  :global(html.world) .letters {
+    left: auto;
+    right: 6px;
+  }
+  :global(html.world) .gpio {
+    order: -1;
+    padding-left: 0;
+    padding-right: 12px;
+    border-left: 0;
+    border-right: 1px dashed #cfc9b9;
+  }
+  :global(html.world) .gpio li {
+    flex-direction: row-reverse;
+  }
+  /* holes at the header's pitch, high on the board so the jumpers from D2-D7 run level */
+  :global(html.world) .gpio {
+    align-content: start;
+    gap: max(4px, calc(53 * var(--u) - 16px));
+    padding-top: 6px;
   }
 
   /* landing holes for the jumpers */

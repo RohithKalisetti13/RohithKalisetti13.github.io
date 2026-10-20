@@ -1,7 +1,7 @@
 ---
 import LedDot from './LedDot.astro';
 
-// scroll order down the desk; IRQ leads off to the IDE world on the left
+// stations of the desk: BOOT and REGS on the board, TRACE and BUILDS on the bench, IRQ on the laptop
 const SECTIONS = [
   { id: 'boot', label: 'BOOT', addr: '0x0000', plain: 'Home', color: 'var(--pa0)' },
   { id: 'regs', label: 'REGS', addr: '0x0800', plain: 'Skills', color: 'var(--pa3)' },
@@ -10,13 +10,14 @@ const SECTIONS = [
   { id: 'irq', label: 'IRQ', addr: '0x4000', plain: 'Contact', color: 'var(--pa4)' },
 ];
 
-// absolute hrefs: the nav persists across pages, and same-page ones glide via Lenis
-const href = (id: string) => (id === 'irq' ? '/ide/' : `/#${id}`);
+// absolute hrefs: the nav persists across pages; on the desk the world moves the camera for them
+const HASH: Record<string, string> = { boot: 'home', regs: 'skills', trace: 'work', builds: 'projects', irq: 'contact' };
+const href = (id: string) => `/#${HASH[id]}`;
 ---
 
 <header class="nav" transition:name="site-nav" transition:persist transition:animate="none">
   <div class="container bar">
-    <a class="mono-mark" href="/#boot" aria-label="Rohith Kalisetti, home">RK</a>
+    <a class="mono-mark" href="/#home" aria-label="Rohith Kalisetti, home">RK</a>
     <nav aria-label="Primary">
       <ul>
         <li class="pill" aria-hidden="true"></li>
@@ -109,12 +110,24 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : `/#${id}`);
     const update = () => {
       const path = location.pathname;
       let id: string;
-      if (path.startsWith('/ide')) id = 'irq';
-      else if (path.startsWith('/projects/')) id = 'builds';
-      else if (path === '/') {
-        const y = innerHeight * LINE;
-        id = top(document.getElementById('builds')) <= y ? 'builds' : top(document.getElementById('trace')) <= y ? 'trace' : top(document.getElementById('s-regs')) <= y ? 'regs' : 'boot';
-      } else id = '';
+      const root = document.documentElement;
+      const y = innerHeight * LINE;
+      if (path.startsWith('/projects/')) id = 'builds';
+      else if (path !== '/') id = '';
+      else if (root.classList.contains('world')) {
+        // the station picks the pair, the scroll position picks within it
+        const st = root.dataset.station;
+        if (st === 'left') id = 'irq';
+        else if (st === 'right') id = top(document.getElementById('projects')) <= y ? 'builds' : 'trace';
+        else id = top(document.getElementById('s-regs')) <= y ? 'regs' : 'boot';
+      } else {
+        id =
+          top(document.getElementById('about')) <= y ? 'irq'
+          : top(document.getElementById('projects')) <= y ? 'builds'
+          : top(document.getElementById('work')) <= y ? 'trace'
+          : top(document.getElementById('s-regs')) <= y ? 'regs'
+          : 'boot';
+      }
       if (id) setActive(id);
       else {
         pill.style.opacity = '0';
@@ -122,7 +135,7 @@ const href = (id: string) => (id === 'irq' ? '/ide/' : `/#${id}`);
         current = '';
       }
       // the LCD wakes once the hero copy has scrolled away
-      const hero = document.getElementById('boot');
+      const hero = document.getElementById('home');
       nav.classList.toggle('show-status', !!hero && hero.getBoundingClientRect().bottom < nav.offsetHeight);
     };
 

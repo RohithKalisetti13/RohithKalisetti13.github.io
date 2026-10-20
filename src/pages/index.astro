@@ -6,6 +6,7 @@ import DeskHero from '../components/DeskHero.astro';
 import SideDrawer from '../components/SideDrawer.astro';
 import MemoryBank from '../components/MemoryBank.astro';
 import WireLayer from '../components/WireLayer.astro';
+import World from '../components/World.astro';
 import Breadboard from '../components/Breadboard.astro';
 import { getProjects } from '../lib/projects';
 import { hexAt } from '../lib/hex';
@@ -19,31 +20,42 @@ const projects = await getProjects();
 <Base>
   <Nav />
   <main id="main">
-    <DeskHero>
-      <section id="trace" class="region" aria-labelledby="trace-title">
+    <World>
+      <DeskHero slot="center" />
+
+      <Fragment slot="right">
+        <section id="work" class="region" aria-labelledby="work-title">
+          <div class="container">
+            <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa1)">PA1</span> 0x1000 / work experience</p>
+            <h2 id="work-title">Execution trace</h2>
+            <MemoryBank work={work} />
+          </div>
+        </section>
+
+        <section id="projects" class="region" aria-labelledby="projects-title">
+          <div class="container">
+            <div class="proj-head">
+              <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa2)">PA2</span> 0x2000 / projects</p>
+              <h2 id="projects-title">Firmware builds</h2>
+            </div>
+            <Breadboard projects={projects} />
+          </div>
+        </section>
+      </Fragment>
+
+      <section id="about" class="region laptop-station" aria-labelledby="about-title" slot="left">
         <div class="container">
-          <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa1)">PA1</span> 0x1000 / work experience</p>
-          <h2 id="trace-title">Execution trace</h2>
-          <MemoryBank work={work} />
+          <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa4)">PA4</span> 0x4000 / about and contact</p>
+          <h2 id="about-title">Laptop</h2>
+          <div class="lap-stub">
+            <p>[about and contact: IDE coming in the next step]</p>
+            <span class="usb-port" aria-hidden="true"></span>
+          </div>
         </div>
       </section>
 
-      <section id="builds" class="region" aria-labelledby="builds-title">
-        <div class="container">
-          <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa2)">PA2</span> 0x2000 / projects</p>
-          <h2 id="builds-title">Firmware builds</h2>
-          <Breadboard projects={projects} />
-        </div>
-      </section>
       <WireLayer />
-    </DeskHero>
-
-    <a class="to-ide" href="/ide/" aria-label="Go to the IDE world" title="IDE world">
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-        <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
-    </a>
-
+    </World>
   </main>
   <SideDrawer route="work" label="TRACE / work" mode="inspector">
     {
@@ -103,28 +115,51 @@ const projects = await getProjects();
     color: var(--text);
     font-size: var(--fs-label);
   }
-  .to-ide {
-    position: fixed;
-    left: 0;
-    top: 50%;
-    z-index: 40;
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 72px;
-    margin-top: -36px;
-    border: 1px solid var(--line);
-    border-left: 0;
-    border-radius: 0 var(--r-2) var(--r-2) 0;
-    background: color-mix(in srgb, var(--board) 90%, transparent);
-    color: var(--text-2);
-    transition:
-      transform var(--t-fast) var(--ease),
-      opacity var(--t-fast) var(--ease);
+  /* desk world: the bench sits level with the headers it is wired to (offsets set by WireLayer) */
+  :global(html.world) .region {
+    display: block;
+    min-height: 0;
+    padding-block: 0;
   }
-  .to-ide:hover {
-    color: var(--text);
-    transform: translateX(3px);
+  :global(html.world) #work {
+    padding-top: var(--work-y, 120px);
+  }
+  :global(html.world) #projects {
+    padding-top: var(--projects-y, 48px);
+    padding-bottom: var(--s-8);
+  }
+  :global(html.world .station[data-station='right']) .container {
+    width: auto;
+    margin: 0;
+    padding-left: 120px;
+    padding-right: 120px;
+  }
+  /* the builds heading sits beside the half-width memory board, so the breadboard can tuck in below it */
+  :global(html.world) .proj-head {
+    position: absolute;
+    left: calc(120px + max(760 * var(--u), 560px) + var(--s-4));
+    right: 120px;
+    bottom: calc(100% + var(--s-3));
+  }
+  .lap-stub {
+    position: relative;
+    margin-top: var(--s-3);
+    padding: var(--s-6);
+    border: 1px dashed var(--line);
+    border-radius: var(--r-3);
+  }
+  .usb-port {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    width: 12px;
+    height: 24px;
+    margin-top: -12px;
+    border-radius: 2px;
+    background: #2c2d32;
+  }
+  :global(html.world) .laptop-station {
+    padding-top: calc(var(--copy-h) - 220 * var(--u));
   }
   :global(.drawer) .head-line {
     color: var(--muted);

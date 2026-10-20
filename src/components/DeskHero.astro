@@ -9,6 +9,7 @@ import site from '../content/site.json';
 import skills from '../content/skills.json';
 
 import { LCD, WIN, D, DOT, TX, TY, CELLS, frame, NAME, TAG } from '../lib/lcd';
+import { usbLeft } from '../lib/world';
 
 // backpack pins, left to right; the left pin takes the inner lane and the shallowest socket
 type Wire = { pin: string; px: number; to: string; y: number; color: string };
@@ -35,8 +36,9 @@ const wirePath = (w: Wire, i: number) => {
   ].join('');
 };
 
-// the switch box sits on the cable, above the plug
-const SW = { x: 1018, y: -262 };
+// stacked layout: the cable rises off the top of the page, the switch box on it above the plug.
+// desk world: it bends left toward the laptop; the script finishes the run at the port.
+const USB_LEFT = usbLeft(-800, 600);
 
 const LINKS = [
   { label: 'Resume', href: site.resume, pin: 'PB0', cap: 'light', external: true },
@@ -48,8 +50,8 @@ const LINKS = [
 
 <div class="desk" data-power="on">
   <div class="desk-inner">
-    <section id="boot" class="copy" aria-labelledby="boot-title">
-      <h1 id="boot-title">{site.name}</h1>
+    <section id="home" class="copy" aria-labelledby="home-title">
+      <h1 id="home-title">{site.name}</h1>
       <div class="meta">
         <p class="role">{site.role}</p>
         <p class="avail powered-in"><LedDot color="var(--pa4)" />{site.availability}</p>
@@ -93,7 +95,7 @@ const LINKS = [
     </section>
 
     <!-- the board itself is the skills region; its register map is drawn in a later stage -->
-    <section id="regs" class="stage" aria-labelledby="regs-title">
+    <section id="skills" class="stage" aria-labelledby="regs-title">
       <div class="sr-only">
         <h2 id="regs-title">Register map: skills</h2>
         <dl>
@@ -115,7 +117,7 @@ const LINKS = [
       <svg class="rig rig-usb" viewBox="0 -400 1500 2400" overflow="visible" aria-hidden="true">
         <defs>
           <clipPath id="usb-clip">
-            <rect x="-500" y="-5000" width="2500" height="5101" />
+            <rect x="-20000" y="-5000" width="22000" height="5101" />
           </clipPath>
           <linearGradient id="usb-mold" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0" stop-color="#0d0e10" />
@@ -131,12 +133,15 @@ const LINKS = [
           </linearGradient>
         </defs>
         <g clip-path="url(#usb-clip)">
-          <path d="M1015 -160C1015 -420 1034 -760 1050 -4000" transform="translate(16 24)" stroke="#000" stroke-width="44" fill="none" opacity=".28" />
+          <path class="usb-up" d="M1015 -160C1015 -420 1034 -760 1050 -4000" transform="translate(16 24)" stroke="#000" stroke-width="44" fill="none" opacity=".28" />
+          <path class="usb-left" data-usb="shadow" d={USB_LEFT} transform="translate(16 24)" stroke="#000" stroke-width="44" fill="none" opacity=".28" />
           <rect x="962" y="-70" width="134" height="190" rx="14" fill="#000" opacity=".3" />
           <rect x="963" y="88" width="104" height="52" rx="3" fill="url(#usb-tip)" />
           <rect x="975" y="96" width="80" height="8" fill="#1a1a1c" opacity=".6" />
-          <path d="M1015 -160C1015 -420 1034 -760 1050 -4000" stroke="#17181b" stroke-width="40" fill="none" />
-          <path d="M1003 -170C1003 -420 1021 -760 1037 -4000" stroke="#fff" stroke-width="5" fill="none" opacity=".1" />
+          <path class="usb-up" d="M1015 -160C1015 -420 1034 -760 1050 -4000" stroke="#17181b" stroke-width="40" fill="none" />
+          <path class="usb-up" d="M1003 -170C1003 -420 1021 -760 1037 -4000" stroke="#fff" stroke-width="5" fill="none" opacity=".1" />
+          <path class="usb-left" data-usb="body" d={USB_LEFT} stroke="#17181b" stroke-width="40" fill="none" stroke-linejoin="round" />
+          <path class="usb-left" data-usb="shine" d={USB_LEFT} transform="translate(-6 -10)" stroke="#fff" stroke-width="5" fill="none" opacity=".1" />
           <path d="M975 -78H1055L1039 -168H991Z" fill="#141518" />
           <path d="M979 -98H1051M983 -120H1047M986 -142H1044" stroke="#2c2d31" stroke-width="5" />
           <rect x="948" y="-80" width="134" height="180" rx="14" fill="url(#usb-mold)" />
@@ -255,6 +260,9 @@ const LINKS = [
 
       <button type="button" class="lcd-hit" aria-label="Open about"></button>
 
+      <!-- the cable leads to the laptop on the left -->
+      <button type="button" class="usb-hit" data-go-station="left" aria-label="Follow the USB cable to the laptop"></button>
+
       <!-- inline rocker on the cable -->
       <button type="button" class="pwr" aria-pressed="true" aria-label="Power">
         <svg viewBox="0 0 96 150" aria-hidden="true">
@@ -290,7 +298,6 @@ const LINKS = [
       </button>
     </section>
   </div>
-  <slot />
 </div>
 
 <script is:inline>
@@ -313,6 +320,7 @@ const LINKS = [
 
 <script>
   import { frame, NAME, TAG, LOG, COLS } from '../lib/lcd';
+  import { usbLeft } from '../lib/world';
 
   const store = {
     get(k: string) {
@@ -401,9 +409,37 @@ const LINKS = [
       else run();
     };
 
+    // the LCD opens About: the world takes it to the laptop, the stack scrolls there
     root.querySelector('.lcd-hit')!.addEventListener('click', () => {
-      const ev = new CustomEvent('rk:about', { cancelable: true });
-      if (window.dispatchEvent(ev)) document.querySelector('#irq .about')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+      const ev = new CustomEvent('rk:goto', { detail: 'about', cancelable: true });
+      if (window.dispatchEvent(ev)) document.getElementById('about')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+    });
+
+    // desk world: run the cable from CN1 to the laptop port, in board units
+    const usb = [...root.querySelectorAll<SVGPathElement>('[data-usb]')];
+    const route = () => {
+      const port = document.querySelector('.usb-port');
+      if (!document.documentElement.classList.contains('world') || !port?.getClientRects().length) return;
+      // offsets ignore the intro transform on the stage
+      let x = 0;
+      let y = 0;
+      for (let el: HTMLElement | null = stage; el && el !== root; el = el.offsetParent as HTMLElement | null) {
+        x += el.offsetLeft;
+        y += el.offsetTop;
+      }
+      const d = root.getBoundingClientRect();
+      const u = stage.offsetWidth / 1500;
+      const p = port.getBoundingClientRect();
+      const path = usbLeft(Math.round((p.left + p.width / 2 - d.left - x) / u), Math.round((p.top + p.height / 2 - d.top - y) / u));
+      usb.forEach((el) => el.setAttribute('d', path));
+    };
+    window.addEventListener('rk:world-moved', route, { signal });
+    window.addEventListener('resize', route, { signal });
+    document.fonts?.ready.then(route);
+    route();
+    root.querySelector('.usb-hit')!.addEventListener('click', () => {
+      const here = document.documentElement.dataset.station;
+      window.dispatchEvent(new CustomEvent('rk:go', { detail: here === 'left' ? 'center' : 'left' }));
     });
 
     // a return in this session restores the saved state as is: no intro, no auto-on
@@ -864,5 +900,50 @@ const LINKS = [
   }
   :global(:root[data-theme='light']) .desk {
     --strip-shadow: rgba(60, 50, 40, 0.28);
+  }
+  /* desk world: the board at 1.3 viewport heights, the cable bending left to the laptop */
+  .usb-left,
+  .usb-hit {
+    display: none;
+  }
+  :global(html.world) .desk {
+    overflow: visible;
+    padding-bottom: var(--s-8);
+    background: none;
+  }
+  :global(html.world) .desk::before,
+  :global(html.world) .desk::after {
+    content: none;
+  }
+  :global(html.world) .desk-inner {
+    --stage-w: calc(97.5vh);
+    --board-top: calc(var(--copy-h) + 140 * var(--u));
+  }
+  :global(html.world) .usb-up {
+    display: none;
+  }
+  :global(html.world) .usb-left {
+    display: inline;
+  }
+  :global(html.world) .pwr {
+    left: calc(640 * var(--u));
+    top: calc(-250 * var(--u));
+  }
+  :global(html.world) .usb-hit {
+    position: absolute;
+    left: calc(-60 * var(--u));
+    top: calc(-290 * var(--u));
+    display: block;
+    width: calc(560 * var(--u));
+    height: calc(80 * var(--u));
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    cursor: w-resize;
+  }
+  :global(html.world) .usb-hit:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
   }
 </style>

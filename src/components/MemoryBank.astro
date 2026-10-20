@@ -13,16 +13,16 @@ const rom = work.filter((w) => w.data.kind === 'rom');
 const short = (slug: string) => slug.replace(/-/g, ' ').toUpperCase();
 const span = (w: CollectionEntry<'work'>) => `${w.data.start} – ${w.data.end}`;
 
-// J1, top to bottom; the lowest CN5 pin lands on the top pad so the ribbon never crosses itself
+// J1, top to bottom, in CN5 order, so the ribbon from the board runs straight across without crossing
 const J1 = [
-  { silk: 'D8', pin: 'PA9', color: '#7d7f84' },
-  { silk: 'D9', pin: 'PC7', color: '#6d5596' },
-  { silk: 'CS/D10', pin: 'PB6', color: '#4f8a4f' },
-  { silk: 'MOSI/D11', pin: 'PA7', color: '#c77a33' },
-  { silk: 'MISO/D12', pin: 'PA6', color: '#b5473d' },
-  { silk: 'SCK/D13', pin: 'PA5', color: '#7a5136' },
-  { silk: 'SDA/D14', pin: 'PB9', color: '#3f86d8', shared: true },
   { silk: 'SCL/D15', pin: 'PB8', color: '#e3b23c', shared: true },
+  { silk: 'SDA/D14', pin: 'PB9', color: '#3f86d8', shared: true },
+  { silk: 'SCK/D13', pin: 'PA5', color: '#7a5136' },
+  { silk: 'MISO/D12', pin: 'PA6', color: '#b5473d' },
+  { silk: 'MOSI/D11', pin: 'PA7', color: '#c77a33' },
+  { silk: 'CS/D10', pin: 'PB6', color: '#4f8a4f' },
+  { silk: 'D9', pin: 'PC7', color: '#6d5596' },
+  { silk: 'D8', pin: 'PA9', color: '#7d7f84' },
 ];
 ---
 
@@ -440,6 +440,43 @@ const J1 = [
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+
+  /* desk world: half the board's width, J1 on the left edge facing CN5 */
+  :global(html.world) .db {
+    grid-template-columns: auto 1fr;
+    width: max(calc(760 * var(--u)), 560px);
+    margin-inline: 0;
+    padding: 30px 28px 26px 24px;
+  }
+  :global(html.world) .j1 {
+    order: -1;
+    justify-items: start;
+    padding-left: 0;
+    padding-right: var(--s-2);
+    border-left: 0;
+    border-right: 1px dashed rgba(228, 237, 232, 0.25);
+  }
+  /* pads at the header's 0.1 in pitch, low on the board so the ribbon from CN5 runs level */
+  :global(html.world) .j1 {
+    align-content: end;
+  }
+  :global(html.world) .j1 ul {
+    gap: max(4px, calc(53 * var(--u) - 16px));
+  }
+  :global(html.world) .j1 ul::after {
+    right: auto;
+    left: -6px;
+  }
+  :global(html.world) .j1 li {
+    flex-direction: row-reverse;
+  }
+  :global(html.world) .row {
+    gap: var(--s-1);
+  }
+  :global(html.world) .tag {
+    left: auto;
+    right: 28px;
   }
 
   @media (max-width: 960px) {

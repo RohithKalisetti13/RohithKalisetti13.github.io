@@ -1,9 +1,12 @@
 ---
-// Runtime jumper layer over the whole desk. Any element with data-wire-from="<selector>" is a pad;
-// a wire runs from the header pin that selector finds to that pad, down the right desk margin.
-// Optional on the pad: data-wire-color, data-wire-group (lanes are grouped, first group innermost),
+// Runtime jumper layer over the whole desk world. Any element with data-wire-from="<selector>" is a pad;
+// a wire runs from the header pin that selector finds to that pad.
+// Optional on the pad: data-wire-color, data-wire-group (each group gets its own block of lanes),
 // data-wire-shared (the pin already carries a housing, so the wire leaves from its end).
 // A selector may end in "@n" to pick the nth match. Missing or hidden anchors drop the wire.
+// Desk world: wires leave the headers to the right, drop or rise in the gap between the stations,
+// and land on the bench, which this script first slides level with the headers it is wired to.
+// Stacked layout: only short leads at the headers.
 ---
 
 <svg class="wire-layer" aria-hidden="true" focusable="false"></svg>
@@ -11,7 +14,6 @@
 <script>
   const NS = 'http://www.w3.org/2000/svg';
   const LCD_OUTER = 1542 + 4.5; // outer edge of the LCD jumpers, board units
-  const GAP = 18;
   const BOARD_W = 1500;
 
   type Wire = { pin: DOMRect; pad: DOMRect; color: string; group: string; shared: boolean };
@@ -30,52 +32,87 @@
     for (const k in attrs) e.setAttribute(k, String(attrs[k]));
     return e;
   };
+  const midY = (r: DOMRect) => r.top + r.height / 2;
+  const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / (a.length || 1);
+
+  // slide the bench so J1 sits level with CN5 and the breadboard holes level with D2-D7;
+  // when both cannot hold, split the difference
+  const align = () => {
+    const right = document.querySelector<HTMLElement>('.station[data-station="right"]');
+    if (!right) return;
+    const band = (group: string, header: string) => {
+      const pads = [...right.querySelectorAll<HTMLElement>(`[data-wire-group="${group}"]`)].filter((t) => t.dataset.wireFrom!.includes(header));
+      const pins = pads.map((t) => pick(t.dataset.wireFrom!)).filter((r): r is DOMRect => !!r);
+      if (!pads.length || pins.length !== pads.length) return null;
+      return mean(pads.map((t) => midY(t.getBoundingClientRect()))) - mean(pins.map(midY));
+    };
+    const e1 = band('trace', 'cn5');
+    const e2 = band('builds', 'cn9');
+    if (e1 === null || e2 === null) return;
+    const cs = getComputedStyle(right);
+    const W = parseFloat(cs.getPropertyValue('--work-y')) || 120;
+    const P = parseFloat(cs.getPropertyValue('--projects-y')) || 48;
+    const P2 = Math.max(4, P - (e2 - e1));
+    const D = e2 - e1 + (P2 - P);
+    const W2 = Math.max(32, W - e1 - D / 2);
+    if (Math.abs(W2 - W) > 1) right.style.setProperty('--work-y', `${Math.round(W2)}px`);
+    if (Math.abs(P2 - P) > 1) right.style.setProperty('--projects-y', `${Math.round(P2)}px`);
+  };
+
+  let teardown: (() => void) | null = null;
+  document.addEventListener('astro:before-swap', () => {
+    teardown?.();
+    teardown = null;
+  });
 
   const init = () => {
     const svg = document.querySelector<SVGSVGElement>('.wire-layer');
     const desk = svg?.parentElement;
     const stage = desk?.querySelector<HTMLElement>('.stage');
-    if (!svg || !desk || !stage) return;
+    if (!svg || !desk || !stage || svg.dataset.bound) return;
+    svg.dataset.bound = '1';
+    teardown?.();
+    const hero = desk.querySelector<HTMLElement>('.desk');
 
     const draw = () => {
       svg.replaceChildren();
-      if (desk.dataset.intro === 'run') return;
+      if (hero?.dataset.intro === 'run') return;
+      const world = document.documentElement.classList.contains('world');
+      if (world) align();
       const d = desk.getBoundingClientRect();
       const s = stage.getBoundingClientRect();
       const u = s.width / BOARD_W;
       svg.setAttribute('viewBox', `0 0 ${d.width} ${d.height}`);
       svg.setAttribute('width', String(d.width));
       svg.setAttribute('height', String(d.height));
-      const stubs = window.matchMedia('(max-width: 720px)').matches;
 
       const groups = new Map<string, Wire[]>();
       document.querySelectorAll<HTMLElement>('[data-wire-from]').forEach((t) => {
         const pin = pick(t.dataset.wireFrom!);
         const pad = t.getClientRects().length ? t.getBoundingClientRect() : null;
-        if (!pin || (!pad && !stubs)) return;
+        if (!pin || (!pad && world)) return;
         const g = t.dataset.wireGroup ?? 'a';
         if (!groups.has(g)) groups.set(g, []);
         groups.get(g)!.push({ pin, pad: pad ?? new DOMRect(), color: t.dataset.wireColor ?? '#8a8a86', group: g, shared: 'wireShared' in t.dataset });
       });
       if (!groups.size) return;
 
-      // board units to desk px
+      // board units to desk px; parts are drawn at the board's scale
       const X = (x: number) => s.left - d.left + x * u;
       const housingW = 52 * u;
       const housingH = Math.max(10, 28 * u);
-      const total = [...groups.values()].reduce((n, g) => n + g.length, 0);
-      const start = X(LCD_OUTER) + GAP;
-      const room = d.width - 6 - start;
-      const pitch = Math.max(2.4, Math.min(5.5, room / (total + 2 * (groups.size - 1))));
-      const wireW = Math.min(4.6, pitch * 0.92);
+      const wireW = Math.max(2.6, 9 * u);
+      const pitch = wireW * 1.9;
 
       const shadow = el('g', { fill: 'none', stroke: '#000', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.22, transform: 'translate(3 5)' });
       const body = el('g', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
       const shine = el('g', { fill: 'none', stroke: '#fff', 'stroke-linecap': 'round', opacity: 0.28, transform: 'translate(-0.8 -0.8)' });
       const caps = el('g', {});
-      svg.append(shadow, body, shine, caps);
+      // a wide invisible stroke over the ribbon makes it a click target
+      const hit = el('g', { class: 'wire-hit', fill: 'none', stroke: 'transparent', 'stroke-width': 18 });
+      svg.append(shadow, body, shine, caps, hit);
 
-      // Dupont housing lying flat; x0 is where the wire leaves it
+      // Dupont housing lying flat between x0 and x1, contact at cx
       const housing = (cx: number, cy: number, x0: number, x1: number) => {
         caps.append(
           el('rect', { x: x0 + 3, y: cy - housingH / 2 + 4, width: x1 - x0, height: housingH, rx: 2.5, fill: '#000', opacity: 0.28 }),
@@ -84,46 +121,58 @@
           el('rect', { x: cx - 3, y: cy - 3, width: 6, height: 6, rx: 1, fill: '#2c2d32' }),
         );
       };
-      const stroke = (path: string, color: string) => {
-        shadow.append(el('path', { d: path, 'stroke-width': wireW + 1.5 }));
-        body.append(el('path', { d: path, stroke: color, 'stroke-width': wireW }));
-        shine.append(el('path', { d: path, 'stroke-width': Math.max(0.8, wireW * 0.28) }));
+      const stroke = (path: string, color: string, w = wireW) => {
+        shadow.append(el('path', { d: path, 'stroke-width': w + 1.5 }));
+        body.append(el('path', { d: path, stroke: color, 'stroke-width': w }));
+        shine.append(el('path', { d: path, 'stroke-width': Math.max(0.8, w * 0.28) }));
+        if (world) hit.append(el('path', { d: path }));
       };
 
-      let lane = start;
+      // lanes fill the gap between the board's LCD jumpers and the nearest landing pad
+      const pads = [...groups.values()].flat().map((w) => w.pad.left - d.left);
+      const start = X(LCD_OUTER) + 3 * pitch;
+      const end = Math.min(...pads) - housingW - 2 * pitch;
+      const total = [...groups.values()].reduce((n, g) => n + g.length, 0) + 2 * (groups.size - 1);
+      // a tight ribbon, centred in the gap
+      const gap = Math.max(wireW * 1.2, Math.min(pitch, (end - start) / Math.max(1, total)));
+      let lane = start + Math.max(0, (end - start - gap * total) / 2);
+
       for (const wires of groups.values()) {
-        // lowest exit takes the inner lane, so nothing in a group crosses
-        wires.sort((a, b) => b.pin.top - a.pin.top);
+        wires.sort((a, b) => a.pin.top - b.pin.top);
+        // going down, the top wire takes the far lane; going up, the near one; then nothing crosses
+        const down = mean(wires.map((w) => midY(w.pad) - midY(w.pin))) >= 0;
         wires.forEach((w, i) => {
           const px = w.pin.left + w.pin.width / 2 - d.left;
-          const py = w.pin.top + w.pin.height / 2 - d.top;
+          const py = midY(w.pin) - d.top;
           const out = w.shared ? px + 28 * u + 2 : px + 28 * u;
           if (!w.shared) housing(px, py, px - 24 * u, out);
-          if (stubs) {
+          if (!world) {
             stroke(`M${out} ${py}h${Math.max(10, 22 * u)}`, w.color);
             return;
           }
           const tx = w.pad.left + w.pad.width / 2 - d.left;
-          const ty = w.pad.top + w.pad.height / 2 - d.top;
-          const tEnd = tx + housingW * 0.6;
-          housing(tx, ty, tx - housingW * 0.3, tEnd);
-          const lx = lane + i * pitch;
-          const r = Math.min(34, (ty - py) / 4);
-          const span = ty - py - 2 * r;
-          const sag = Math.min(12, span * 0.006) + i * 0.15;
+          const ty = midY(w.pad) - d.top;
+          const tEnd = tx - housingW * 0.6;
+          housing(tx, ty, tEnd, tx + housingW * 0.3);
+          const lx = lane + (down ? wires.length - 1 - i : i) * gap;
+          const dy = ty - py;
+          const r = Math.min(30, Math.abs(dy) / 2, (lx - out) / 2, (tEnd - lx) / 2);
+          const sy = Math.sign(dy) || 1;
           stroke(
-            [
-              `M${out} ${py}`,
-              `H${lx - r}`,
-              `Q${lx} ${py} ${lx} ${py + r}`,
-              `C${lx + sag} ${py + r + span * 0.3} ${lx + sag} ${ty - r - span * 0.3} ${lx} ${ty - r}`,
-              `Q${lx} ${ty} ${lx - r} ${ty}`,
-              `H${tEnd}`,
-            ].join(''),
+            Math.abs(dy) < 2
+              ? `M${out} ${py}H${tEnd}`
+              : [
+                  `M${out} ${py}`,
+                  `H${lx - r}`,
+                  `Q${lx} ${py} ${lx} ${py + sy * r}`,
+                  `V${ty - sy * r}`,
+                  `Q${lx} ${ty} ${lx + r} ${ty}`,
+                  `H${tEnd}`,
+                ].join(''),
             w.color,
           );
         });
-        lane += (wires.length + 2) * pitch;
+        lane += (wires.length + 2) * gap;
       }
     };
 
@@ -132,26 +181,31 @@
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(draw);
     };
+    // the ribbon leads to the bench, and back
+    const go = () => {
+      const here = document.documentElement.dataset.station;
+      window.dispatchEvent(new CustomEvent('rk:go', { detail: here === 'right' ? 'center' : 'right' }));
+    };
+    svg.addEventListener('click', (e) => (e.target as Element).closest('.wire-hit') && go());
     const ro = new ResizeObserver(queue);
     ro.observe(desk);
     document.querySelectorAll('[data-wire-from]').forEach((t) => ro.observe(t));
     const mo = new MutationObserver(queue);
-    mo.observe(desk, { attributes: true, attributeFilter: ['data-intro'] });
+    if (hero) mo.observe(hero, { attributes: true, attributeFilter: ['data-intro'] });
     window.addEventListener('resize', queue);
+    window.addEventListener('rk:world-moved', queue);
     document.fonts?.ready.then(queue);
     document.fonts?.addEventListener('loadingdone', queue);
     queue();
-    document.addEventListener(
-      'astro:before-swap',
-      () => {
-        ro.disconnect();
-        mo.disconnect();
-        window.removeEventListener('resize', queue);
-        document.fonts?.removeEventListener('loadingdone', queue);
-      },
-      { once: true },
-    );
+    teardown = () => {
+      ro.disconnect();
+      mo.disconnect();
+      window.removeEventListener('resize', queue);
+      window.removeEventListener('rk:world-moved', queue);
+      document.fonts?.removeEventListener('loadingdone', queue);
+    };
   };
+  document.addEventListener('astro:after-swap', init);
   document.addEventListener('astro:page-load', init);
 </script>
 
@@ -163,5 +217,9 @@
     z-index: 2;
     overflow: visible;
     pointer-events: none;
+  }
+  .wire-layer :global(.wire-hit path) {
+    pointer-events: stroke;
+    cursor: pointer;
   }
 </style>
