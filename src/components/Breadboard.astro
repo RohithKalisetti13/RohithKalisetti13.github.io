@@ -4,6 +4,7 @@
 import type { Project } from '../content.config';
 import PartArt, { type Kind } from './PartArt.astro';
 import StatusLed from './StatusLed.astro';
+import BoardArt from './bench/BoardArt.astro';
 
 interface Props {
   projects: { id: string; data: Project }[];
@@ -43,6 +44,7 @@ const POWER = [
 
 <div class="bbw">
   <div class="bb">
+    <BoardArt />
     <div class="rail" aria-hidden="true">
       <i class="row plus"></i>
       <i class="row minus"></i>
@@ -144,17 +146,39 @@ const POWER = [
     --hole: radial-gradient(circle, #5b564b 1.5px, transparent 2px) 0 0 / 14px 14px;
     --ink: #2a2620;
     --ink-2: #4a443a;
-    width: min(100%, 1000px, 80cqw - 48px);
+    width: min(100%, 1160px, 80cqw - 48px);
     margin: var(--s-4) auto 0;
   }
   .bb {
-    border-radius: 8px;
-    background: var(--ivory);
-    box-shadow:
-      inset 0 1px 0 #fff,
-      0 3px 0 #c9c3b3,
-      10px 16px 28px rgba(0, 0, 0, 0.3);
+    position: relative;
     color: var(--ink);
+  }
+  /* parts and landing holes sit over the drawn board */
+  .bb > .rail:not(.low) {
+    display: none;
+  }
+  .bb > .field {
+    position: absolute;
+    inset: 18% 2% 14% 2%;
+    background: none;
+  }
+  .bb > .rail.low {
+    position: absolute;
+    right: 2%;
+    bottom: 1%;
+    border: 0;
+    padding: 0;
+  }
+  .bb .row {
+    background: none;
+  }
+  .bb .row::before {
+    display: none;
+  }
+  .bb .parts {
+    grid-auto-rows: minmax(0, 1fr);
+    height: 100%;
+    row-gap: 12px;
   }
 
   /* power rails: two hole rows each, a red and a blue stripe */
