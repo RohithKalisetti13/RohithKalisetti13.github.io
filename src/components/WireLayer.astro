@@ -132,16 +132,66 @@
         if (world) hit.append(el('path', { d: path }));
       };
 
+      // power has its own route in the desk world (below); the ribbon lanes are for the signal groups
+      const ownRoute = (g: string) => world && g === 'power';
+      const ribbon = [...groups].filter(([g]) => !ownRoute(g)).map(([, w]) => w);
       // lanes fill the gap between the board's LCD jumpers and the nearest landing pad
-      const pads = [...groups.values()].flat().map((w) => w.pad.left - d.left);
+      const pads = ribbon.flat().map((w) => w.pad.left - d.left);
       const start = X(LCD_OUTER) + 3 * pitch;
       const end = Math.min(...pads) - housingW - 2 * pitch;
-      const total = [...groups.values()].reduce((n, g) => n + g.length, 0) + 2 * (groups.size - 1);
+      const total = ribbon.reduce((n, g) => n + g.length, 0) + 2 * (ribbon.length - 1);
       // a tight ribbon, centred in the gap
       const gap = Math.max(wireW * 1.2, Math.min(pitch, (end - start) / Math.max(1, total)));
       let lane = start + Math.max(0, (end - start - gap * total) / 2);
 
-      for (const wires of groups.values()) {
+      // 5V and GND: off the pins, up the board's edge, along the empty desk above the bench, down the
+      // bench's right margin, and a short drop into the rail ends. Nothing crosses the ribbon or the
+      // breadboard, and the higher pin takes the higher run and the outer lane, so the two never cross
+      const power = (wires: Wire[]) => {
+        const eyebrow = document.querySelector('#work .eyebrow')?.getBoundingClientRect();
+        const bench = document.querySelector('.bb')?.getBoundingClientRect();
+        if (!eyebrow || !bench || wires.length < 2) return;
+        const [hi, lo] = [...wires].sort((a, b) => midY(a.pin) - midY(b.pin));
+        const run0 = eyebrow.top - d.top - 44;
+        const margin = bench.right - d.left + 26;
+        const r = 14;
+        [hi, lo].forEach((w) => {
+          const px = w.pin.left + w.pin.width / 2 - d.left;
+          const py = midY(w.pin) - d.top;
+          const out = px + 28 * u;
+          housing(px, py, px - 24 * u, out);
+          const tx = w.pad.left + w.pad.width / 2 - d.left;
+          const ty = midY(w.pad) - d.top;
+          const tEnd = tx + housingW * 0.6;
+          housing(tx, ty, tx - housingW * 0.3, tEnd);
+          const rise = hi === w ? run0 : run0 + 16;
+          const xr = out + 10 + (hi === w ? 0 : 12);
+          const xm = hi === w ? margin + 20 : margin;
+          const r1 = Math.min(r, Math.abs(rise - py) / 2);
+          const sy = rise < py ? -1 : 1;
+          stroke(
+            [
+              `M${out} ${py}`,
+              `H${xr - r1}`,
+              `Q${xr} ${py} ${xr} ${py + sy * r1}`,
+              `V${rise - sy * r}`,
+              `Q${xr} ${rise} ${xr + r} ${rise}`,
+              `H${xm - r}`,
+              `Q${xm} ${rise} ${xm} ${rise + r}`,
+              `V${ty - r}`,
+              `Q${xm} ${ty} ${xm - r} ${ty}`,
+              `H${tEnd}`,
+            ].join(''),
+            w.color,
+          );
+        });
+      };
+
+      for (const [name, wires] of groups) {
+        if (ownRoute(name)) {
+          power(wires);
+          continue;
+        }
         wires.sort((a, b) => a.pin.top - b.pin.top);
         // going down, the top wire takes the far lane; going up, the near one; then nothing crosses
         const down = mean(wires.map((w) => midY(w.pad) - midY(w.pin))) >= 0;
