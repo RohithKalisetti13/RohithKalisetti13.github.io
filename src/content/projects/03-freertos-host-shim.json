@@ -6,35 +6,41 @@
   "stack": [
     "C/C++",
     "FreeRTOS",
-    "ESP32",
-    "AddressSanitizer",
-    "UBSan",
+    "Ceedling",
+    "Unity",
+    "ASan/UBSan",
     "Valgrind",
-    "CI"
+    "Docker",
+    "GitHub Actions"
   ],
-  "summary": "A host-side FreeRTOS simulation layer, so RTOS-dependent firmware runs as a normal Linux program on x86 workstations and CI instead of needing the ESP32 target. Test coverage rose from 45% to 80%.",
+  "summary": "A host-side FreeRTOS simulation layer that lets production firmware written for an ESP32 build and run as an ordinary Linux program. It made unit tests, sanitizers and coverage possible in CI. The shim and the test migration took about four weeks, and I did it on my own.",
   "highlights": [
-    "Simulates tasks, delays, ticks, timers and concurrency in C/C++, with no ESP32 required.",
-    "Reused test code from the earlier dual-chip architecture by finding the shared layers, then updating paths, syntax, mocks and flags, instead of writing the suite from scratch.",
-    "Added AddressSanitizer, UBSan and Valgrind to the runs; they found real memory leaks and invalid writes before hardware testing.",
-    "Coverage went from 45% to 80%."
+    "Re-implements the FreeRTOS API surface the firmware calls (tasks, delays, ticks, timers, concurrency primitives), so unmodified application code links against it on x86.",
+    "Time is a global tick counter that tests advance programmatically: a test says \"advance 50 ticks\" and every vTaskDelay returns deterministically.",
+    "Interrupt-driven paths were left out on purpose. Simulating ISRs is its own problem and the first modules did not need it.",
+    "The earlier dual-chip firmware's unit tests were ported to the single-MCU architecture by updating paths, syntax, mocks and flags, after proving the approach on a few simple layers first.",
+    "AddressSanitizer, UBSan and Valgrind found real memory leaks and invalid writes in code that had run on hardware undetected, and coverage rose from 45% to 80%."
   ],
   "details": [
     {
-      "heading": "Problem",
-      "body": "The task was a unit test suite for the current single-MCU firmware, whose RTOS-dependent code could only run on the target."
+      "label": "Problem",
+      "body": "The company's current device runs FreeRTOS on a single MCU, and much of the production firmware (HAL utilities, a debouncer, time-dependent logic) calls FreeRTOS directly: vTaskDelay, tick counts, software timers. A normal Linux process has none of that, so every test run needed a physical ESP32. That is slow, hard to run in CI, and rules out sanitizers, which are host tools that cannot run on the embedded target."
     },
     {
-      "heading": "My part",
-      "body": "Studied the earlier dual-chip architecture, which had tests, recognised the layers it shared with the current firmware, and built the simulation layer under them."
+      "label": "Reusing instead of rewriting",
+      "body": "My first task was a unit test suite for the single-MCU architecture. Rather than write tests from scratch I studied the earlier dual-chip architecture the company had moved on from, which already had tests, and saw that the underlying layers shared the same code skeletons. I proved the idea on a few simple layers, then scaled it across the modules by updating include paths, syntax, mocks and build flags. The test framework moved from Ceedling 0.31 to 1.x along the way, and CI runs in Docker on GitHub Actions."
     },
     {
-      "heading": "Evidence",
-      "body": "Coverage 45% to 80%. Sanitizer and Valgrind runs found memory leaks and invalid writes."
+      "label": "The shim",
+      "body": "Many of those modules still called FreeRTOS, so I wrote a C/C++ layer exposing the same API as the real one but implemented for the host. The tick counter is a global that tests advance, so time becomes an input rather than something the machine decides. Delays and timers hang off the same counter. The result is that source files that used to be locked to the hardware compile and run under Ceedling and Unity on a CI runner with deterministic time."
     },
     {
-      "heading": "Status",
-      "body": "Professional work. The code is not public."
+      "label": "What it caught",
+      "body": "Once the code ran on the host I added AddressSanitizer, UndefinedBehaviorSanitizer and Valgrind to the test runs. They found real memory leaks, over-initialized buffers and invalid or overflowing writes in code derived from the older firmware, which had been running on hardware without anyone noticing. Code coverage tooling went into the same pipeline, and coverage rose from 45% to 80%. Failures that used to surface late on a device now surface on a laptop, before hardware testing starts."
+    },
+    {
+      "label": "Scope",
+      "body": "I deliberately did not simulate interrupt service routines. The shim covers the modules that needed coverage first, and the code stays at the company, so this page describes the design."
     }
   ]
 }

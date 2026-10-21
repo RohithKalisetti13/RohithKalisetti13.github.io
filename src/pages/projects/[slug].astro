@@ -46,8 +46,8 @@ const d = project.data;
     {
       d.details?.map((x) => (
         <section>
-          <h2>{x.heading}</h2>
-          <p class="detail">{x.body}</p>
+          <h2>{x.label}</h2>
+          {x.body.split(/\n\s*\n/).map((para) => <p class="detail">{para}</p>)}
         </section>
       ))
     }
@@ -127,6 +127,9 @@ const d = project.data;
   }
   .detail {
     color: var(--text-2);
+  }
+  .detail + .detail {
+    margin-top: var(--s-2);
   }
   .note {
     margin-top: var(--s-4);

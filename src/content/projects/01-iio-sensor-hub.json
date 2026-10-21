@@ -11,16 +11,25 @@
     "Linux IIO",
     "Bare-metal C"
   ],
-  "summary": "An STM32 Nucleo sensor hub feeding a Raspberry Pi 4, with an MSA311 accelerometer and an HC-SR04 ultrasonic sensor. The target deliverable is a Linux IIO kernel driver for the hub; the driver is not written yet.",
+  "summary": "An STM32 Nucleo sensor hub that feeds a Raspberry Pi 4 and is meant to end in a Linux IIO kernel driver. It is a work in progress: the bare-metal foundation is done and the rest is planned.",
   "highlights": [
-    "Done so far: the bare-metal foundation on the STM32 — reset path, vector table, HAL init, clock configuration and GPIO.",
-    "Sensors: MSA311 accelerometer and HC-SR04 ultrasonic sensor, read by the STM32 and passed to the Pi 4.",
-    "Target, not done: a Linux IIO kernel driver on the Pi that exposes the hub's sensor data through the IIO subsystem."
+    "Goal: a complete sensor path from bare-metal firmware, through a host link, to a Linux Industrial I/O driver on a Pi 4.",
+    "Sensors: an MSA311 accelerometer and an HC-SR04 ultrasonic sensor.",
+    "Done so far: the reset path, vector table, HAL initialization, clock configuration and GPIO setup.",
+    "Target deliverable: an IIO kernel driver, written to the standard an upstream review would expect. It is not built yet."
   ],
   "details": [
     {
-      "heading": "Status",
-      "body": "In progress. The IIO driver is a target, not a finished result."
+      "label": "Why this project",
+      "body": "Most of my firmware work has been on the microcontroller side or on host tooling. I wanted one project that crosses the boundary between bare-metal code and the Linux device model, because that is where the hardest debugging happens: registers, protocols, drivers and kernel interfaces all in one chain."
+    },
+    {
+      "label": "Plan",
+      "body": "An STM32 Nucleo reads the sensors and sends the data to a Raspberry Pi 4 over a host link. The Pi exposes the readings through the Linux IIO subsystem, so userspace sees an ordinary IIO device. The MSA311 is the first device, and the ultrasonic sensor follows."
+    },
+    {
+      "label": "Where it stands",
+      "body": "The bare-metal foundation is in place (startup and vector table, HAL initialization, clocks, GPIO). The host link and the kernel driver are the next stages. I will add results here when they exist."
     }
   ]
 }

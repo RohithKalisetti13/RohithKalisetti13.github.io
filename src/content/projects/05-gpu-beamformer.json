@@ -10,16 +10,28 @@
     "nvcc"
   ],
   "highlights": [
-    "generate_signals kernel creates modulated signals with per-element phase delays.",
-    "Measured: time-domain beamforming about 0.025 ms, with the kernel itself about 0.024 ms.",
-    "Frequency-domain path uses cuFFT forward and inverse FFTs.",
-    "Grid and block sizes are chosen per array size, with error handling around every CUDA and cuFFT call."
+    "Three kernels: generate_signals (modulated signals with per-element phase delays), time-domain beamforming, and frequency-domain beamforming that applies complex weights to FFT output.",
+    "cuFFT forward and inverse transforms connect the two paths.",
+    "Run from the command line with the antenna count, carrier frequency, sampling time and per-element delay (for example 1024 antennas at 2.4 GHz).",
+    "Time-domain beamforming measured at about 0.025 ms, with the kernel itself about 0.024 ms, timed with high-resolution clocks."
   ],
   "repo": "https://github.com/RohithKalisetti13/DigitalBeamformerGPU",
   "details": [
     {
-      "heading": "Status",
-      "body": "Course project."
+      "label": "The idea",
+      "body": "Beamforming aligns the phase of the signals from an antenna array so that signals from one direction add up and others cancel, which steers the beam without moving anything. The work is large, regular and parallel, so it suits a GPU."
+    },
+    {
+      "label": "How it works",
+      "body": "The program takes the array size, carrier frequency, sampling time and the delay per element. It allocates GPU memory for the signals, delays and data-switching flags, then picks grid and block sizes for the kernel launches. generate_signals produces modulated signals with a phase delay per antenna. The time-domain kernel then combines them. For the frequency-domain path a cuFFT plan runs a forward transform, a second kernel applies complex weights, and an inverse transform brings the result back."
+    },
+    {
+      "label": "Care taken",
+      "body": "Error-checking macros wrap every CUDA and cuFFT call. Device memory and FFT plans are released at exit so nothing leaks. The program prints the processed signal for each antenna so the output can be inspected."
+    },
+    {
+      "label": "Results",
+      "body": "For a 100-antenna array the time-domain run took about 0.025 ms, with the kernel itself about 0.024 ms. It was built with nvcc and linked against cuFFT and run on a university GPU cluster."
     }
   ],
   "links": [
@@ -28,5 +40,5 @@
       "url": "https://github.com/RohithKalisetti13/DigitalBeamformerGPU/blob/main/REPORT_FINAL%20PROJECT.pdf"
     }
   ],
-  "summary": "A CUDA digital beamformer with a time-domain path and a cuFFT frequency-domain path. Time-domain beamforming runs in about 0.025 ms."
+  "summary": "A CUDA digital beamformer with a time-domain path and a cuFFT frequency-domain path, driven from the command line. Time-domain beamforming runs in about 0.025 ms. Course project."
 }

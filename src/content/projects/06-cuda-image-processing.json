@@ -6,19 +6,29 @@
   "stack": [
     "C",
     "CUDA",
-    "Pthreads",
-    "BMP / PNG"
+    "pthreads",
+    "libpng",
+    "Make"
   ],
   "highlights": [
-    "Merge sort: chunked sorting and merging across pthreads, with mutex-guarded work distribution, checked against a reference sort.",
-    "Radial brightening: three CUDA kernels compared on speed — float maths, integer shift, and shared-memory precomputed multipliers.",
-    "Image toolkit on BMP and PNG: overlay/blend at a position, red-dominance region detection and bounding-box extraction."
+    "Parallel sort: 64K integers sorted in 1K chunks, merged in doubling passes between two buffers, with a mutex handing chunks to threads, and checked against qsort.",
+    "Brightening: three CUDA kernels compared, a plain floating-point version, an integer version using bit shifts, and a version that precomputes one multiplier per block in shared memory.",
+    "Image toolkit: composite one image onto another at a chosen position, find and measure red-dominant regions, and extract bounding boxes, reading BMP and PNG.",
+    "All run from a Makefile and a command line."
   ],
-  "summary": "Three course projects from GPU architecture and programming: a pthread merge sort, CUDA brightening kernels compared on speed, and a CUDA image toolkit.",
+  "summary": "Three GPU-programming course projects: a pthread parallel merge sort, CUDA brightening kernels compared on speed, and a CUDA image toolkit for BMP and PNG files. Course projects.",
   "details": [
     {
-      "heading": "Status",
-      "body": "Course projects."
+      "label": "Parallel merge sort (C, pthreads)",
+      "body": "The program sorts 65,536 integers. It starts with a bubble-sort baseline, then splits the array into 64 chunks of 1,024, sorts each chunk and merges neighbouring chunks in passes that double the chunk size, alternating between two buffers until one sorted array remains. The threaded version has each thread take the next chunk under a mutex, first for sorting and then for merging. Every result is compared with qsort and timed with clock()."
+    },
+    {
+      "label": "Radial brightening (CUDA)",
+      "body": "The kernels brighten each pixel by its distance from the image centre, up to a 2.0 multiplier. The first kernel computes a floating-point factor per pixel and is the baseline. The second maps the distance to a scaled integer and multiplies with bit shifts, which are cheaper on a GPU. The third computes one multiplier per block into a shared array before the main kernel runs, so threads in a block reuse it, with synchronization so no thread writes early. The point of the project was to compare these approaches on execution time."
+    },
+    {
+      "label": "Image toolkit (CUDA, libpng)",
+      "body": "Four operations on BMP files, run from the command line: composite a second image at given coordinates, analyse the red channel, detect red-dominant regions with threads updating shared results, and extract bounding boxes for the detected regions. PNG input is read through libpng."
     }
   ],
   "links": [

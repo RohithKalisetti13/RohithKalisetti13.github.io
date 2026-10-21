@@ -10,23 +10,29 @@
     "QEMU"
   ],
   "highlights": [
-    "Recursive tracing with a depth limit over the control-flow graph.",
-    "Indirect and computed calls are handled by over-approximation.",
-    "Exports control-flow graphs that DECAF's enforcement plugin uses for control-flow integrity at runtime."
+    "Finds direct, computed and unresolved calls and builds a control-flow graph of valid call paths for each target function.",
+    "Separates direct edges from computed ones, and over-estimates paths for computed calls it cannot resolve.",
+    "Supports recursive tracing and depth-controlled analysis so the graphs stay finite.",
+    "The graphs feed DECAF's enforcement plugin, which compares the live call stack to the allowed paths and grants or denies hardware access.",
+    "Validated against control-flow hijacking in the style of return-oriented and call-oriented programming."
   ],
   "repo": "https://github.com/RohithKalisetti13/Hardware-Debloat-Research",
   "details": [
     {
-      "heading": "Problem",
-      "body": "Hardware components should only be reachable from valid execution contexts, which means knowing those contexts ahead of time."
+      "label": "Problem",
+      "body": "Hardware components such as peripherals are reachable by any code that gets control of the program. Control-flow integrity limits that to the paths the program is supposed to take, but to enforce it you first have to know every legitimate path to a critical function, including indirect and computed calls that a simple call graph misses."
     },
     {
-      "heading": "My part",
-      "body": "The static-analysis tooling: the Ghidra plugin and its CFG export. DECAF is the QEMU-based full-system introspection platform, built with a collaborator."
+      "label": "The static half",
+      "body": "The plugin runs inside Ghidra and walks the binary's call structure backward from each target function. Direct calls are exact edges. Computed calls, where the target is only known at run time, cannot be resolved statically, so the plugin over-estimates: it includes every plausible target, so legitimate behaviour is not blocked. Recursion and depth limits keep the traversal finite. The output is one control-flow graph per target function."
     },
     {
-      "heading": "Status",
-      "body": "Research implementation, collaborative."
+      "label": "The runtime half",
+      "body": "DECAF is a QEMU-based full-system introspection platform. Its enforcement plugin loads those graphs and, when code touches a protected hardware component, compares the current call stack to the allowed paths. A match is granted; anything else is denied. The idea is hardware debloating: components stay off unless a valid execution context asks for them."
+    },
+    {
+      "label": "My part",
+      "body": "The Ghidra plugin and its integration with DECAF are my piece of a collaborative effort; the enforcement side lives in DECAF. The work is described in a paper and tested against control-flow hijack attempts."
     }
   ],
   "links": [
@@ -39,5 +45,5 @@
       "url": "https://github.com/RohithKalisetti13/Hardware-Debloat-Research/blob/main/GHIDRA_SETUP.md"
     }
   ],
-  "summary": "A Ghidra plugin that statically analyses control flow and computes the valid execution contexts for critical functions. Its output lets DECAF, a QEMU-based introspection platform, enable or disable hardware components at runtime."
+  "summary": "A Ghidra plugin that works out which call paths may legitimately reach a critical function, then hands them to DECAF so the runtime can allow or deny hardware access. It is the static-analysis half of a control-flow-integrity system, built with a collaborator."
 }
