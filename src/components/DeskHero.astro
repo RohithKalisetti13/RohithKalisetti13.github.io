@@ -328,7 +328,7 @@ const LINKS = [
 </script>
 
 <script>
-  import { frame, NAME, TAG, LOG } from '../lib/lcd';
+  import { frame, NAME, TAG, LOG, TICKER, TICKER_LEN } from '../lib/lcd';
   import { usbLeft } from '../lib/world';
 
   const store = {
@@ -380,7 +380,29 @@ const LINKS = [
       step = window.setTimeout(fn, ms);
       timers.push(step);
     };
-    const run = () => show(NAME, TAG);
+    // row 2 scrolls one whole character per step through a 20-character window, like a real character LCD
+    let pos = 0;
+    let ticking = false;
+    const ticker = () => {
+      window.clearTimeout(step);
+      if (!ticking || document.hidden) return;
+      show(NAME, TICKER(pos));
+      pos = (pos + 1) % TICKER_LEN;
+      later(ticker, 350);
+    };
+    const run = () => {
+      if (reduced) return show(NAME, TAG);
+      ticking = true;
+      pos = 0;
+      ticker();
+    };
+    document.addEventListener(
+      'visibilitychange',
+      () => {
+        if (ticking) document.hidden ? window.clearTimeout(step) : ticker();
+      },
+      { signal },
+    );
     const boot = () => {
       if (reduced) return run();
       let i = 0;
@@ -396,6 +418,7 @@ const LINKS = [
     let on = false;
     const setPower = (v: boolean, animate = false) => {
       on = v;
+      ticking = false;
       clearTimeout(step);
       store.set('rk-power', v ? 'on' : 'off');
       root.dataset.power = v ? 'on' : 'off';
