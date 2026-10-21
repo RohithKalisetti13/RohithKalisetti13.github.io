@@ -139,6 +139,7 @@ const LINKS = [
         <!-- desk world: one cable from CN1 to the laptop plug, soft shadow, drawn under the plug moulding -->
         <g class="usb-left">
           <path data-usb="shadow" d={USB_LEFT} transform="translate(10 18)" stroke="#000" stroke-width="30" fill="none" opacity=".34" filter="url(#usb-soft)" />
+          <path data-usb="ring" class="usb-ring" d={USB_LEFT} stroke="var(--accent)" stroke-width="34" fill="none" stroke-linejoin="round" stroke-linecap="round" />
           <path data-usb="body" d={USB_LEFT} stroke="#17181b" stroke-width="24" fill="none" stroke-linejoin="round" stroke-linecap="round" />
           <path data-usb="shine" d={USB_LEFT} transform="translate(-4 -6)" stroke="#fff" stroke-width="3.5" fill="none" opacity=".1" stroke-linecap="round" />
         </g>
@@ -446,6 +447,9 @@ const LINKS = [
     window.addEventListener('resize', route, { signal });
     document.fonts?.ready.then(route);
     route();
+    // a mouse press leaves focus where it was, so a later key press never rings the switch or the
+    // cable; keyboard focus still shows its ring
+    for (const b of root.querySelectorAll<HTMLElement>('.pwr, .usb-hit')) b.addEventListener('mousedown', (e) => e.preventDefault());
     root.querySelector('.usb-hit')!.addEventListener('click', () => {
       const here = document.documentElement.dataset.station;
       window.dispatchEvent(new CustomEvent('rk:go', { detail: here === 'left' ? 'center' : 'left' }));
@@ -990,8 +994,14 @@ const LINKS = [
     background: none;
     cursor: w-resize;
   }
+  /* keyboard focus on the cable rings the cable itself, not its hit box */
   :global(html.world) .usb-hit:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
+    outline: none;
+  }
+  .usb-ring {
+    display: none;
+  }
+  .stage:has(.usb-hit:focus-visible) .usb-ring {
+    display: inline;
   }
 </style>
