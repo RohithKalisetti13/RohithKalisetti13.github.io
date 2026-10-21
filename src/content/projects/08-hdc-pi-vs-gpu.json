@@ -6,30 +6,41 @@
   "stack": [
     "Python",
     "PyTorch",
-    "TorchHD",
-    "Raspberry Pi 4",
-    "Google Colab"
+    "torchhd",
+    "Raspberry Pi 4B",
+    "Colab (Tesla T4)"
   ],
   "highlights": [
-    "Deployed an HDC model for MNIST classification on a Raspberry Pi 4 and Google Colab, with dimensionality 5000 vs 10000 for constrained and accelerated platforms.",
-    "Achieved 82.75% accuracy in 1741 s on the Pi (496 MB) versus 82.99% in 96.6 s on Colab (205 MB).",
-    "Used GPIO-triggered events, with PyTorch and TorchHD for implementation, evaluation and visualization of lightweight AI for edge computing."
+    "Each image is flattened to 784 values, and every pixel position gets its own random hypervector.",
+    "Pixel intensity maps to a level hypervector; binding position and level by element-wise multiplication gives one hypervector per pixel.",
+    "The 784 pixel hypervectors are summed into one image hypervector, then hard-quantized to -1/+1.",
+    "Classification compares an image hypervector with one trained centroid per digit.",
+    "Pi (dimension 5,000, one CPU thread): training 1741 s, testing 316 s, 496 MB, 82.75% accuracy.",
+    "T4 (dimension 10,000): training 96.61 s, testing 20.78 s, 205 MB, 82.99% accuracy."
   ],
-  "repo": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU",
   "details": [
     {
-      "heading": "Method",
-      "body": "MNIST classification with hyperdimensional computing, bipolar hypervectors, bundling by majority vote for training and cosine similarity for inference, run on a Raspberry Pi 4 Model B and a Google Colab GPU."
-    }
-  ],
-  "links": [
-    {
-      "label": "Report",
-      "url": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU/blob/main/Final%20Report.pdf"
+      "label": "Why HDC",
+      "body": "Hyperdimensional computing represents data as very long vectors and classifies with simple arithmetic, which makes it a candidate for low-power edge devices. The question was how much accuracy and speed you give up by running it on a Pi instead of a GPU."
     },
     {
-      "label": "Slides",
-      "url": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU/blob/main/Presentation.pptx"
+      "label": "Encoding and model",
+      "body": "I used torchhd. A random hypervector marks each of the 784 pixel positions, a level embedding maps intensity (0-255) to a hypervector, and element-wise multiplication binds them. Summing across the 784 pixels gives one hypervector for the image, and hard quantization turns it into a binary-style vector that is cheap to store and compare. Training builds one centroid per class from the 60,000 training images, and the 10,000 test images are classified by comparing against the centroids."
+    },
+    {
+      "label": "The comparison",
+      "body": "The Pi 4B has a Cortex-A72 and 4 GB of RAM; I used dimension 5,000 to fit memory and compute, single-threaded. The Colab T4 has 16 GB and CUDA, so I used dimension 10,000. The platforms differ in dimension as well as hardware, so the comparison measures a realistic deployment on each, not the hardware alone."
+    },
+    {
+      "label": "Findings",
+      "body": "The T4 trained about 18x faster and tested about 15x faster than the Pi. Accuracy was nearly the same: 82.99% on the T4 against 82.75% on the Pi, a gap of 0.24 points despite the Pi running at half the dimension on a single thread. For this task the cost of running on the Pi is time, not accuracy, which makes it workable for cheap offline classification where latency is not critical."
+    }
+  ],
+  "summary": "Hyperdimensional computing for MNIST digit classification, run on a Raspberry Pi 4B and on a Colab Tesla T4 and compared on training time, test time, memory and accuracy. The T4 trained about 18x faster and tested about 15x faster, with accuracy within a quarter of a point (82.99% vs 82.75%). Course project, team of two.",
+  "links": [
+    {
+      "label": "Repository",
+      "url": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU"
     }
   ]
 }

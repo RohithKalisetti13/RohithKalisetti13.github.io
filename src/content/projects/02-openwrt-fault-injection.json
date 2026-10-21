@@ -5,15 +5,32 @@
   "period": "Nov 2025 – Feb 2026, Mill Industries",
   "stack": [
     "OpenWrt",
-    "Linux",
-    "TCP/IP",
-    "DNS",
-    "DHCP",
-    "QEMU"
+    "nftables",
+    "iptables",
+    "tc/ifb",
+    "tcpdump",
+    "Shell"
   ],
-  "summary": "Designed an OpenWrt-based fault-injection platform that recreated Wi-Fi, DHCP, DNS, routing, port-blocking, and cloud-connectivity failures, turning intermittent device issues into repeatable engineering test cases for unattended regression runs.",
+  "summary": "A fault-injection platform that runs on a reflashed OpenWrt router and breaks Wi-Fi, DHCP, DNS, NTP and cloud connectivity on demand, so intermittent field failures become repeatable tests. I proposed it, built it on my own, and QA used it across the firmware backlog.",
   "highlights": [
-    "Drove root-cause analysis of field-reported defects and exercised TCP/IP, DNS, and DHCP troubleshooting on Linux."
+    "One shell tool that runs on the router itself, with fault profiles for NTP blocking, cloud-endpoint blocking on ports 443 and 8883, and bandwidth shaping with tc and ifb.",
+    "Detects whether the router uses nftables or iptables and takes the matching code path, because OpenWrt 22 moved to fw4.",
+    "Turns off firewall flow offloading during a run, so established connections cannot slip past the drop rules.",
+    "Captures on br-lan and writes a bundle per session: pcap, before/after firewall state and counters, and a structured pass/inconclusive summary.",
+    "Runs N devices at once across several fault modes from a single CLI command, and became the standard method for EVT/DVT, post-production and post-build validation."
   ],
-  "note": "Written up from internal work. The company repository is private, so there is no public code."
+  "details": [
+    {
+      "label": "Problem",
+      "body": "Intermittent connectivity failures (time sync, Wi-Fi association, cloud reachability) could not be reproduced on demand. The existing method was to unplug a router and watch one device at a time, with no record of what the network did. A recurring NTP failure from the field showed the pattern, and older tickets held a long tail of similar ones. The goal was to inject these faults deterministically, on several devices at once, and keep packet-level evidence of each run."
+    },
+    {
+      "label": "Design",
+      "body": "The tool runs on the router rather than on the device, because the network is where faults can be enforced and observed across layers. I reflashed a consumer multi-radio router with OpenWrt and wrote the tool as a shell script so QA and firmware engineers could read and change it. Because OpenWrt 22 introduced fw4 on nftables while older routers still used iptables, the script detects which backend is active and runs the right rule syntax. Flow offloading is on by default for speed: once a connection is established, its packets skip the firewall chains, so a drop rule on an open cloud connection would exist but do nothing. The tool disables offloading at the start of a run and restores it afterwards, which makes drops deterministic. tc can only shape egress, so for upstream shaping the tool redirects ingress through an ifb device and shapes that. Captures happen on br-lan, the bridge that joins both radios and the Ethernet ports, so every device appears at one point regardless of band. The device under test can be selected by IP, MAC or hostname substring, resolved from the DHCP lease file."
+    },
+    {
+      "label": "Result",
+      "body": "With one command the tool runs several devices across several fault modes and leaves behind an artifact bundle QA can hand straight to firmware engineers. By the end of the internship it was running across the full backlog of old and new firmware builds. It reproduced the original NTP failure deterministically, which helped the team root-cause and fix the bug. I presented the final tool to the firmware, QA and software managers. The code stays at the company, so this page describes the design."
+    }
+  ]
 }

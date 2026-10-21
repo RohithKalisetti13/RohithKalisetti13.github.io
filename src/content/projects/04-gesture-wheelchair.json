@@ -8,12 +8,35 @@
     "ATmega32",
     "ADC",
     "UART",
-    "MEMS",
-    "IR"
+    "MEMS accelerometer",
+    "IR sensor",
+    "16x2 LCD"
   ],
   "highlights": [
-    "Designed a wheelchair control system using MEMS technology with an 8-bit ATmega32 microcontroller, improving accessibility for physically disabled users through hand gestures.",
-    "Wrote bare-metal C for the ATmega32 that reads a two-axis MEMS accelerometer through the on-chip ADC and maps tilt thresholds to forward, backward, left, right and stop outputs on a motor-driver port.",
-    "Added an obstacle input that stops the motors, shows an alert on a 16x2 LCD and backs the chair away, with live X and Y readings on the display and a UART receive interrupt for serial input."
+    "X on PA1 and Y on PA2 are read through the 10-bit ADC; threshold bands decide forward, back, left, right or stop.",
+    "The motor driver is on PORTB bits 4-7, and a 16x2 LCD on PORTC shows the live readings.",
+    "An IR obstacle input on PORTD stops the chair, shows \"OBJ DETECTED\" and backs away.",
+    "A UART receive interrupt at 9600 baud, with the rest of the control loop in polled C."
+  ],
+  "summary": "ATmega32 firmware that turns hand tilt into wheelchair motion. A two-axis MEMS accelerometer is read through the ADC, and an IR obstacle input overrides the motors. Team project.",
+  "details": [
+    {
+      "label": "How a tilt becomes a command",
+      "body": "The accelerometer outputs an analog voltage per axis, which the ADC converts to a 10-bit number. A resting hand sits near the middle. A Y reading below 285 means forward and above 385 means backward; an X reading above 385 means left and below 285 means right; X between 321 and 340 counts as stop. Dead bands between the thresholds keep small tremors from moving the chair."
+    },
+    {
+      "label": "Safety override",
+      "body": "The obstacle sensor is read on PORTD. When it triggers, the firmware stops the motors whatever the tilt says, shows \"OBJ DETECTED\" on the LCD and drives backward to clear the obstacle. The obstacle check outranks the gesture input."
+    },
+    {
+      "label": "Hardware",
+      "body": "The motor driver takes direction bits from PORTB bits 4-7. The 16x2 LCD on PORTC shows the readings so the thresholds could be tuned by watching the numbers. A UART receive interrupt runs at 9600 baud; the rest of the loop uses polled delays."
+    }
+  ],
+  "links": [
+    {
+      "label": "Repository",
+      "url": "https://github.com/RohithKalisetti13/WheelChairObstacleDetection"
+    }
   ]
 }

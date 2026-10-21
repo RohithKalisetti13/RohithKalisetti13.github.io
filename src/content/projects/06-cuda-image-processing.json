@@ -1,18 +1,45 @@
 {
   "slug": "cuda-image-processing",
-  "title": "CPU and GPU parallel image processing",
+  "title": "CUDA image processing",
   "status": "shipped",
   "period": "Jan 2024 – May 2024",
   "stack": [
     "C",
     "CUDA",
-    "Pthreads",
-    "NVIDIA Nsight"
+    "pthreads",
+    "libpng",
+    "Make"
   ],
   "highlights": [
-    "Multithreaded CPU (Pthreads) and CUDA implementations for edge detection, bitmap flipping, rotation, Gaussian filtering, convolution and color transformations.",
-    "Optimized with workload partitioning, shared and constant memory, coalesced access, precomputation and tuned thread-block configurations, achieving 4-8x speedups over CPU.",
-    "Analyzed latency, occupancy, throughput, cache behavior and PCIe transfer overhead."
+    "Radial brightening: three kernels compared, a floating-point baseline, an integer version using bit shifts, and a version that precomputes one multiplier per block in shared memory.",
+    "Compositing: pastes one image onto another at a chosen position, one thread per pixel.",
+    "Region analysis: red-channel analysis and red-dominant region detection, with threads updating shared results.",
+    "Bounding-box extraction for detected regions.",
+    "BMP and PNG input (libpng), a Makefile build, and a command-line interface per operation."
   ],
-  "note": "Source is in a private course repository for academic integrity. Access on request."
+  "summary": "A CUDA image-processing toolkit for BMP and PNG files: radial brightening, image compositing, red-region detection and bounding-box extraction. Three brightening kernels are compared on execution time. Built for a GPU programming course.",
+  "details": [
+    {
+      "label": "Pipeline",
+      "body": "Images are read from BMP or PNG (libpng handles PNG), copied to the GPU, processed by an operation-specific kernel, and written back to BMP. Each operation is selected from the command line, for example compositing takes a second image and an X/Y position, and the program reports the run time of the kernel."
+    },
+    {
+      "label": "Radial brightening",
+      "body": "Each pixel is brightened by its distance from the image centre, up to a 2.0 multiplier. Three kernels implement it so the cost of each design choice shows up in the timings. The baseline computes a floating-point factor per pixel. The second maps the distance to a scaled integer and multiplies with bit shifts, which are cheaper on a GPU. The third computes one multiplier per block into a shared array before the main kernel runs, so threads in a block reuse it, with a barrier so no thread writes its result early."
+    },
+    {
+      "label": "Compositing and region analysis",
+      "body": "The compositing kernel replaces the pixels of the main image that fall inside the placed image's rectangle and writes the result to a separate output buffer. The analysis kernels measure the red channel, flag red-dominant pixels, and update shared results, from which bounding boxes are extracted for each detected region."
+    },
+    {
+      "label": "CPU side",
+      "body": "The repository also holds a pthread merge sort (65,536 integers sorted in 1K chunks, merged in doubling passes, with a mutex handing chunks to threads) from the same course."
+    }
+  ],
+  "links": [
+    {
+      "label": "Repository",
+      "url": "https://github.com/RohithKalisetti13/GPU-Course-Projects"
+    }
+  ]
 }

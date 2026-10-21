@@ -15,7 +15,7 @@ const project = z.object({
   repo: z.url().optional(),
   note: z.string().optional(),
   links: z.array(z.object({ label: z.string(), url: z.url() })).optional(),
-  details: z.array(z.object({ heading: z.string(), body: z.string() })).optional(),
+  details: z.array(z.object({ label: z.string(), body: z.string() })).optional(),
   draft: z.literal(false).optional(),
 });
 const parked = z.looseObject({ draft: z.literal(true) });

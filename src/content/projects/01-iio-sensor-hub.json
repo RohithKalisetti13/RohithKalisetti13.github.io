@@ -4,17 +4,32 @@
   "status": "wip",
   "period": "Ongoing",
   "stack": [
-    "STM32 NUCLEO-F446RE (STM32F446RE, Cortex-M4)",
+    "STM32 Nucleo",
     "Raspberry Pi 4",
-    "MSA311 3-axis accelerometer",
-    "HC-SR04 ultrasonic sensor (optional)",
-    "TFT display",
-    "Linux IIO subsystem"
+    "MSA311 accelerometer",
+    "HC-SR04 ultrasonic sensor",
+    "Linux IIO",
+    "Bare-metal C"
   ],
-  "summary": "A small but realistic embedded system where the STM32 handles time-sensitive sensor work and the Raspberry Pi handles Linux-side integration, buffering, and user access.",
+  "summary": "An STM32 Nucleo sensor hub that feeds a Raspberry Pi 4 and is meant to end in a Linux IIO kernel driver. It is a work in progress: the bare-metal foundation is done and the rest is planned.",
   "highlights": [
-    "Pipeline: sensors, STM32 NUCLEO-F446RE, UART or SPI link (interface still to be chosen), Raspberry Pi 4, custom Linux kernel driver, Linux IIO subsystem, userspace tools and data logging.",
-    "Hardware on the bench: breadboard, jumper wires, resistors for pull-ups, dividers and protection, buttons for GPIO and user-control experiments, status and debug LEDs.",
-    "Status: in progress. Results will be added when the project is complete."
+    "Goal: a complete sensor path from bare-metal firmware, through a host link, to a Linux Industrial I/O driver on a Pi 4.",
+    "Sensors: an MSA311 accelerometer and an HC-SR04 ultrasonic sensor.",
+    "Done so far: the reset path, vector table, HAL initialization, clock configuration and GPIO setup.",
+    "Target deliverable: an IIO kernel driver, written to the standard an upstream review would expect. It is not built yet."
+  ],
+  "details": [
+    {
+      "label": "Why this project",
+      "body": "Most of my firmware work has been on the microcontroller side or on host tooling. I wanted one project that crosses the boundary between bare-metal code and the Linux device model, because that is where the hardest debugging happens: registers, protocols, drivers and kernel interfaces all in one chain."
+    },
+    {
+      "label": "Plan",
+      "body": "An STM32 Nucleo reads the sensors and sends the data to a Raspberry Pi 4 over a host link. The Pi exposes the readings through the Linux IIO subsystem, so userspace sees an ordinary IIO device. The MSA311 is the first device, and the ultrasonic sensor follows."
+    },
+    {
+      "label": "Where it stands",
+      "body": "The bare-metal foundation is in place (startup and vector table, HAL initialization, clocks, GPIO). The host link and the kernel driver are the next stages. I will add results here when they exist."
+    }
   ]
 }

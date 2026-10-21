@@ -5,42 +5,39 @@
   "period": "Jan 2024 – May 2024",
   "stack": [
     "Python",
-    "TensorFlow",
     "Keras",
+    "TensorFlow",
     "OpenCV"
   ],
   "highlights": [
-    "End-to-end CAPTCHA recognition pipeline trained on 50K+ labeled samples, reaching about 70% decoding accuracy across diverse formats.",
-    "Preprocessing (denoising, segmentation, morphological operations, normalization) to improve character isolation under distortion, noise and varying fonts.",
-    "Tuned architecture and hyperparameters (convolution depth, learning rate scheduling, regularization, augmentation)."
+    "Generates its own dataset of text CAPTCHAs with the Python captcha library and a TrueType font.",
+    "Preprocessing with PIL and OpenCV: grayscale conversion, contour finding and bounding rectangles around each character.",
+    "A sequential convolutional network in Keras and TensorFlow classifies the extracted characters.",
+    "Reached 0.696 accuracy, about 70%, with accuracy and loss curves tracked during training."
   ],
-  "repo": "https://github.com/RohithKalisetti13/CAPTCHA-CNN",
   "details": [
     {
-      "heading": "How it works",
-      "body": "CAPTCHAs are generated at runtime with random distortions (4 characters, A-Z and 0-9), so no dataset download is needed. A CNN with convolutional and dense layers predicts each character. Training is monitored in TensorBoard and a custom match() function scores partial correctness."
+      "label": "The question",
+      "body": "Text CAPTCHAs still guard many sites, and deep learning can now defeat many of them. Breaking them is the fastest way to find out which properties actually protect: distortion, noise, rotation, variable length, touching characters."
     },
     {
-      "heading": "Goal",
-      "body": "Show how learned models can defeat traditional CAPTCHA defences and analyse what makes a CAPTCHA harder."
+      "label": "Pipeline",
+      "body": "Each CAPTCHA image is converted to grayscale and OpenCV finds the contours of the characters. Bounding rectangles around each contour isolate the characters. Each one goes to a CNN built with Keras on TensorFlow, and the character predictions are compared with the CAPTCHA's true text."
+    },
+    {
+      "label": "Evaluation",
+      "body": "Accuracy is the fraction of CAPTCHAs recognized correctly, 0.696 here. The report also tracks accuracy and loss curves."
+    },
+    {
+      "label": "Where it stops",
+      "body": "The test set is generated CAPTCHAs, which are cleaner than real ones. The planned next step was larger and noisier CAPTCHAs with more symbols."
     }
   ],
+  "summary": "A CNN that reads text CAPTCHAs (letters and digits) and reaches about 70% on its test set. The aim was to break them and to learn what makes CAPTCHAs resistant. Course project, team of three.",
   "links": [
     {
-      "label": "Report",
-      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/Report.pdf"
-    },
-    {
-      "label": "Slides",
-      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/Presentation.pdf"
-    },
-    {
-      "label": "Demo video",
-      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/Project%20Demo.mp4"
-    },
-    {
-      "label": "Notebook",
-      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/CNN%20Model.ipynb"
+      "label": "Repository",
+      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN"
     }
   ]
 }
