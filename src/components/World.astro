@@ -35,11 +35,11 @@
     right: 'Bench: work and projects',
   };
   const HEADINGS: Record<Station, string> = { left: '#about-title', center: '#home-title', right: '#work-title' };
-  // every hash is an anchor: a station plus a scroll position. The section heading lands in the top
-  // quarter of the viewport; Skills has no visible heading, so the board's middle lands at 40%.
-  const TARGETS: Record<string, { sel: string | null; at?: number }> = {
+  // every hash is an anchor: a station plus a scroll position. The section heading lands just below
+  // the nav bar; Home is the top of the page.
+  const TARGETS: Record<string, { sel: string | null }> = {
     home: { sel: null },
-    skills: { sel: '#s-regs', at: 0.4 },
+    skills: { sel: '#regs-title' },
     work: { sel: '#work-title' },
     projects: { sel: '#projects-title' },
     about: { sel: '#about-title' },
@@ -119,8 +119,7 @@
       const t = TARGETS[id];
       const el = t?.sel ? document.querySelector<HTMLElement>(t.sel) : null;
       if (!el) return 0;
-      const y = t.at !== undefined ? docY(el) - window.innerHeight * t.at : docY(el) - navH() - 56;
-      return Math.max(0, y);
+      return Math.max(0, docY(el) - navH() - 56);
     };
 
     const go = (s: Station, opts: { y?: number | 'keep'; focus?: boolean; immediate?: boolean } = {}) => {

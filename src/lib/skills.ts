@@ -72,6 +72,14 @@ export const SKILLS: SkillGroup[] = [
   },
 ];
 
+// Datasheet addressing: each group has an invented peripheral base, 0x1000 apart in group order, and
+// its cells sit at a 4-byte stride from the first skill
+export const baseOf = (n: number) => {
+  const a = (0x4000_0000 + n * 0x1000).toString(16).toUpperCase().padStart(8, '0');
+  return `0x${a.slice(0, 4)}_${a.slice(4)}`;
+};
+export const offsetOf = (i: number) => `0x${(i * 4).toString(16).toUpperCase().padStart(2, '0')}`;
+
 // every part is drawn in one 320 x 200 frame; the jumper lands on PAD, on the part's top edge
 export const FRAME = { w: 320, h: 200 };
 export const PAD: Record<SkillKind, [number, number]> = {
@@ -85,9 +93,9 @@ export const PAD: Record<SkillKind, [number, number]> = {
   gpu: [226, 30],
 };
 
-// the parts block, in board units from the top of the block: it tucks under the board's lower edge.
-// Rows sit below a channel each, where the harness turns in toward the parts
-export const BLOCK = { lift: 130, h: 728 };
+// the parts block, in board units from the top of the block, under the Skills heading. Rows sit below
+// a channel each, where the harness turns in toward the parts; the heading sits above every channel
+export const BLOCK = { h: 728 };
 export const SLOT_W = 375;
 export const ROW_Y = [120, 480];
 export const PLATE = { dy: FRAME.h + 8, h: 40 };

@@ -4,7 +4,7 @@
 // The grouped list below the parts is the full text: visually hidden on the desk world, the whole
 // section on phones, without scripts and with reduced motion.
 import SkillPart from './SkillPart.astro';
-import { SKILLS, FRAME, PAD, BLOCK, SLOT_W, ROW_Y, PLATE } from '../../lib/skills';
+import { SKILLS, FRAME, PAD, BLOCK, SLOT_W, ROW_Y, PLATE, baseOf, offsetOf } from '../../lib/skills';
 
 const parts = SKILLS.map((g, i) => {
   const x = (i % 4) * SLOT_W + (SLOT_W - FRAME.w) / 2;
@@ -14,8 +14,7 @@ const parts = SKILLS.map((g, i) => {
 });
 ---
 
-<h2 id="regs-title" class="sk-title">Skills</h2>
-<div class="skills-board" style={`--lift:${BLOCK.lift};--bh:${BLOCK.h};--fw:${FRAME.w};--fh:${FRAME.h};--pdy:${PLATE.dy};--ph:${PLATE.h}`}>
+<div class="skills-board" style={`--bh:${BLOCK.h};--fw:${FRAME.w};--fh:${FRAME.h};--pdy:${PLATE.dy};--ph:${PLATE.h}`}>
   <svg class="sk-defs" width="0" height="0" aria-hidden="true" focusable="false">
     <defs>
       <linearGradient id="sk-tin" x1="0" y1="0" x2="1" y2="1">
@@ -46,6 +45,11 @@ const parts = SKILLS.map((g, i) => {
       </linearGradient>
     </defs>
   </svg>
+
+  <div class="sk-head">
+    <p class="mono sk-eyebrow"><span class="sk-pa" style="--wire:var(--pa3)">PA3</span> 0x0800 / REGS</p>
+    <h2 id="regs-title" class="sk-title">Skills</h2>
+  </div>
 
   <ul class="sk-parts" aria-label="Skill groups">
     {
@@ -89,7 +93,7 @@ const parts = SKILLS.map((g, i) => {
       SKILLS.map((g) => (
         <div class="sk-body" data-sheet={g.n} hidden>
           <p class="sk-kicker">
-            Datasheet &middot; {g.skills.length} bits set &middot; jumper {g.silk}
+            Datasheet &middot; base <span class="hx">{baseOf(g.n)}</span> &middot; {g.skills.length} skills &middot; jumper {g.silk}
           </p>
           <h3 id={`sk-t${g.n}`}>
             U{g.n} - {g.name.toUpperCase()}
@@ -97,8 +101,8 @@ const parts = SKILLS.map((g, i) => {
           <ol class="sk-bits">
             {g.skills.map((s, i) => (
               <li class="bit">
-                <span class="idx" aria-hidden="true">
-                  b{String(i).padStart(2, '0')}
+                <span class="off" aria-hidden="true">
+                  {offsetOf(i)}
                 </span>
                 <span class="nm">
                   {s.split('/').map((part, k) => (
@@ -111,9 +115,6 @@ const parts = SKILLS.map((g, i) => {
                       {part}
                     </>
                   ))}
-                </span>
-                <span class="val" aria-hidden="true">
-                  1
                 </span>
               </li>
             ))}
@@ -130,8 +131,13 @@ const parts = SKILLS.map((g, i) => {
         <section class="sk-group" aria-labelledby={`sk-g${g.n}`}>
           <h3 id={`sk-g${g.n}`}>{g.name}</h3>
           <ul>
-            {g.skills.map((s) => (
-              <li>{s}</li>
+            {g.skills.map((s, i) => (
+              <li>
+                <span class="off" aria-hidden="true">
+                  {offsetOf(i)}
+                </span>{' '}
+                {s}
+              </li>
             ))}
           </ul>
         </section>
@@ -214,11 +220,14 @@ const parts = SKILLS.map((g, i) => {
       light();
       hideTip();
       sheet.focus({ preventScroll: true });
-      // bring the whole sheet into view, never past its top
+      // bring the whole sheet into view, never past its top; vertical only, the camera stays put
       const r = sheet.getBoundingClientRect();
       const nav = document.querySelector('.nav')?.getBoundingClientRect().bottom ?? 0;
       const dy = Math.min(r.bottom + 24 - innerHeight, r.top - nav - 16);
-      if (dy > 0) window.dispatchEvent(new CustomEvent('rk:scroll-to', { detail: { y: window.scrollY + dy } }));
+      if (dy > 1) {
+        const immediate = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.dispatchEvent(new CustomEvent('rk:scroll-to', { detail: { y: Math.round(window.scrollY + dy), immediate } }));
+      }
     };
 
     for (const b of parts) {
@@ -262,11 +271,20 @@ const parts = SKILLS.map((g, i) => {
     display: none;
   }
 
-  /* desk world: the parts, tucked under the board's lower edge. Phones, visits without scripts and
-     reduced motion get the grouped list as cards instead */
+  /* desk world: the heading on its own band under the board, then the parts. The jumpers turn in
+     below the band, so none passes over the heading. Phones, visits without scripts and reduced motion
+     get the grouped list as cards instead */
   @media (prefers-reduced-motion: no-preference) {
-    :global(html.world) .skills-board {
-      margin-top: calc(var(--lift) * var(--u) * -1);
+    :global(html.world) .sk-head {
+      min-height: var(--hb);
+      margin: 0;
+      padding: var(--s-6) 0 0 var(--s-2);
+    }
+    /* room below the parts so the heading can sit under the nav with both rows in view */
+    :global(html.world) .skills-board::after {
+      content: '';
+      display: block;
+      height: max(0px, calc(100svh - 11.5rem - var(--bh) * var(--u)));
     }
     :global(html.world) .sk-parts {
       position: relative;
@@ -276,7 +294,6 @@ const parts = SKILLS.map((g, i) => {
       padding: 0;
       list-style: none;
     }
-    :global(html.world) .sk-title,
     :global(html.world) .sk-list {
       position: absolute;
       width: 1px;
@@ -458,7 +475,7 @@ const parts = SKILLS.map((g, i) => {
   }
   .bit {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
     align-items: center;
     gap: 8px;
     min-height: 40px;
@@ -472,20 +489,13 @@ const parts = SKILLS.map((g, i) => {
     min-width: 0;
     overflow-wrap: break-word;
   }
-  .idx {
-    color: var(--text-2);
+  .off {
+    color: var(--muted);
     font-size: var(--fs-label);
+    letter-spacing: 0.02em;
   }
-  .val {
-    display: grid;
-    place-items: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 3px;
-    background: var(--text);
-    color: var(--board);
-    font-size: var(--fs-label);
-    font-weight: 700;
+  .sk-kicker .hx {
+    text-transform: none;
   }
 
   /* jumper landing pin; WireLayer draws the wire onto it */
@@ -499,12 +509,33 @@ const parts = SKILLS.map((g, i) => {
     pointer-events: none;
   }
 
-  /* the grouped list as cards */
+  /* section heading, the same pattern as the other stations */
+  .sk-head {
+    --hb: 9rem;
+    margin: var(--s-6) 0 var(--s-2);
+  }
+  .sk-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    margin-bottom: var(--s-2);
+    color: var(--text-2);
+  }
+  .sk-pa {
+    padding: 0 6px;
+    border: 1px solid var(--wire);
+    border-radius: var(--r-1);
+    color: var(--text);
+    font-size: var(--fs-label);
+  }
   .sk-title {
-    width: var(--stage-w);
-    margin: var(--s-6) 0 var(--s-2) calc((100% - var(--stage-w)) / 2);
     color: var(--text);
   }
+  .sk-head {
+    width: fit-content;
+  }
+
+  /* the grouped list as cards */
   .sk-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));

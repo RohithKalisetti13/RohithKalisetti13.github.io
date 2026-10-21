@@ -119,13 +119,13 @@ const href = (id: string) => `/#${HASH[id]}`;
         const st = root.dataset.station;
         if (st === 'left') id = 'irq';
         else if (st === 'right') id = top(document.getElementById('projects')) <= y ? 'builds' : 'trace';
-        else id = top(document.getElementById('s-regs')) <= y ? 'regs' : 'boot';
+        else id = top(document.getElementById('regs-title')) <= y ? 'regs' : 'boot';
       } else {
         id =
           top(document.getElementById('about')) <= y ? 'irq'
           : top(document.getElementById('projects')) <= y ? 'builds'
           : top(document.getElementById('work')) <= y ? 'trace'
-          : top(document.getElementById('s-regs')) <= y ? 'regs'
+          : top(document.getElementById('regs-title')) <= y ? 'regs'
           : 'boot';
       }
       if (id) setActive(id);
