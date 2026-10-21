@@ -3,8 +3,8 @@
 // a wire runs from the header pin that selector finds to that pad.
 // Optional on the pad: data-wire-color, data-wire-group (each group gets its own block of lanes),
 // data-wire-shared (the pin already carries a housing, so the wire leaves from its end),
-// data-wire-side on the bench units (top or bottom: the jumper runs above or below the breadboard and
-// drops onto its hole from that side).
+// data-wire-side on the bench units (top or bottom: the jumper reaches its hole from above or below the
+// breadboard).
 // A selector may end in "@n" to pick the nth match. Missing or hidden anchors drop the wire.
 // Desk world: wires leave the headers to the right, drop or rise in the gap between the stations,
 // and land on the bench, which this script first slides level with the headers it is wired to.
@@ -52,10 +52,40 @@
     const last = p[p.length - 1];
     return `${d}L${last[0]} ${last[1]}`;
   };
+  // axis-aligned legs of a polyline, for counting crossings
+  const segs = (pts: [number, number][]): Seg[] =>
+    pts.slice(1).map(([x, y], i) => {
+      const [x0, y0] = pts[i];
+      return Math.abs(y - y0) < 0.5 ? { h: true, c: y, a: Math.min(x, x0), b: Math.max(x, x0) } : { h: false, c: x, a: Math.min(y, y0), b: Math.max(y, y0) };
+    });
   const crosses = (s: Seg, t: Seg) => {
     if (s.h === t.h) return false;
     const [h, v] = s.h ? [s, t] : [t, s];
     return v.c > h.a && v.c < h.b && h.c > v.a && h.c < v.b;
+  };
+  // reorder lanes for the fewest crossings: keep any swap of neighbours that removes one
+  const tangles = <T,>(order: T[], legs: (t: T, i: number) => Seg[]) => {
+    const all = order.map(legs);
+    let n = 0;
+    for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) for (const s of all[i]) for (const t of all[j]) n += +crosses(s, t);
+    return n;
+  };
+  const untangle = <T,>(order: T[], legs: (t: T, i: number) => Seg[]) => {
+    const cost = () => tangles(order, legs);
+    let best = cost();
+    for (let pass = 0; pass < order.length && best; pass++) {
+      let moved = false;
+      for (let i = 0; i + 1 < order.length; i++) {
+        [order[i], order[i + 1]] = [order[i + 1], order[i]];
+        const c = cost();
+        if (c < best) {
+          best = c;
+          moved = true;
+        } else [order[i], order[i + 1]] = [order[i + 1], order[i]];
+      }
+      if (!moved) break;
+    }
+    return order;
   };
   const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / (a.length || 1);
 
@@ -170,6 +200,8 @@
       // a tight ribbon, centred in the gap
       const gap = Math.max(wireW * 1.2, Math.min(pitch, (end - start) / Math.max(1, total)));
       let lane = start + Math.max(0, (end - start - gap * total) / 2);
+      // one corner radius for every ribbon, cut down only where a leg is too short for it
+      const bend = 30;
 
       // 5V and GND: off the pins, up the board's edge, along the empty desk above the bench, down the
       // bench's right margin, and a short drop into the rail ends. Nothing crosses the ribbon or the
@@ -226,69 +258,50 @@
         return dir < 0 ? y0 : y0 + housingW * 0.9;
       };
 
-      // bench units: off the pin, along a lane, out to a channel above (top half) or below (bottom half)
-      // the breadboard, across, and a short drop onto the switch's hole. The nearest drop takes the channel
-      // closest to the board; lanes are ordered by a few passes of swaps that cut crossings
+      // bench units: one harness. The nine leave their pins as a ribbon and close up to lane spacing in the
+      // gap between the stations. The upper five run on as the rows above the breadboard, the far unit on
+      // the outer row; the lower four peel down the board's left edge to rows below it, the far unit on the
+      // outer lane and row. Each turns onto its switch's hole. The lane order in the gap is the one with the
+      // fewest crossings (none, with the pin order set in Breadboard)
       const units = (wires: Wire[]) => {
         if (!bench) return;
-        const chGap = Math.max(wireW * 1.7, 6);
-        const chan = new Map<Wire, number>();
-        const ends = new Map<Wire, number>();
-        for (const side of ['top', 'bottom']) {
-          const list = wires.filter((w) => (w.side === 'top') === (side === 'top')).sort((a, b) => a.pad.left - b.pad.left);
-          list.forEach((w, i) => chan.set(w, side === 'top' ? bench.top - d.top - 14 - i * chGap : bench.bottom - d.top + 14 + i * chGap));
-        }
-        const geo = wires.map((w) => {
-          const px = w.pin.left + w.pin.width / 2 - d.left;
-          const py = midY(w.pin) - d.top;
-          const out = px + 28 * u;
+        const top = wires.filter((w) => w.side === 'top').sort((a, b) => midY(a.pin) - midY(b.pin));
+        const bot = wires.filter((w) => w.side !== 'top').sort((a, b) => midY(a.pin) - midY(b.pin));
+        const clear = 2 * gap;
+        const row0 = bench.top - d.top - clear - (top.length - 1) * gap;
+        const edge = bench.left - d.left - 2 * gap;
+        const geo = [...top, ...bot].map((w, k) => {
+          const b = k - top.length;
           const tx = w.pad.left + w.pad.width / 2 - d.left;
-          const ty = midY(w.pad) - d.top;
-          return { w, px, py, out, tx, ty, cy: chan.get(w)!, dir: w.side === 'top' ? -1 : 1 };
+          return {
+            w,
+            px: w.pin.left + w.pin.width / 2 - d.left,
+            py: midY(w.pin) - d.top,
+            tx,
+            ty: midY(w.pad) - d.top,
+            yb: row0 + k * gap,
+            // the bottom row's split lane and its row under the board
+            tail: (b < 0 ? [] : [[edge - b * gap, row0 + k * gap], [edge - b * gap, bench.bottom - d.top + clear + b * gap], [tx, bench.bottom - d.top + clear + b * gap]]) as [number, number][],
+          };
         });
-        const segs = (g: (typeof geo)[number], L: number): Seg[] => [
-          { h: true, c: g.py, a: g.out, b: L },
-          { h: false, c: L, a: Math.min(g.py, g.cy), b: Math.max(g.py, g.cy) },
-          { h: true, c: g.cy, a: L, b: g.tx },
-          { h: false, c: g.tx, a: Math.min(g.cy, g.ty), b: Math.max(g.cy, g.ty) },
+        const route = (g: (typeof geo)[number], L: number): [number, number][] => [
+          [g.px + 28 * u, g.py],
+          [L, g.py],
+          [L, g.yb],
+          ...(g.tail.length ? g.tail : [[g.tx, g.yb] as [number, number]]),
+          [g.tx, g.ty],
         ];
-        const cost = (order: typeof geo) => {
-          const all = order.map((g, i) => segs(g, lane + i * gap));
-          let n = 0;
-          for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) for (const s of all[i]) for (const t of all[j]) n += +crosses(s, t);
-          return n;
-        };
-        const order = [...geo].sort((a, b) => a.py - b.py);
-        let best = cost(order);
-        for (let pass = 0; pass < order.length; pass++) {
-          let moved = false;
-          for (let i = 0; i + 1 < order.length; i++) {
-            [order[i], order[i + 1]] = [order[i + 1], order[i]];
-            const c = cost(order);
-            if (c < best) {
-              best = c;
-              moved = true;
-            } else [order[i], order[i + 1]] = [order[i + 1], order[i]];
-          }
-          if (!moved) break;
-        }
+        const legs = (g: (typeof geo)[number], i: number) => segs(route(g, lane + i * gap));
+        const byPin = [...geo].sort((a, b) => a.py - b.py);
+        const order = untangle(
+          [byPin, [...byPin].reverse()].reduce((a, b) => (tangles(b, legs) < tangles(a, legs) ? b : a)),
+          legs,
+        );
         order.forEach((g, i) => {
-          housing(g.px, g.py, g.px - 24 * u, g.out);
-          ends.set(g.w, housingV(g.tx, g.ty, g.dir));
-          const L = lane + i * gap;
-          stroke(
-            rounded(
-              [
-                [g.out, g.py],
-                [L, g.py],
-                [L, g.cy],
-                [g.tx, g.cy],
-                [g.tx, ends.get(g.w)!],
-              ],
-              Math.min(30, chGap * 2),
-            ),
-            g.w.color,
-          );
+          housing(g.px, g.py, g.px - 24 * u, g.px + 28 * u);
+          const pts = route(g, lane + i * gap);
+          pts[pts.length - 1] = [g.tx, housingV(g.tx, g.ty, g.w.side === 'top' ? -1 : 1)];
+          stroke(rounded(pts, bend), g.w.color);
         });
       };
 
@@ -303,9 +316,25 @@
           continue;
         }
         wires.sort((a, b) => a.pin.top - b.pin.top);
-        // going down, the top wire takes the far lane; going up, the near one; then nothing crosses
+        // going down, the top wire takes the far lane; going up, the near one. A group that goes both ways
+        // then swaps lanes until nothing crosses
         const down = mean(wires.map((w) => midY(w.pad) - midY(w.pin))) >= 0;
-        wires.forEach((w, i) => {
+        const ends = (w: Wire) => {
+          const out = w.pin.left + w.pin.width / 2 - d.left + 28 * u + (w.shared ? 2 : 0);
+          const tEnd = w.pad.left + w.pad.width / 2 - d.left - housingW * 0.6;
+          return [out, midY(w.pin) - d.top, tEnd, midY(w.pad) - d.top];
+        };
+        const slots = untangle(down ? [...wires].reverse() : [...wires], (w, k) => {
+          const [out, py, tEnd, ty] = ends(w);
+          const L = lane + k * gap;
+          return segs([
+            [out, py],
+            [L, py],
+            [L, ty],
+            [tEnd, ty],
+          ]);
+        });
+        wires.forEach((w) => {
           const px = w.pin.left + w.pin.width / 2 - d.left;
           const py = midY(w.pin) - d.top;
           const out = w.shared ? px + 28 * u + 2 : px + 28 * u;
@@ -318,9 +347,9 @@
           const ty = midY(w.pad) - d.top;
           const tEnd = tx - housingW * 0.6;
           housing(tx, ty, tEnd, tx + housingW * 0.3);
-          const lx = lane + (down ? wires.length - 1 - i : i) * gap;
+          const lx = lane + slots.indexOf(w) * gap;
           const dy = ty - py;
-          const r = Math.min(30, Math.abs(dy) / 2, (lx - out) / 2, (tEnd - lx) / 2);
+          const r = Math.min(bend, Math.abs(dy) / 2, (lx - out) / 2, (tEnd - lx) / 2);
           const sy = Math.sign(dy) || 1;
           stroke(
             Math.abs(dy) < 2

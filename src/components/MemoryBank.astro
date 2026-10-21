@@ -314,7 +314,7 @@ const J1 = [
     inset: 0;
     display: grid;
     place-content: center;
-    color: #8b8d92;
+    color: #a3a5aa;
     font: 500 10px / 1.35 var(--font-mono);
     letter-spacing: 0.06em;
     text-align: center;
@@ -371,7 +371,7 @@ const J1 = [
     border-radius: 1.5px;
   }
   .tssop .body::after {
-    color: #707277;
+    color: #949699;
     font-size: 8.5px;
     line-height: 1.25;
   }
@@ -551,10 +551,11 @@ const J1 = [
     white-space: nowrap;
   }
 
-  /* desk world: half the board's width, J1 on the left edge facing CN5 */
+  /* desk world: J1 on the left edge facing CN5; the chips at 1.4x their stacked size, on a board wide
+     enough to give each its own space */
   :global(html.world) .db {
     grid-template-columns: auto 1fr;
-    width: max(calc(760 * var(--u)), 560px);
+    width: min(100%, max(calc(1140 * var(--u)), 840px));
     margin-inline: 0;
     padding: 30px 28px 20px 24px;
   }
@@ -594,7 +595,60 @@ const J1 = [
     flex-direction: row-reverse;
   }
   :global(html.world) .row {
-    gap: var(--s-1);
+    gap: var(--s-3);
+  }
+  :global(html.world) .soic .pkg {
+    width: 115px;
+  }
+  :global(html.world) .soic .body {
+    height: 73px;
+  }
+  :global(html.world) .soic .legs {
+    height: 14px;
+  }
+  :global(html.world) .tssop .pkg {
+    width: 77px;
+  }
+  :global(html.world) .tssop .body {
+    height: 42px;
+  }
+  :global(html.world) .tssop .legs {
+    height: 8px;
+  }
+  :global(html.world) .pkg {
+    margin: 10px 0 16px 10px;
+  }
+  :global(html.world) .pkg::before {
+    inset: -7px -10px;
+  }
+  :global(html.world) .body::after {
+    font-size: 14px;
+  }
+  :global(html.world) .tssop .body::after {
+    font-size: 12px;
+  }
+  :global(html.world) .dot {
+    left: 11px;
+    bottom: 11px;
+    width: 8px;
+    height: 8px;
+  }
+  :global(html.world) .tssop .dot {
+    left: 7px;
+    bottom: 7px;
+    width: 6px;
+    height: 6px;
+  }
+  :global(html.world) .smd {
+    right: -34px;
+    width: 13px;
+    height: 22px;
+  }
+  :global(html.world) .tssop .smd {
+    right: -28px;
+    width: 10px;
+    height: 17px;
+    margin-top: -8.5px;
   }
   :global(html.world) .tag {
     left: auto;

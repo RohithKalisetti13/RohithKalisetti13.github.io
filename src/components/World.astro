@@ -325,7 +325,8 @@
     container-type: inline-size;
     /* one board unit: the board's 2000-unit height is 1.3 viewport heights */
     --u: calc(130vh / 2000);
-    --right-w: calc(1500 * var(--u) + 240px);
+    /* the bench station is at least a full screen wide, so the breadboard can fill it */
+    --right-w: max(calc(1500 * var(--u) + 240px), 100cqw);
     /* the desk above the board: hero copy, then a band for the cable and the switch. Sized so the
        CN5 header (798 board units down) lands one viewport below the top of the page */
     --copy-h: max(290px, calc(100vh - var(--nav-h) - 798 * var(--u)));

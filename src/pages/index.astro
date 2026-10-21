@@ -129,8 +129,9 @@ const projects = await getProjects();
   :global(html.world .station[data-station='right']) .container {
     width: auto;
     margin: 0;
-    padding-left: 120px;
-    padding-right: 120px;
+    /* the left margin carries the bench harness down the board's edge, clear of the edge arrow */
+    padding-left: 100px;
+    padding-right: 76px;
   }
   :global(html.world) .laptop-station {
     padding-top: var(--s-6);

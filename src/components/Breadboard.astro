@@ -20,27 +20,32 @@ interface Props {
 const { projects } = Astro.props;
 
 type Half = 'top' | 'bottom';
-// left to right, top half then bottom half; pin = silkscreen name, from = the header pin the jumper leaves
-const UNITS: { slug: string; kind: PartKind; half: Half; silk: string; from: string; color: string }[] = [
-  { slug: 'iio-sensor-hub', kind: 'msa311', half: 'top', silk: 'D2', from: "#hero-cn9 [data-pin='PA10']", color: '#d9d6cf' },
-  { slug: 'openwrt-fault-injection', kind: 'wifi', half: 'top', silk: 'D3', from: "#hero-cn9 [data-pin='PB3']", color: '#4f8a4f' },
-  { slug: 'freertos-host-shim', kind: 'crystal', half: 'top', silk: 'D4', from: "#hero-cn9 [data-pin='PB5']", color: '#c77a33' },
-  { slug: 'gesture-wheelchair', kind: 'adxl335', half: 'top', silk: 'D5', from: "#hero-cn9 [data-pin='PB4']", color: '#6d5596' },
-  { slug: 'gpu-beamformer', kind: 'hcsr04', half: 'top', silk: 'D6', from: "#hero-cn9 [data-pin='PB10']", color: '#3f6fa8' },
-  { slug: 'cuda-image-processing', kind: 'matrix', half: 'bottom', silk: 'D7', from: "#hero-cn9 [data-pin='PA8']", color: '#c9a43a' },
-  { slug: 'hardware-debloat-ghidra', kind: 'swd', half: 'bottom', silk: 'D1', from: "#hero-cn9 [data-pin='PA2']", color: '#7a5136' },
-  { slug: 'hdc-pi-vs-gpu', kind: 'oled', half: 'bottom', silk: 'D0', from: "#hero-cn9 [data-pin='PA3']", color: '#7d7f84' },
-  // A0 (PA0) sits on the far side of the board; its jumper leaves the nearest free CN10 morpho pin
-  { slug: 'captcha-cnn', kind: 'camera', half: 'bottom', silk: 'PC4', from: "#hero-cn10 [data-pin='PC4']", color: '#3f86d8' },
+// left to right, top half then bottom half; label = the one-line plate text (the full title is in the tooltip),
+// silk = silkscreen name of the header pin the jumper leaves (from). Pins run D7 to D0 down the header, so
+// the top row takes the upper pins far to near and the bottom row the lower ones near to far: the harness
+// then splits at the board's edge without a single crossing
+const UNITS: { slug: string; label: string; kind: PartKind; half: Half; silk: string; from: string; color: string }[] = [
+  { slug: 'iio-sensor-hub', label: 'IIO hub', kind: 'msa311', half: 'top', silk: 'D3', from: "#hero-cn9 [data-pin='PB3']", color: '#d9d6cf' },
+  { slug: 'openwrt-fault-injection', label: 'OpenWrt', kind: 'wifi', half: 'top', silk: 'D4', from: "#hero-cn9 [data-pin='PB5']", color: '#4f8a4f' },
+  { slug: 'freertos-host-shim', label: 'FreeRTOS', kind: 'crystal', half: 'top', silk: 'D5', from: "#hero-cn9 [data-pin='PB4']", color: '#c77a33' },
+  { slug: 'gesture-wheelchair', label: 'Wheelchair', kind: 'adxl335', half: 'top', silk: 'D6', from: "#hero-cn9 [data-pin='PB10']", color: '#6d5596' },
+  { slug: 'gpu-beamformer', label: 'Beamformer', kind: 'hcsr04', half: 'top', silk: 'D7', from: "#hero-cn9 [data-pin='PA8']", color: '#3f6fa8' },
+  // A0 (PA0) sits on the far side of the MCU board; this jumper leaves the free CN10 morpho pin PC4,
+  // which sits between D3 and D2, so all nine leave the board as one ribbon
+  { slug: 'cuda-image-processing', label: 'CUDA', kind: 'matrix', half: 'bottom', silk: 'PC4', from: "#hero-cn10 [data-pin='PC4']", color: '#c9a43a' },
+  { slug: 'hardware-debloat-ghidra', label: 'Ghidra', kind: 'swd', half: 'bottom', silk: 'D2', from: "#hero-cn9 [data-pin='PA10']", color: '#7a5136' },
+  { slug: 'hdc-pi-vs-gpu', label: 'HDC', kind: 'oled', half: 'bottom', silk: 'D1', from: "#hero-cn9 [data-pin='PA2']", color: '#7d7f84' },
+  { slug: 'captcha-cnn', label: 'CAPTCHA', kind: 'camera', half: 'bottom', silk: 'D0', from: "#hero-cn9 [data-pin='PA3']", color: '#3f86d8' },
 ];
 const STATUS = { wip: 'In progress', shipped: 'Shipped' };
 const byId = new Map(projects.map((p) => [p.id, p]));
 
-// unit frames: five per half, twelve columns apart; origin on the first column at row a (top) or j (bottom)
+// unit frames: five per half, twelve columns apart; origin on the first column at row a (top) or j (bottom).
+// Plates sit on rows d-e and f-g, so the centre channel stays bare and the two rows of units stay apart
 const START = [2, 14, 26, 38, 50];
 const BAND: Record<Half, { li: [number, number]; art: [number, number]; plate: [number, number]; row: 'a' | 'j'; dy: number }> = {
-  top: { li: [0, 95.5], art: [0, 76], plate: [76.5, 95], row: 'a', dy: BUTTON.dy },
-  bottom: { li: [96.5, 196], art: [116, 196], plate: [97, 115.5], row: 'j', dy: -BUTTON.dy },
+  top: { li: [0, 88.5], art: [0, 78], plate: [79, 88], row: 'a', dy: BUTTON.dy },
+  bottom: { li: [103.5, 196], art: [114, 196], plate: [104, 113], row: 'j', dy: -BUTTON.dy },
 };
 const pct = (v: number, of: number) => `${+((v / of) * 100).toFixed(4)}%`;
 // a box in unit coordinates, placed inside the art rectangle of that unit
@@ -69,7 +74,7 @@ const units = UNITS.map((u, i) => {
     pad: `left:${pct(ox, BB_W)};top:${pct(oy, BB_H)}`,
   };
 }).filter((u) => u !== null);
-const next = `left:${pct(colX(50) - 5, BB_W)};top:${pct(97, BB_H)};width:${pct(120, BB_W)};height:${pct(62, BB_H)}`;
+const next = `left:${pct(colX(50) - 5, BB_W)};top:${pct(104, BB_H)};width:${pct(120, BB_W)};height:${pct(55, BB_H)}`;
 
 const POWER = [
   { from: "#hero-cn10 [data-pin='U5V']", color: '#c4473c', at: railHole(61, 'bot+') },
@@ -85,7 +90,12 @@ const POWER = [
       {
         units.map((u) => (
           <li class:list={['unit', u.half]} style={u.li} data-status={u.p.data.status}>
-            <a class="hit" href={`/projects/${u.slug}/`} data-unit>
+            <a
+              class="hit"
+              href={`/projects/${u.slug}/`}
+              aria-label={`${u.p.data.title}, ${u.p.data.period ?? 'Earlier project'}, ${STATUS[u.p.data.status]}`}
+              data-unit
+            >
               <span class="art" style={u.art} aria-hidden="true">
                 <span class="u-part" style={u.part}>
                   <Part kind={u.kind} />
@@ -102,7 +112,7 @@ const POWER = [
               </span>
               <span class="plate" style={u.plate} aria-hidden="true">
                 <StatusLed status={u.p.data.status} />
-                <span class="ttl">{u.p.data.title}</span>
+                <span class="ttl">{u.label}</span>
                 <span class="pin">{u.silk}</span>
               </span>
               <span class="tip">
@@ -163,6 +173,58 @@ const POWER = [
     });
   };
   document.addEventListener('astro:page-load', init);
+
+  // one floating tip: above a top unit, below a bottom one. It flips only when the screen has no room
+  // and the other side covers neither the unit nor the other row
+  const wide = window.matchMedia('(min-width: 721px)');
+  let tip: HTMLElement | null = null;
+  const hide = () => tip?.classList.remove('on');
+  const show = (a: HTMLAnchorElement) => {
+    const li = a.closest<HTMLElement>('.unit');
+    const src = a.querySelector('.tip');
+    if (!wide.matches || !li || !src) return;
+    if (!tip?.isConnected) {
+      tip = document.createElement('div');
+      tip.className = 'bb-tip';
+      tip.setAttribute('aria-hidden', 'true');
+      document.body.append(tip);
+    }
+    tip.innerHTML = src.innerHTML;
+    const r = li.getBoundingClientRect();
+    const row = li.classList.contains('top') ? 'top' : 'bottom';
+    const others = [...document.querySelectorAll<HTMLElement>(`.bb .unit:not(.${row})`)].map((u) => u.getBoundingClientRect());
+    const nav = document.querySelector('.nav')?.getBoundingClientRect().bottom ?? 0;
+    const w = tip.offsetWidth;
+    const h = tip.offsetHeight;
+    const cx = r.left + r.width / 2;
+    const left = Math.min(Math.max(8, cx - w / 2), innerWidth - w - 8);
+    const at = (side: string) => (side === 'above' ? r.top - 12 - h : r.bottom + 12);
+    const clear = (y: number) => [r, ...others].every((q) => left >= q.right || left + w <= q.left || y >= q.bottom || y + h <= q.top);
+    const ok = (side: string) => at(side) >= nav + 4 && at(side) + h <= innerHeight - 4 && clear(at(side));
+    const sides = row === 'top' ? ['above', 'below'] : ['below', 'above'];
+    const side = sides.find(ok) ?? sides[0];
+    tip.dataset.side = side;
+    tip.style.left = `${left}px`;
+    tip.style.top = `${at(side)}px`;
+    tip.style.setProperty('--arrow', `${cx - left}px`);
+    tip.classList.add('on');
+  };
+  document.addEventListener('mouseover', (e) => {
+    const a = (e.target as Element).closest?.<HTMLAnchorElement>('a[data-unit]');
+    if (a) show(a);
+    else hide();
+  });
+  document.addEventListener('focusin', (e) => {
+    const a = (e.target as Element).closest?.<HTMLAnchorElement>('a[data-unit]');
+    if (a?.matches(':focus-visible')) show(a);
+    else if (!a) hide();
+  });
+  // a press moves focus onto the unit; only focus leaving a unit hides its tip
+  document.addEventListener('focusout', (e) => (e.target as Element).closest?.('a[data-unit]') && hide());
+  window.addEventListener('scroll', hide, { passive: true });
+  window.addEventListener('rk:world-moved', hide);
+  document.addEventListener('astro:before-swap', hide);
+
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) document.querySelectorAll('a[data-unit].pressed').forEach((a) => a.classList.remove('pressed'));
   });
@@ -272,7 +334,7 @@ const POWER = [
     background: #3e3a32;
   }
 
-  /* label strip over the centre channel */
+  /* label strip beside the channel */
   .plate {
     position: absolute;
     display: flex;
@@ -284,18 +346,14 @@ const POWER = [
     box-shadow:
       0 0 0 1px var(--ivory-2),
       1px 2px 3px rgba(0, 0, 0, 0.12);
-    font: 500 max(9px, calc(100cqw * 6 / 680)) / 1.2 var(--font-mono);
+    font: 500 max(9px, calc(100cqw * 5.6 / 680)) / 1 var(--font-mono);
   }
   .hit:hover .plate {
     background: #fbf8f1;
   }
   .ttl {
-    display: -webkit-box;
     flex: 1;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    white-space: nowrap;
   }
   .pin {
     flex: none;
@@ -304,12 +362,16 @@ const POWER = [
     border-radius: 3px;
     color: var(--ink-2);
     font-size: 0.9em;
+    line-height: 1.1;
   }
 
+  /* the unit's tip is the text source; on the bench it shows in one floating tip over the whole desk */
   .tip {
-    position: absolute;
-    left: 50%;
-    z-index: 3;
+    display: none;
+  }
+  :global(.bb-tip) {
+    position: fixed;
+    z-index: 30;
     display: grid;
     width: max-content;
     max-width: 280px;
@@ -323,31 +385,51 @@ const POWER = [
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
-    translate: -50% 4px;
+    translate: 0 var(--tip-dy, 4px);
     transition:
       opacity var(--t-fast) var(--ease),
       translate var(--t-fast) var(--ease),
       visibility 0s var(--t-fast);
   }
-  /* tips open over the board's middle, away from the jumpers above and below it */
-  .top .tip {
-    top: calc(100% + 6px);
+  :global(.bb-tip[data-side='below']) {
+    --tip-dy: -4px;
   }
-  .bottom .tip {
-    bottom: calc(100% + 6px);
+  :global(.bb-tip.on) {
+    opacity: 1;
+    visibility: visible;
+    translate: 0 0;
+    transition-delay: 0s;
+  }
+  /* the arrow points back at the unit */
+  :global(.bb-tip)::after {
+    content: '';
+    position: absolute;
+    left: var(--arrow, 50%);
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    border: solid #2c3a35;
+    background: #101614;
+    rotate: 45deg;
+  }
+  :global(.bb-tip[data-side='above'])::after {
+    top: 100%;
+    margin-top: -5px;
+    border-width: 0 1px 1px 0;
+  }
+  :global(.bb-tip[data-side='below'])::after {
+    bottom: 100%;
+    margin-bottom: -5px;
+    border-width: 1px 0 0 1px;
+  }
+  :global(.bb-tip .tp) {
+    color: #b9ccc5;
+    font: 400 var(--fs-label) var(--font-mono);
   }
   .tp {
     color: #b9ccc5;
     font: 400 var(--fs-label) var(--font-mono);
   }
-  .hit:hover .tip,
-  .hit:focus-visible .tip {
-    opacity: 1;
-    visibility: visible;
-    translate: -50% 0;
-    transition-delay: 0s;
-  }
-
   .next {
     display: grid;
     place-items: center;
@@ -379,12 +461,13 @@ const POWER = [
     gap: var(--s-1);
   }
 
-  /* desk world: room above and below the board for the jumpers' runs */
+  /* desk world: room above and below the board for the harness rows */
   :global(html.world) .bbw {
-    margin: 72px 0 0;
+    width: 100%;
+    margin: 96px 0 0;
   }
   :global(html.world) .legend {
-    margin-top: 64px;
+    margin-top: 72px;
   }
 
   /* phones: one column of cards, the same drawings; the switch is the big target */
@@ -441,10 +524,8 @@ const POWER = [
       padding: 6px 8px;
       font-size: var(--fs-label);
     }
-    .ttl {
-      display: block;
-    }
     .tip {
+      display: grid;
       position: static;
       align-self: start;
       width: auto;
@@ -453,21 +534,9 @@ const POWER = [
       border: 0;
       background: none;
       box-shadow: none;
-      opacity: 1;
-      visibility: visible;
-      translate: none;
-    }
-    .hit:hover .tip,
-    .hit:focus-visible .tip {
-      translate: none;
     }
     .tt {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
+      font-weight: 500;
     }
     .tp {
       color: var(--ink-2);
