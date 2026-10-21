@@ -67,7 +67,7 @@ export const SKILLS: SkillGroup[] = [
   },
   {
     n: 8, kind: 'gpu', label: 'GPU & PARALLEL', name: 'GPU, Parallel & ML',
-    from: "#hero-cn8 [data-pin='PA1']", silk: 'A1', color: '#d9d6cf',
+    from: "#hero-cn8 [data-pin='PA1']", silk: 'A1', color: '#cf4f8b',
     skills: ['CUDA', 'cuFFT', 'pthreads', 'Nsight', 'Shared memory', 'Coalesced access', 'Warp divergence', 'Occupancy', 'PyTorch', 'TorchHD', 'TensorFlow', 'OpenCV'],
   },
 ];
