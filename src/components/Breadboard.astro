@@ -21,18 +21,21 @@ const { projects } = Astro.props;
 
 type Half = 'top' | 'bottom';
 // left to right, top half then bottom half; label = the one-line plate text (the full title is in the tooltip),
-// silk = silkscreen name of the header pin the jumper leaves (from)
+// silk = silkscreen name of the header pin the jumper leaves (from). Pins run D7 to D0 down the header, so
+// the top row takes the upper pins far to near and the bottom row the lower ones near to far: the harness
+// then splits at the board's edge without a single crossing
 const UNITS: { slug: string; label: string; kind: PartKind; half: Half; silk: string; from: string; color: string }[] = [
-  { slug: 'iio-sensor-hub', label: 'IIO hub', kind: 'msa311', half: 'top', silk: 'D2', from: "#hero-cn9 [data-pin='PA10']", color: '#d9d6cf' },
-  { slug: 'openwrt-fault-injection', label: 'OpenWrt', kind: 'wifi', half: 'top', silk: 'D3', from: "#hero-cn9 [data-pin='PB3']", color: '#4f8a4f' },
-  { slug: 'freertos-host-shim', label: 'FreeRTOS', kind: 'crystal', half: 'top', silk: 'D4', from: "#hero-cn9 [data-pin='PB5']", color: '#c77a33' },
-  { slug: 'gesture-wheelchair', label: 'Wheelchair', kind: 'adxl335', half: 'top', silk: 'D5', from: "#hero-cn9 [data-pin='PB4']", color: '#6d5596' },
-  { slug: 'gpu-beamformer', label: 'Beamformer', kind: 'hcsr04', half: 'top', silk: 'D6', from: "#hero-cn9 [data-pin='PB10']", color: '#3f6fa8' },
-  { slug: 'cuda-image-processing', label: 'CUDA', kind: 'matrix', half: 'bottom', silk: 'D7', from: "#hero-cn9 [data-pin='PA8']", color: '#c9a43a' },
-  { slug: 'hardware-debloat-ghidra', label: 'Ghidra', kind: 'swd', half: 'bottom', silk: 'D1', from: "#hero-cn9 [data-pin='PA2']", color: '#7a5136' },
-  { slug: 'hdc-pi-vs-gpu', label: 'HDC', kind: 'oled', half: 'bottom', silk: 'D0', from: "#hero-cn9 [data-pin='PA3']", color: '#7d7f84' },
-  // A0 (PA0) sits on the far side of the board; its jumper leaves the nearest free CN10 morpho pin
-  { slug: 'captcha-cnn', label: 'CAPTCHA', kind: 'camera', half: 'bottom', silk: 'PC4', from: "#hero-cn10 [data-pin='PC4']", color: '#3f86d8' },
+  { slug: 'iio-sensor-hub', label: 'IIO hub', kind: 'msa311', half: 'top', silk: 'D3', from: "#hero-cn9 [data-pin='PB3']", color: '#d9d6cf' },
+  { slug: 'openwrt-fault-injection', label: 'OpenWrt', kind: 'wifi', half: 'top', silk: 'D4', from: "#hero-cn9 [data-pin='PB5']", color: '#4f8a4f' },
+  { slug: 'freertos-host-shim', label: 'FreeRTOS', kind: 'crystal', half: 'top', silk: 'D5', from: "#hero-cn9 [data-pin='PB4']", color: '#c77a33' },
+  { slug: 'gesture-wheelchair', label: 'Wheelchair', kind: 'adxl335', half: 'top', silk: 'D6', from: "#hero-cn9 [data-pin='PB10']", color: '#6d5596' },
+  { slug: 'gpu-beamformer', label: 'Beamformer', kind: 'hcsr04', half: 'top', silk: 'D7', from: "#hero-cn9 [data-pin='PA8']", color: '#3f6fa8' },
+  // A0 (PA0) sits on the far side of the MCU board; this jumper leaves the free CN10 morpho pin PC4,
+  // which sits between D3 and D2, so all nine leave the board as one ribbon
+  { slug: 'cuda-image-processing', label: 'CUDA', kind: 'matrix', half: 'bottom', silk: 'PC4', from: "#hero-cn10 [data-pin='PC4']", color: '#c9a43a' },
+  { slug: 'hardware-debloat-ghidra', label: 'Ghidra', kind: 'swd', half: 'bottom', silk: 'D2', from: "#hero-cn9 [data-pin='PA10']", color: '#7a5136' },
+  { slug: 'hdc-pi-vs-gpu', label: 'HDC', kind: 'oled', half: 'bottom', silk: 'D1', from: "#hero-cn9 [data-pin='PA2']", color: '#7d7f84' },
+  { slug: 'captcha-cnn', label: 'CAPTCHA', kind: 'camera', half: 'bottom', silk: 'D0', from: "#hero-cn9 [data-pin='PA3']", color: '#3f86d8' },
 ];
 const STATUS = { wip: 'In progress', shipped: 'Shipped' };
 const byId = new Map(projects.map((p) => [p.id, p]));
@@ -445,13 +448,13 @@ const POWER = [
     gap: var(--s-1);
   }
 
-  /* desk world: room above and below the board for the jumpers' runs */
+  /* desk world: room above and below the board for the harness rows */
   :global(html.world) .bbw {
     width: 100%;
-    margin: 72px 0 0;
+    margin: 96px 0 0;
   }
   :global(html.world) .legend {
-    margin-top: 64px;
+    margin-top: 72px;
   }
 
   /* phones: one column of cards, the same drawings; the switch is the big target */
