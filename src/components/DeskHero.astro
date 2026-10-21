@@ -428,7 +428,9 @@ const LINKS = [
       const d = root.getBoundingClientRect();
       const u = stage.offsetWidth / 1500;
       const p = port.getBoundingClientRect();
-      const path = usbLeft(Math.round((p.left + p.width / 2 - d.left - x) / u), Math.round((p.top + p.height / 2 - d.top - y) / u));
+      // unscaled: the overview shrinks the whole desk, the cable with it
+      const k = d.width / root.offsetWidth || 1;
+      const path = usbLeft(Math.round(((p.left + p.width / 2 - d.left) / k - x) / u), Math.round(((p.top + p.height / 2 - d.top) / k - y) / u));
       usb.forEach((el) => el.setAttribute('d', path));
     };
     window.addEventListener('rk:world-moved', route, { signal });

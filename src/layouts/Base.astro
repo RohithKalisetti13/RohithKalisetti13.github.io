@@ -176,7 +176,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       // and that clamped value must not overwrite the entry's saved one
       let hold: number | null = null;
       const remember = () => {
-        if (root.classList.contains('rk-swapping')) return;
+        // the overview parks the page at the top for a moment; the entry keeps its own position
+        if (root.classList.contains('rk-swapping') || root.dataset.overview) return;
         if (hold !== null && Math.abs(window.scrollY - hold) > 1) return;
         hold = null;
         writePos(window.scrollY, root.dataset.station);

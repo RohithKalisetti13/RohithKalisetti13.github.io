@@ -22,11 +22,22 @@
   type Wire = { pin: DOMRect; pad: DOMRect; color: string; group: string; shared: boolean; side: string; sk: string };
   type Seg = { h: boolean; c: number; a: number; b: number };
 
+  // every rect in desk space: relative to the desk's top-left corner and unscaled, so the wires hold at
+  // any camera scale (the overview shrinks the whole desk). Set from the desk at the start of each draw
+  let origin = { x: 0, y: 0, k: 1 };
+  const box = (e: Element) => {
+    const r = e.getBoundingClientRect();
+    return new DOMRect((r.left - origin.x) / origin.k, (r.top - origin.y) / origin.k, r.width / origin.k, r.height / origin.k);
+  };
+  const boxOf = (sel: string) => {
+    const e = document.querySelector(sel);
+    return e ? box(e) : undefined;
+  };
   const pick = (sel: string) => {
     const [q, n] = sel.split('@');
     try {
       const el = document.querySelectorAll(q)[Number(n ?? 0)];
-      return el && el.getClientRects().length ? el.getBoundingClientRect() : null;
+      return el && el.getClientRects().length ? box(el) : null;
     } catch {
       return null;
     }
@@ -99,7 +110,7 @@
       const pads = [...right.querySelectorAll<HTMLElement>(`[data-wire-group="${group}"]`)].filter((t) => t.dataset.wireFrom!.includes(header));
       const pins = pads.map((t) => pick(t.dataset.wireFrom!)).filter((r): r is DOMRect => !!r);
       if (!pads.length || pins.length !== pads.length) return null;
-      return mean(pads.map((t) => midY(t.getBoundingClientRect()))) - mean(pins.map(midY));
+      return mean(pads.map((t) => midY(box(t)))) - mean(pins.map(midY));
     };
     const e1 = band('trace', 'cn5');
     if (e1 === null) return;
@@ -138,9 +149,11 @@
       svg.replaceChildren();
       if (hero?.dataset.intro === 'run') return;
       const world = document.documentElement.classList.contains('world');
+      const o = desk.getBoundingClientRect();
+      origin = { x: o.left, y: o.top, k: o.width / desk.offsetWidth || 1 };
       if (world) align();
-      const d = desk.getBoundingClientRect();
-      const s = stage.getBoundingClientRect();
+      const d = box(desk);
+      const s = box(stage);
       const u = s.width / BOARD_W;
       svg.setAttribute('viewBox', `0 0 ${d.width} ${d.height}`);
       svg.setAttribute('width', String(d.width));
@@ -149,7 +162,7 @@
       const groups = new Map<string, Wire[]>();
       document.querySelectorAll<HTMLElement>('[data-wire-from]').forEach((t) => {
         const pin = pick(t.dataset.wireFrom!);
-        const pad = t.getClientRects().length ? t.getBoundingClientRect() : null;
+        const pad = t.getClientRects().length ? box(t) : null;
         // the skill parts exist only on the desk world: no parts, no leads
         if (!pin || (!pad && (world || t.dataset.wireGroup === 'skills'))) return;
         const g = t.dataset.wireGroup ?? 'a';
@@ -198,7 +211,7 @@
       const ribbon = [...groups].filter(([g]) => !ownRoute(g)).map(([, w]) => w);
       // lanes fill the gap between the board's LCD jumpers and the nearest landing pad; the bench units'
       // jumpers turn before the breadboard's edge
-      const bench = document.querySelector('.bb')?.getBoundingClientRect();
+      const bench = boxOf('.bb');
       const pads = ribbon.flat().map((w) => (w.side && bench ? bench.left : w.pad.left) - d.left);
       const start = X(LCD_OUTER) + 3 * pitch;
       const end = Math.min(...pads) - housingW - 2 * pitch;
@@ -213,8 +226,8 @@
       // bench's right margin, and a short drop into the rail ends. Nothing crosses the ribbon or the
       // breadboard, and the higher pin takes the higher run and the outer lane, so the two never cross
       const power = (wires: Wire[]) => {
-        const eyebrow = document.querySelector('#work .eyebrow')?.getBoundingClientRect();
-        const bench = document.querySelector('.bb')?.getBoundingClientRect();
+        const eyebrow = boxOf('#work .eyebrow');
+        const bench = boxOf('.bb');
         if (!eyebrow || !bench || wires.length < 2) return;
         const [hi, lo] = [...wires].sort((a, b) => midY(a.pin) - midY(b.pin));
         const run0 = eyebrow.top - d.top - 44;
@@ -317,7 +330,7 @@
       // down the edge, the upper row takes the inner lanes, so no turn crosses a lane that runs on. The
       // lane order is the one with the fewest crossings (none, with the pins set in lib/skills)
       const skillParts = (wires: Wire[]) => {
-        const units = [...document.querySelectorAll<HTMLElement>('.sk-unit')].map((u) => ({ row: u.dataset.row, r: u.getBoundingClientRect() }));
+        const units = [...document.querySelectorAll<HTMLElement>('.sk-unit')].map((u) => ({ row: u.dataset.row, r: box(u) }));
         if (!units.length) return;
         const step = pitch;
         const edge = X(30) - 2 * step;
