@@ -244,14 +244,6 @@ const parts = SKILLS.map((g, i) => {
 </script>
 
 <style>
-  :global(html.world) .sk-title {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
   .sk-defs {
     position: absolute;
     width: 0;
@@ -268,17 +260,29 @@ const parts = SKILLS.map((g, i) => {
     display: none;
   }
 
-  /* desk world: the parts, tucked under the board's lower edge */
-  :global(html.world) .skills-board {
-    margin-top: calc(var(--lift) * var(--u) * -1);
-  }
-  :global(html.world) .sk-parts {
-    position: relative;
-    display: block;
-    height: calc(var(--bh) * var(--u));
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  /* desk world: the parts, tucked under the board's lower edge. Phones, visits without scripts and
+     reduced motion get the grouped list as cards instead */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html.world) .skills-board {
+      margin-top: calc(var(--lift) * var(--u) * -1);
+    }
+    :global(html.world) .sk-parts {
+      position: relative;
+      display: block;
+      height: calc(var(--bh) * var(--u));
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    :global(html.world) .sk-title,
+    :global(html.world) .sk-list {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
   .sk-unit {
     position: absolute;
@@ -493,13 +497,42 @@ const parts = SKILLS.map((g, i) => {
     pointer-events: none;
   }
 
-  /* the full text; hidden on the desk world, where the parts carry it */
-  :global(html.world) .sk-list {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+  /* the grouped list as cards */
+  .sk-title {
+    width: var(--stage-w);
+    margin: var(--s-6) 0 var(--s-2) calc((100% - var(--stage-w)) / 2);
+    color: var(--text);
+  }
+  .sk-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: var(--s-2);
+  }
+  .sk-group {
+    padding: var(--s-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-2);
+    background: var(--board);
+  }
+  .sk-group h3 {
+    margin-bottom: var(--s-1);
+    color: var(--text);
+    font: 600 var(--fs-label-lg) / 1.3 var(--font-mono);
+    letter-spacing: 0.04em;
+  }
+  .sk-group ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sk-group li {
+    padding: 3px 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--text);
+    font: 500 var(--fs-label-lg) / 1.35 var(--font-mono);
   }
 </style>
