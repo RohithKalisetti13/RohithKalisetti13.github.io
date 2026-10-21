@@ -252,6 +252,100 @@
       { passive: false, signal },
     );
 
+    // click and drag: the camera follows the pointer, with a soft give past the first and last
+    // station, and the release lands on the nearest one (a flick or a long pull takes the neighbour,
+    // never more). Never from anything that takes a click, the keyboard or a text selection
+    const NO_DRAG =
+      'a, button, input, textarea, select, label, summary, [role="tab"], [role="tablist"], [role="slider"], [contenteditable], nav, dialog, .ide, pre, code, .wire-hit, h1, h2, h3, h4, p, li';
+    type Drag = { id: number; x: number; y: number; dx: number; on: boolean; base: number; stops: number[]; t: number; v: number };
+    let drag: Drag | null = null;
+    // camera offset that frames each station, from layout
+    const stops = () => {
+      const c = camera.getBoundingClientRect().left;
+      const w = world.clientWidth;
+      return STATIONS.map((s) => {
+        const r = stations.get(s)!.getBoundingClientRect();
+        return -(r.left - c + r.width - w);
+      });
+    };
+    const give = (over: number) => (world.clientWidth / 2) * (1 - 1 / (over / world.clientWidth + 1));
+    const eatClick = (e: Event) => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    };
+
+    window.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (drag || !on() || blocked() || e.button !== 0 || e.pointerType === 'touch' || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+        const t = e.target as Element | null;
+        if (!t?.closest || !world.contains(t) || t.closest(NO_DRAG)) return;
+        drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, on: false, base: 0, stops: [], t: e.timeStamp, v: 0 };
+      },
+      { signal },
+    );
+    window.addEventListener(
+      'pointermove',
+      (e) => {
+        if (!drag || e.pointerId !== drag.id) return;
+        const dx = e.clientX - drag.x;
+        if (!drag.on) {
+          const dy = e.clientY - drag.y;
+          if (Math.hypot(dx, dy) < 8) return;
+          if (Math.abs(dx) <= Math.abs(dy) || blocked()) return void (drag = null);
+          drag.on = true;
+          drag.base = new DOMMatrixReadOnly(getComputedStyle(camera).transform).m41;
+          drag.stops = stops();
+          root.classList.add('dragging');
+          world.classList.add('moving');
+          getSelection()?.removeAllRanges();
+          try {
+            root.setPointerCapture(e.pointerId);
+          } catch {
+            /* the window listeners still see the rest of the drag */
+          }
+        }
+        const dt = e.timeStamp - drag.t;
+        if (dt > 0) drag.v = 0.7 * ((dx - drag.dx) / dt) + 0.3 * drag.v;
+        drag.t = e.timeStamp;
+        drag.dx = dx;
+        if (reduced.matches) return;
+        const [first] = drag.stops;
+        const last = drag.stops[drag.stops.length - 1];
+        const x = drag.base + dx;
+        camera.style.transform = `translate3d(${x > first ? first + give(x - first) : x < last ? last - give(last - x) : x}px, 0, 0)`;
+      },
+      { signal },
+    );
+    const release = (e: Event) => {
+      const d = drag;
+      if (!d || (e instanceof PointerEvent && e.pointerId !== d.id)) return;
+      drag = null;
+      if (!d.on) return;
+      root.classList.remove('dragging');
+      if (root.hasPointerCapture(d.id)) root.releasePointerCapture(d.id);
+      // the click that ends a drag presses nothing
+      if (e.type === 'pointerup') {
+        window.addEventListener('click', eatClick, { capture: true, once: true });
+        setTimeout(() => window.removeEventListener('click', eatClick, true), 0);
+      }
+      const from = STATIONS.indexOf(current());
+      const x = d.base + d.dx;
+      const v = e.timeStamp - d.t > 80 ? 0 : d.v;
+      let to = d.stops.reduce((best, s, i) => (Math.abs(s - x) < Math.abs(d.stops[best] - x) ? i : best), from);
+      if (to === from && (Math.abs(d.dx) > world.clientWidth * 0.15 || (Math.abs(v) > 0.5 && Math.sign(v) === Math.sign(d.dx)))) to = from - Math.sign(d.dx);
+      to = e.type === 'pointerup' ? Math.max(0, Math.min(STATIONS.length - 1, Math.max(from - 1, Math.min(from + 1, to)))) : from;
+      camera.style.transform = '';
+      if (to !== from) return go(STATIONS[to]);
+      // back to where it was: the glide home ends in transitionend, a camera that never left settles now
+      if (reduced.matches || Math.abs(new DOMMatrixReadOnly(getComputedStyle(camera).transform).m41 - d.stops[from]) < 1) settled();
+    };
+    window.addEventListener('pointerup', release, { signal });
+    window.addEventListener('pointercancel', release, { signal });
+    window.addEventListener('blur', release, { signal });
+    // no image drag or text selection while the camera is held
+    for (const t of ['dragstart', 'selectstart'] as const) window.addEventListener(t, (e) => drag?.on && e.preventDefault(), { signal });
+
     // the layout mode follows the viewport; the stack has no camera at all
     const mode = () => {
       const was = on();
@@ -340,6 +434,15 @@
   }
   html.world .world.ready .camera {
     transition: transform 800ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  /* held by a drag: the camera tracks the pointer 1:1 */
+  html.world.dragging .world.ready .camera {
+    transition: none;
+  }
+  html.world.dragging,
+  html.world.dragging * {
+    cursor: grabbing !important;
+    user-select: none;
   }
   html.world[data-station='left'] .camera {
     --cam: 0px;
