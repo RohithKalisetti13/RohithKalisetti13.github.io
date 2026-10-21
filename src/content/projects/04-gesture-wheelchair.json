@@ -2,6 +2,7 @@
   "slug": "gesture-wheelchair",
   "title": "Gesture-controlled wheelchair with hurdle detection",
   "status": "shipped",
+  "period": "Jan 2019 - Apr 2019",
   "stack": [
     "Embedded C",
     "ATmega32",
