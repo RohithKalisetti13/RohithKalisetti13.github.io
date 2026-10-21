@@ -54,7 +54,7 @@ const parts = SKILLS.map((g, i) => {
               <span class="pin">{g.silk}</span>
             </span>
           </button>
-          <span class="sk-pad" style={g.pad} aria-hidden="true" />
+          <span class="sk-pad" style={g.pad} data-wire-from={g.from} data-wire-color={g.color} data-wire-group="skills" data-wire-side={`${g.row}`} data-sk={g.n} aria-hidden="true" />
         </li>
       ))
     }

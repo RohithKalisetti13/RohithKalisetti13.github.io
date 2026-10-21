@@ -4,7 +4,8 @@
 // Optional on the pad: data-wire-color, data-wire-group (each group gets its own block of lanes),
 // data-wire-shared (the pin already carries a housing, so the wire leaves from its end),
 // data-wire-side on the bench units (top or bottom: the jumper reaches its hole from above or below the
-// breadboard).
+// breadboard) and on the skill parts (0 or 1: the row of parts it lands on), data-sk on the skill parts
+// (the wire takes that number, so the part can light its wire).
 // A selector may end in "@n" to pick the nth match. Missing or hidden anchors drop the wire.
 // Desk world: wires leave the headers to the right, drop or rise in the gap between the stations,
 // and land on the bench, which this script first slides level with the headers it is wired to.
@@ -18,7 +19,7 @@
   const LCD_OUTER = 1542 + 4.5; // outer edge of the LCD jumpers, board units
   const BOARD_W = 1500;
 
-  type Wire = { pin: DOMRect; pad: DOMRect; color: string; group: string; shared: boolean; side: string };
+  type Wire = { pin: DOMRect; pad: DOMRect; color: string; group: string; shared: boolean; side: string; sk: string };
   type Seg = { h: boolean; c: number; a: number; b: number };
 
   const pick = (sel: string) => {
@@ -149,10 +150,11 @@
       document.querySelectorAll<HTMLElement>('[data-wire-from]').forEach((t) => {
         const pin = pick(t.dataset.wireFrom!);
         const pad = t.getClientRects().length ? t.getBoundingClientRect() : null;
-        if (!pin || (!pad && world)) return;
+        // the skill parts exist only on the desk world: no parts, no leads
+        if (!pin || (!pad && (world || t.dataset.wireGroup === 'skills'))) return;
         const g = t.dataset.wireGroup ?? 'a';
         if (!groups.has(g)) groups.set(g, []);
-        groups.get(g)!.push({ pin, pad: pad ?? new DOMRect(), color: t.dataset.wireColor ?? '#8a8a86', group: g, shared: 'wireShared' in t.dataset, side: t.dataset.wireSide ?? '' });
+        groups.get(g)!.push({ pin, pad: pad ?? new DOMRect(), color: t.dataset.wireColor ?? '#8a8a86', group: g, shared: 'wireShared' in t.dataset, side: t.dataset.wireSide ?? '', sk: t.dataset.sk ?? '' });
       });
       if (!groups.size) return;
 
@@ -169,7 +171,9 @@
       const caps = el('g', {});
       // a wide invisible stroke over the ribbon makes it a click target
       const hit = el('g', { class: 'wire-hit', fill: 'none', stroke: 'transparent', 'stroke-width': 18 });
-      svg.append(shadow, body, shine, caps, hit);
+      // the halo a skill part lights on its own wire
+      const rings = el('g', { class: 'sk-rings', fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': wireW + 7 });
+      svg.append(rings, shadow, body, shine, caps, hit);
 
       // Dupont housing lying flat between x0 and x1, contact at cx
       const housing = (cx: number, cy: number, x0: number, x1: number) => {
@@ -180,15 +184,17 @@
           el('rect', { x: cx - 3, y: cy - 3, width: 6, height: 6, rx: 1, fill: '#2c2d32' }),
         );
       };
-      const stroke = (path: string, color: string, w = wireW) => {
+      const stroke = (path: string, color: string, w = wireW, sk = '') => {
         shadow.append(el('path', { d: path, 'stroke-width': w + 1.5 }));
-        body.append(el('path', { d: path, stroke: color, 'stroke-width': w }));
+        body.append(el('path', { d: path, stroke: color, 'stroke-width': w, ...(sk ? { 'data-sk': sk } : {}) }));
         shine.append(el('path', { d: path, 'stroke-width': Math.max(0.8, w * 0.28) }));
-        if (world) hit.append(el('path', { d: path }));
+        if (sk) rings.append(el('path', { d: path, 'data-sk': sk }));
+        else if (world) hit.append(el('path', { d: path }));
       };
 
-      // power has its own route in the desk world (below); the ribbon lanes are for the signal groups
-      const ownRoute = (g: string) => world && g === 'power';
+      // power and the skill parts have their own routes in the desk world (below); the ribbon lanes are for
+      // the signal groups
+      const ownRoute = (g: string) => world && (g === 'power' || g === 'skills');
       const ribbon = [...groups].filter(([g]) => !ownRoute(g)).map(([, w]) => w);
       // lanes fill the gap between the board's LCD jumpers and the nearest landing pad; the bench units'
       // jumpers turn before the breadboard's edge
@@ -305,9 +311,48 @@
         });
       };
 
+      // skill parts: one harness off the left headers. Each jumper leaves its pin to the left, drops down
+      // the board's left edge in its own lane, turns right in the channel above its row of parts and
+      // drops onto the part's pin. Toward the parts, the nearer part takes the lower run in the channel;
+      // down the edge, the upper row takes the inner lanes, so no turn crosses a lane that runs on. The
+      // lane order is the one with the fewest crossings (none, with the pins set in lib/skills)
+      const skillParts = (wires: Wire[]) => {
+        const units = [...document.querySelectorAll<HTMLElement>('.sk-unit')].map((u) => ({ row: u.dataset.row, r: u.getBoundingClientRect() }));
+        if (!units.length) return;
+        const step = pitch;
+        const edge = X(30) - 2 * step;
+        const geo = wires.map((w) => {
+          const tx = w.pad.left + w.pad.width / 2 - d.left;
+          const ty = midY(w.pad) - d.top;
+          const mates = wires.filter((v) => v.side === w.side);
+          const top = Math.min(...units.filter((u) => u.row === w.side).map((u) => u.r.top - d.top), ...mates.map((v) => midY(v.pad) - d.top - housingW * 0.6));
+          // rank among the row's parts, nearest first
+          const k = mates.filter((v) => v.pad.left < w.pad.left).length;
+          return { w, tx, ty, px: w.pin.left + w.pin.width / 2 - d.left, py: midY(w.pin) - d.top, yc: top - 1.5 * step - k * step };
+        });
+        const route = (g: (typeof geo)[number], L: number): [number, number][] => [
+          [g.px - 28 * u, g.py],
+          [L, g.py],
+          [L, g.yc],
+          [g.tx, g.yc],
+          [g.tx, g.ty],
+        ];
+        const legs = (g: (typeof geo)[number], i: number) => segs(route(g, edge - i * step));
+        // inner lane first: the lowest pin
+        const order = untangle([...geo].sort((a, b) => b.py - a.py), legs);
+        svg.dataset.skillCrossings = String(tangles(order, legs));
+        order.forEach((g, i) => {
+          housing(g.px, g.py, g.px - 28 * u, g.px + 24 * u);
+          const pts = route(g, edge - i * step);
+          pts[pts.length - 1] = [g.tx, housingV(g.tx, g.ty, -1)];
+          stroke(rounded(pts, bend), g.w.color, wireW, g.w.sk);
+        });
+      };
+
       for (const [name, wires] of groups) {
         if (ownRoute(name)) {
-          power(wires);
+          if (name === 'power') power(wires);
+          else skillParts(wires);
           continue;
         }
         if (world && name === 'units') {
@@ -410,6 +455,21 @@
     z-index: 2;
     overflow: visible;
     pointer-events: none;
+  }
+  .wire-layer :global(.sk-rings path) {
+    display: none;
+    stroke: var(--accent);
+    opacity: 0.55;
+  }
+  .wire-layer[data-sk-hot='1'] :global(.sk-rings [data-sk='1']),
+  .wire-layer[data-sk-hot='2'] :global(.sk-rings [data-sk='2']),
+  .wire-layer[data-sk-hot='3'] :global(.sk-rings [data-sk='3']),
+  .wire-layer[data-sk-hot='4'] :global(.sk-rings [data-sk='4']),
+  .wire-layer[data-sk-hot='5'] :global(.sk-rings [data-sk='5']),
+  .wire-layer[data-sk-hot='6'] :global(.sk-rings [data-sk='6']),
+  .wire-layer[data-sk-hot='7'] :global(.sk-rings [data-sk='7']),
+  .wire-layer[data-sk-hot='8'] :global(.sk-rings [data-sk='8']) {
+    display: inline;
   }
   .wire-layer :global(.wire-hit path) {
     pointer-events: stroke;
