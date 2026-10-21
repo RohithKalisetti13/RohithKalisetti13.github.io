@@ -157,6 +157,7 @@ const POWER = [
 
 <script>
   import { navigate } from 'astro:transitions/client';
+  import { showTip, hideTip } from '../lib/tip';
 
   // the switch drops and the LED lights, then the case study slides in
   const init = () => {
@@ -174,56 +175,28 @@ const POWER = [
   };
   document.addEventListener('astro:page-load', init);
 
-  // one floating tip: above a top unit, below a bottom one. It flips only when the screen has no room
-  // and the other side covers neither the unit nor the other row
+  // the shared floating tip: above a top unit, below a bottom one, clear of the other row
   const wide = window.matchMedia('(min-width: 721px)');
-  let tip: HTMLElement | null = null;
-  const hide = () => tip?.classList.remove('on');
   const show = (a: HTMLAnchorElement) => {
     const li = a.closest<HTMLElement>('.unit');
     const src = a.querySelector('.tip');
     if (!wide.matches || !li || !src) return;
-    if (!tip?.isConnected) {
-      tip = document.createElement('div');
-      tip.className = 'bb-tip';
-      tip.setAttribute('aria-hidden', 'true');
-      document.body.append(tip);
-    }
-    tip.innerHTML = src.innerHTML;
-    const r = li.getBoundingClientRect();
     const row = li.classList.contains('top') ? 'top' : 'bottom';
     const others = [...document.querySelectorAll<HTMLElement>(`.bb .unit:not(.${row})`)].map((u) => u.getBoundingClientRect());
-    const nav = document.querySelector('.nav')?.getBoundingClientRect().bottom ?? 0;
-    const w = tip.offsetWidth;
-    const h = tip.offsetHeight;
-    const cx = r.left + r.width / 2;
-    const left = Math.min(Math.max(8, cx - w / 2), innerWidth - w - 8);
-    const at = (side: string) => (side === 'above' ? r.top - 12 - h : r.bottom + 12);
-    const clear = (y: number) => [r, ...others].every((q) => left >= q.right || left + w <= q.left || y >= q.bottom || y + h <= q.top);
-    const ok = (side: string) => at(side) >= nav + 4 && at(side) + h <= innerHeight - 4 && clear(at(side));
-    const sides = row === 'top' ? ['above', 'below'] : ['below', 'above'];
-    const side = sides.find(ok) ?? sides[0];
-    tip.dataset.side = side;
-    tip.style.left = `${left}px`;
-    tip.style.top = `${at(side)}px`;
-    tip.style.setProperty('--arrow', `${cx - left}px`);
-    tip.classList.add('on');
+    showTip(li.getBoundingClientRect(), src.innerHTML, row === 'top' ? 'above' : 'below', others);
   };
   document.addEventListener('mouseover', (e) => {
     const a = (e.target as Element).closest?.<HTMLAnchorElement>('a[data-unit]');
     if (a) show(a);
-    else hide();
+    else if (!(e.target as Element).closest?.('[data-tip]')) hideTip();
   });
   document.addEventListener('focusin', (e) => {
     const a = (e.target as Element).closest?.<HTMLAnchorElement>('a[data-unit]');
     if (a?.matches(':focus-visible')) show(a);
-    else if (!a) hide();
+    else if (!a && !(e.target as Element).closest?.('[data-tip]')) hideTip();
   });
   // a press moves focus onto the unit; only focus leaving a unit hides its tip
-  document.addEventListener('focusout', (e) => (e.target as Element).closest?.('a[data-unit]') && hide());
-  window.addEventListener('scroll', hide, { passive: true });
-  window.addEventListener('rk:world-moved', hide);
-  document.addEventListener('astro:before-swap', hide);
+  document.addEventListener('focusout', (e) => (e.target as Element).closest?.('a[data-unit]') && hideTip());
 
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) document.querySelectorAll('a[data-unit].pressed').forEach((a) => a.classList.remove('pressed'));

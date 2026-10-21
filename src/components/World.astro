@@ -256,7 +256,7 @@
     // station, and the release lands on the nearest one (a flick or a long pull takes the neighbour,
     // never more). Never from anything that takes a click, the keyboard or a text selection
     const NO_DRAG =
-      'a, button, input, textarea, select, label, summary, [role="tab"], [role="tablist"], [role="slider"], [contenteditable], nav, dialog, .ide, pre, code, .wire-hit, h1, h2, h3, h4, p, li';
+      'a, button, input, textarea, select, label, summary, [role="tab"], [role="tablist"], [role="slider"], [contenteditable], nav, dialog, .ide, pre, code, .wire-hit, .skill-part, .sk-sheet, h1, h2, h3, h4, p, li';
     type Drag = { id: number; x: number; y: number; dx: number; on: boolean; base: number; stops: number[]; t: number; v: number };
     let drag: Drag | null = null;
     // camera offset that frames each station, from layout

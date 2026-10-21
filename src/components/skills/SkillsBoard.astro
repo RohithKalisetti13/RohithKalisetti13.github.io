@@ -36,6 +36,10 @@ const parts = SKILLS.map((g, i) => {
         <stop offset="0" stop-color="#c9ccd0" />
         <stop offset="1" stop-color="#9ea2a7" />
       </linearGradient>
+      <radialGradient id="sk-glow">
+        <stop offset=".3" stop-color="#7ee3a2" stop-opacity=".5" />
+        <stop offset="1" stop-color="#7ee3a2" stop-opacity="0" />
+      </radialGradient>
       <linearGradient id="sk-jack" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="#d4d6d9" />
         <stop offset="1" stop-color="#a6aaae" />
@@ -47,11 +51,25 @@ const parts = SKILLS.map((g, i) => {
     {
       parts.map((g) => (
         <li class="sk-unit" style={g.style} data-row={g.row}>
-          <button type="button" class="skill-part" data-sk={g.n} aria-label={`U${g.n}: ${g.name}, ${g.skills.length} skills`}>
+          <button
+            type="button"
+            class="skill-part"
+            data-sk={g.n}
+            data-tip
+            aria-expanded="false"
+            aria-controls="sk-sheet"
+            aria-label={`U${g.n}: ${g.name}, ${g.skills.length} skills`}
+          >
             <SkillPart kind={g.kind} />
             <span class="sk-plate" aria-hidden="true">
               <span class="ttl">{g.label}</span>
               <span class="pin">{g.silk}</span>
+            </span>
+            <span class="tip" aria-hidden="true">
+              <span class="tt">{g.name}</span>
+              <span class="tp">
+                U{g.n} &middot; {g.skills.length} skills &middot; {g.silk}
+              </span>
             </span>
           </button>
           <span class="sk-pad" style={g.pad} data-wire-from={g.from} data-wire-color={g.color} data-wire-group="skills" data-wire-side={`${g.row}`} data-sk={g.n} aria-hidden="true" />
@@ -59,6 +77,52 @@ const parts = SKILLS.map((g, i) => {
       ))
     }
   </ul>
+
+  <!-- datasheet for the part that was pressed; one at a time, beside nothing modal -->
+  <div id="sk-sheet" class="sk-sheet" role="region" aria-labelledby="sk-t1" tabindex="-1" hidden>
+    <button type="button" class="sk-x" aria-label="Close datasheet">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </button>
+    {
+      SKILLS.map((g) => (
+        <div class="sk-body" data-sheet={g.n} hidden>
+          <p class="sk-kicker">
+            Datasheet &middot; {g.skills.length} bits set &middot; jumper {g.silk}
+          </p>
+          <h3 id={`sk-t${g.n}`}>
+            U{g.n} - {g.name.toUpperCase()}
+          </h3>
+          <ol class="sk-bits">
+            {g.skills.map((s, i) => (
+              <li class="bit">
+                <span class="idx" aria-hidden="true">
+                  b{String(i).padStart(2, '0')}
+                </span>
+                <span class="nm">
+                  {s.split('/').map((part, k) => (
+                    <>
+                      {k > 0 && (
+                        <>
+                          /<wbr />
+                        </>
+                      )}
+                      {part}
+                    </>
+                  ))}
+                </span>
+                <span class="val" aria-hidden="true">
+                  1
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))
+    }
+  </div>
+  <p class="sr-only" aria-live="polite" data-sk-live></p>
 
   <div class="sk-list">
     {
@@ -75,6 +139,109 @@ const parts = SKILLS.map((g, i) => {
     }
   </div>
 </div>
+
+<script>
+  import { showTip, hideTip } from '../../lib/tip';
+  import { SKILLS } from '../../lib/skills';
+
+  let ac: AbortController | null = null;
+  document.addEventListener('astro:before-swap', () => {
+    ac?.abort();
+    ac = null;
+  });
+
+  const init = () => {
+    const root = document.querySelector<HTMLElement>('.skills-board');
+    if (!root || root.dataset.bound) return;
+    root.dataset.bound = '1';
+    ac?.abort();
+    ac = new AbortController();
+    const signal = ac.signal;
+    const sheet = root.querySelector<HTMLElement>('.sk-sheet')!;
+    const live = root.querySelector<HTMLElement>('[data-sk-live]')!;
+    const parts = [...root.querySelectorAll<HTMLButtonElement>('.skill-part')];
+    let open: HTMLButtonElement | null = null;
+    let near = '';
+
+    // the part under the pointer or the keyboard lights its wire; an open datasheet keeps its own lit
+    const light = () => {
+      const svg = document.querySelector<SVGSVGElement>('.wire-layer');
+      const n = near || open?.dataset.sk || '';
+      if (!svg) return;
+      if (n) svg.dataset.skHot = n;
+      else delete svg.dataset.skHot;
+    };
+    const tip = (b: HTMLButtonElement) => {
+      const li = b.closest<HTMLElement>('.sk-unit')!;
+      const row = li.dataset.row;
+      const others = [...root.querySelectorAll<HTMLElement>(`.sk-unit:not([data-row='${row}'])`)].map((u) => u.getBoundingClientRect());
+      showTip(li.getBoundingClientRect(), b.querySelector('.tip')!.innerHTML, row === '0' ? 'above' : 'below', others);
+    };
+    const enter = (b: HTMLButtonElement) => {
+      near = b.dataset.sk!;
+      light();
+      tip(b);
+    };
+    const leave = () => {
+      near = '';
+      light();
+      hideTip();
+    };
+
+    const close = (refocus = true) => {
+      const b = open;
+      if (!b) return;
+      open = null;
+      b.setAttribute('aria-expanded', 'false');
+      sheet.hidden = true;
+      live.textContent = 'Datasheet closed';
+      light();
+      if (refocus) b.focus({ preventScroll: true });
+    };
+    const show = (b: HTMLButtonElement) => {
+      if (open === b) return close();
+      open?.setAttribute('aria-expanded', 'false');
+      open = b;
+      const n = b.dataset.sk!;
+      const g = SKILLS.find((s) => String(s.n) === n)!;
+      b.setAttribute('aria-expanded', 'true');
+      for (const body of sheet.querySelectorAll<HTMLElement>('.sk-body')) body.hidden = body.dataset.sheet !== n;
+      sheet.setAttribute('aria-labelledby', `sk-t${n}`);
+      sheet.hidden = false;
+      live.textContent = `Datasheet U${n} - ${g.name}: ${g.skills.length} skills`;
+      light();
+      hideTip();
+      sheet.focus({ preventScroll: true });
+      // bring the whole sheet into view, never past its top
+      const r = sheet.getBoundingClientRect();
+      const nav = document.querySelector('.nav')?.getBoundingClientRect().bottom ?? 0;
+      const dy = Math.min(r.bottom + 24 - innerHeight, r.top - nav - 16);
+      if (dy > 0) window.dispatchEvent(new CustomEvent('rk:scroll-to', { detail: { y: window.scrollY + dy } }));
+    };
+
+    for (const b of parts) {
+      b.addEventListener('click', () => show(b), { signal });
+      b.addEventListener('mouseenter', () => enter(b), { signal });
+      b.addEventListener('mouseleave', leave, { signal });
+      b.addEventListener('focus', () => b.matches(':focus-visible') && enter(b), { signal });
+      b.addEventListener('blur', leave, { signal });
+    }
+    sheet.querySelector('.sk-x')!.addEventListener('click', () => close(), { signal });
+    document.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key !== 'Escape' || !open) return;
+        const a = document.activeElement;
+        if (a && a !== document.body && !root.contains(a)) return;
+        e.preventDefault();
+        close();
+      },
+      { signal },
+    );
+  };
+  document.addEventListener('astro:after-swap', init);
+  document.addEventListener('astro:page-load', init);
+</script>
 
 <style>
   :global(html.world) .sk-title {
@@ -131,7 +298,7 @@ const parts = SKILLS.map((g, i) => {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
-  .sk-art {
+  .skill-part :global(.sk-art) {
     position: absolute;
     top: 0;
     left: 0;
@@ -141,7 +308,7 @@ const parts = SKILLS.map((g, i) => {
     filter: drop-shadow(calc(5 * var(--u)) calc(9 * var(--u)) calc(7 * var(--u)) rgba(0, 0, 0, 0.42));
     transition: translate var(--t-fast) var(--ease);
   }
-  :global(:root[data-theme='light']) .sk-art {
+  :global(:root[data-theme='light']) .skill-part :global(.sk-art) {
     filter: drop-shadow(calc(5 * var(--u)) calc(9 * var(--u)) calc(7 * var(--u)) rgba(60, 50, 40, 0.3));
   }
 
@@ -185,20 +352,134 @@ const parts = SKILLS.map((g, i) => {
   }
 
   /* power LED on every part: matte green while powered, dark when the board is off */
-  .sk-art :global(.sk-led .lens) {
+  .skill-part :global(.sk-led .lens) {
     fill: #46b77a;
     transition: fill 200ms ease-out;
   }
-  .sk-art :global(.sk-led .glow) {
-    fill: #7ee3a2;
-    opacity: 0.28;
+  .skill-part :global(.sk-led .glow) {
+    fill: url(#sk-glow);
+    opacity: 1;
     transition: opacity 200ms ease-out;
   }
-  :global(html:has(.desk[data-power='off'])) .sk-art :global(.sk-led .lens) {
+  :global(html:has(.desk[data-power='off'])) .skill-part :global(.sk-led .lens) {
     fill: #26302a;
   }
-  :global(html:has(.desk[data-power='off'])) .sk-art :global(.sk-led .glow) {
+  :global(html:has(.desk[data-power='off'])) .skill-part :global(.sk-led .glow) {
     opacity: 0;
+  }
+
+  /* hover and keyboard focus light the part; the open one keeps a ring */
+  .skill-part:is(:hover, :focus-visible, [aria-expanded='true']) :global(.sk-art) {
+    translate: 0 -2px;
+  }
+  .skill-part:hover {
+    outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+    outline-offset: calc(6 * var(--u));
+  }
+  .skill-part:focus-visible,
+  .skill-part[aria-expanded='true'] {
+    outline: 2px solid var(--accent);
+    outline-offset: calc(6 * var(--u));
+  }
+  .skill-part:is(:hover, :focus-visible) .sk-plate {
+    background: #fbf8f1;
+  }
+  .tip {
+    display: none;
+  }
+
+  /* datasheet: a page of bit-field cells, every bit set */
+  .sk-sheet {
+    position: relative;
+    margin: var(--s-3) 0 0;
+    padding: var(--s-3) var(--s-3) var(--s-3);
+    border: 1px solid var(--line);
+    border-radius: var(--r-2);
+    background: var(--board);
+    color: var(--text);
+    box-shadow: 6px 12px 28px rgba(0, 0, 0, 0.3);
+  }
+  .sk-sheet[hidden] {
+    display: none;
+  }
+  .sk-sheet:focus {
+    outline: none;
+  }
+  .sk-sheet:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .sk-kicker {
+    color: var(--text-2);
+    font: 500 var(--fs-label) var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .sk-sheet h3 {
+    margin: 4px 48px var(--s-2) 0;
+    font: 600 1.15rem / 1.3 var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+  .sk-x {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-1);
+    background: none;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .sk-x:hover {
+    border-color: var(--accent);
+  }
+  .sk-x:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .sk-bits {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .bit {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--text) 4%, transparent);
+    font: 500 var(--fs-label-lg) / 1.25 var(--font-mono);
+  }
+  .nm {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  .idx {
+    color: var(--text-2);
+    font-size: var(--fs-label);
+  }
+  .val {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    background: var(--text);
+    color: var(--board);
+    font-size: var(--fs-label);
+    font-weight: 700;
   }
 
   /* jumper landing pin; WireLayer draws the wire onto it */
