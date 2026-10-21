@@ -1,18 +1,30 @@
 {
   "slug": "cuda-image-processing",
-  "title": "CPU and GPU parallel image processing",
+  "title": "Parallel sorting and CUDA image kernels",
   "status": "shipped",
   "period": "Jan 2024 – May 2024",
   "stack": [
     "C",
     "CUDA",
     "Pthreads",
-    "NVIDIA Nsight"
+    "BMP / PNG"
   ],
   "highlights": [
-    "Multithreaded CPU (Pthreads) and CUDA implementations for edge detection, bitmap flipping, rotation, Gaussian filtering, convolution and color transformations.",
-    "Optimized with workload partitioning, shared and constant memory, coalesced access, precomputation and tuned thread-block configurations, achieving 4-8x speedups over CPU.",
-    "Analyzed latency, occupancy, throughput, cache behavior and PCIe transfer overhead."
+    "Merge sort: chunked sorting and merging across pthreads, with mutex-guarded work distribution, checked against a reference sort.",
+    "Radial brightening: three CUDA kernels compared on speed — float maths, integer shift, and shared-memory precomputed multipliers.",
+    "Image toolkit on BMP and PNG: overlay/blend at a position, red-dominance region detection and bounding-box extraction."
   ],
-  "note": "Source is in a private course repository for academic integrity. Access on request."
+  "summary": "Three course projects from GPU architecture and programming: a pthread merge sort, CUDA brightening kernels compared on speed, and a CUDA image toolkit.",
+  "details": [
+    {
+      "heading": "Status",
+      "body": "Course projects."
+    }
+  ],
+  "links": [
+    {
+      "label": "Source",
+      "url": "https://github.com/RohithKalisetti13/GPU-Course-Projects"
+    }
+  ]
 }

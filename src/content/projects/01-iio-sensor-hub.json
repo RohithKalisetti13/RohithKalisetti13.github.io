@@ -4,17 +4,23 @@
   "status": "wip",
   "period": "Ongoing",
   "stack": [
-    "STM32 NUCLEO-F446RE (STM32F446RE, Cortex-M4)",
+    "STM32 Nucleo",
     "Raspberry Pi 4",
-    "MSA311 3-axis accelerometer",
-    "HC-SR04 ultrasonic sensor (optional)",
-    "TFT display",
-    "Linux IIO subsystem"
+    "MSA311 accelerometer",
+    "HC-SR04 ultrasonic sensor",
+    "Linux IIO",
+    "Bare-metal C"
   ],
-  "summary": "A small but realistic embedded system where the STM32 handles time-sensitive sensor work and the Raspberry Pi handles Linux-side integration, buffering, and user access.",
+  "summary": "An STM32 Nucleo sensor hub feeding a Raspberry Pi 4, with an MSA311 accelerometer and an HC-SR04 ultrasonic sensor. The target deliverable is a Linux IIO kernel driver for the hub; the driver is not written yet.",
   "highlights": [
-    "Pipeline: sensors, STM32 NUCLEO-F446RE, UART or SPI link (interface still to be chosen), Raspberry Pi 4, custom Linux kernel driver, Linux IIO subsystem, userspace tools and data logging.",
-    "Hardware on the bench: breadboard, jumper wires, resistors for pull-ups, dividers and protection, buttons for GPIO and user-control experiments, status and debug LEDs.",
-    "Status: in progress. Results will be added when the project is complete."
+    "Done so far: the bare-metal foundation on the STM32 — reset path, vector table, HAL init, clock configuration and GPIO.",
+    "Sensors: MSA311 accelerometer and HC-SR04 ultrasonic sensor, read by the STM32 and passed to the Pi 4.",
+    "Target, not done: a Linux IIO kernel driver on the Pi that exposes the hub's sensor data through the IIO subsystem."
+  ],
+  "details": [
+    {
+      "heading": "Status",
+      "body": "In progress. The IIO driver is a target, not a finished result."
+    }
   ]
 }

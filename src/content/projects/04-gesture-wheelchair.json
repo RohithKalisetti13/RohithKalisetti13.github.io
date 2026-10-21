@@ -8,12 +8,15 @@
     "ATmega32",
     "ADC",
     "UART",
-    "MEMS",
-    "IR"
+    "MEMS accelerometer",
+    "IR sensor",
+    "16x2 LCD"
   ],
   "highlights": [
-    "Designed a wheelchair control system using MEMS technology with an 8-bit ATmega32 microcontroller, improving accessibility for physically disabled users through hand gestures.",
-    "Wrote bare-metal C for the ATmega32 that reads a two-axis MEMS accelerometer through the on-chip ADC and maps tilt thresholds to forward, backward, left, right and stop outputs on a motor-driver port.",
-    "Added an obstacle input that stops the motors, shows an alert on a 16x2 LCD and backs the chair away, with live X and Y readings on the display and a UART receive interrupt for serial input."
-  ]
+    "Accelerometer X on PA1 and Y on PA2 go through the ADC; threshold bands map to forward, back, left, right and stop.",
+    "Motor driver on PORTB bits 4-7; a 16x2 LCD on PORTC shows the live readings.",
+    "An IR obstacle input on PORTD stops the chair and backs it away.",
+    "UART receive interrupt at 9600 baud."
+  ],
+  "summary": "ATmega32 firmware that turns hand tilt into wheelchair motion. A two-axis MEMS accelerometer is read through the ADC, and an IR obstacle input overrides the motors."
 }

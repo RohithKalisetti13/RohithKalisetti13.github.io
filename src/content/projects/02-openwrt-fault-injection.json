@@ -6,14 +6,37 @@
   "stack": [
     "OpenWrt",
     "Linux",
-    "TCP/IP",
-    "DNS",
+    "nftables",
+    "iptables",
+    "tc / ifb",
+    "tcpdump",
+    "Wi-Fi",
     "DHCP",
-    "QEMU"
+    "DNS"
   ],
-  "summary": "Designed an OpenWrt-based fault-injection platform that recreated Wi-Fi, DHCP, DNS, routing, port-blocking, and cloud-connectivity failures, turning intermittent device issues into repeatable engineering test cases for unattended regression runs.",
+  "summary": "A platform that breaks Wi-Fi, DHCP and DNS on demand, so flaky connectivity bugs become deterministic. One CLI command runs N devices at once across multiple fault modes.",
   "highlights": [
-    "Drove root-cause analysis of field-reported defects and exercised TCP/IP, DNS, and DHCP troubleshooting on Linux."
+    "Proposed and built it from a recurring NTP-failure pattern in QA tickets; nobody had assigned the work.",
+    "Fault profiles drive nftables/iptables rules, tc + ifb bandwidth shaping and tcpdump capture on an OpenWrt router.",
+    "Each session writes an artifact bundle: pcap, before/after firewall state and a structured pass/inconclusive summary.",
+    "Replaced one-device-at-a-time manual disconnect testing; it became the standard method for EVT/DVT, post-production and post-build validation."
   ],
-  "note": "Written up from internal work. The company repository is private, so there is no public code."
+  "details": [
+    {
+      "heading": "Problem",
+      "body": "Intermittent connectivity failures on devices could not be reproduced on demand, and the manual method was to disconnect one device at a time."
+    },
+    {
+      "heading": "Constraint",
+      "body": "The first prototype ran on a Raspberry Pi. Its single-radio Wi-Fi cannot run AP and STA mode at the same time. I identified that as the root cause after about two weeks."
+    },
+    {
+      "heading": "My part",
+      "body": "Proposed the tool, then moved to a commercial multi-radio router reflashed with OpenWrt and delivered a working tool in under two weeks."
+    },
+    {
+      "heading": "Status",
+      "body": "Professional work. The code is not public."
+    }
+  ]
 }

@@ -7,19 +7,34 @@
     "C/C++",
     "FreeRTOS",
     "ESP32",
-    "Ceedling",
-    "Docker",
-    "QEMU",
-    "GitHub Actions",
-    "ASAN",
-    "UBSAN",
-    "Valgrind"
+    "AddressSanitizer",
+    "UBSan",
+    "Valgrind",
+    "CI"
   ],
-  "summary": "Built a C/C++ FreeRTOS simulation layer that decoupled firmware logic from ESP32 hardware, enabling task, timer, delay, and concurrency behavior to be exercised reproducibly on Linux x86 systems.",
+  "summary": "A host-side FreeRTOS simulation layer, so RTOS-dependent firmware runs as a normal Linux program on x86 workstations and CI instead of needing the ESP32 target. Test coverage rose from 45% to 80%.",
   "highlights": [
-    "Used it to debug firmware issues before they reached the device, and as the core of an automated firmware test framework that supported design verification before hardware availability.",
-    "Modernized firmware test infrastructure by migrating Ceedling 0.31 to 1.x, rebuilding mocks and platform abstractions, and resolving preprocessing, dependency, include-path, and build-system incompatibilities across firmware modules, establishing objective and verifiable test methods.",
-    "Integrated the simulated firmware and validation stack into Dockerized QEMU and GitHub Actions workflows with ASAN, UBSAN, Valgrind, coverage analysis, packet captures, and device logs, so failures were detected and diagnosed before hardware testing. Managed VMs and virtual networking in QEMU for reproducible test environments, and handled Linux administration of the build and test hosts."
+    "Simulates tasks, delays, ticks, timers and concurrency in C/C++, with no ESP32 required.",
+    "Reused test code from the earlier dual-chip architecture by finding the shared layers, then updating paths, syntax, mocks and flags, instead of writing the suite from scratch.",
+    "Added AddressSanitizer, UBSan and Valgrind to the runs; they found real memory leaks and invalid writes before hardware testing.",
+    "Coverage went from 45% to 80%."
   ],
-  "note": "Written up from internal work. The company repository is private, so there is no public code."
+  "details": [
+    {
+      "heading": "Problem",
+      "body": "The task was a unit test suite for the current single-MCU firmware, whose RTOS-dependent code could only run on the target."
+    },
+    {
+      "heading": "My part",
+      "body": "Studied the earlier dual-chip architecture, which had tests, recognised the layers it shared with the current firmware, and built the simulation layer under them."
+    },
+    {
+      "heading": "Evidence",
+      "body": "Coverage 45% to 80%. Sanitizer and Valgrind runs found memory leaks and invalid writes."
+    },
+    {
+      "heading": "Status",
+      "body": "Professional work. The code is not public."
+    }
+  ]
 }

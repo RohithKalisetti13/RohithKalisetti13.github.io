@@ -7,19 +7,19 @@
     "Python",
     "PyTorch",
     "TorchHD",
-    "Raspberry Pi 4",
+    "Raspberry Pi 4B",
     "Google Colab"
   ],
   "highlights": [
-    "Deployed an HDC model for MNIST classification on a Raspberry Pi 4 and Google Colab, with dimensionality 5000 vs 10000 for constrained and accelerated platforms.",
-    "Achieved 82.75% accuracy in 1741 s on the Pi (496 MB) versus 82.99% in 96.6 s on Colab (205 MB).",
-    "Used GPIO-triggered events, with PyTorch and TorchHD for implementation, evaluation and visualization of lightweight AI for edge computing."
+    "MNIST: 70,000 images (60k train, 10k test), 28x28 flattened to 784 inputs, with torchhd and hard quantization.",
+    "Pi 4B at D=5000 on a single thread, against a Colab Tesla T4 at D=10000.",
+    "Compared training time, test time, memory and accuracy."
   ],
   "repo": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU",
   "details": [
     {
-      "heading": "Method",
-      "body": "MNIST classification with hyperdimensional computing, bipolar hypervectors, bundling by majority vote for training and cosine similarity for inference, run on a Raspberry Pi 4 Model B and a Google Colab GPU."
+      "heading": "Status",
+      "body": "Course project, team of 2."
     }
   ],
   "links": [
@@ -31,5 +31,6 @@
       "label": "Slides",
       "url": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU/blob/main/Presentation.pptx"
     }
-  ]
+  ],
+  "summary": "Hyperdimensional computing on MNIST, benchmarked on a Raspberry Pi 4B against a Colab Tesla T4. The GPU was faster and more accurate; the Pi is a practical cheap offline option."
 }

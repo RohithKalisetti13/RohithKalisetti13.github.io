@@ -6,18 +6,20 @@
   "stack": [
     "CUDA",
     "cuFFT",
-    "C",
-    "signal processing"
+    "C/C++",
+    "nvcc"
   ],
   "highlights": [
-    "Implemented GPU-accelerated digital beamforming with CUDA, speeding up signal processing and reducing computation times, achieving 66.89% adjusted R-squared in variance explanation.",
-    "Optimized real-time CUDA kernels for signal manipulation and used cuFFT for fast frequency transformations, contributing to a dynamic beamforming architecture used in radar and communication systems."
+    "generate_signals kernel creates modulated signals with per-element phase delays.",
+    "Measured: time-domain beamforming about 0.025 ms, with the kernel itself about 0.024 ms.",
+    "Frequency-domain path uses cuFFT forward and inverse FFTs.",
+    "Grid and block sizes are chosen per array size, with error handling around every CUDA and cuFFT call."
   ],
   "repo": "https://github.com/RohithKalisetti13/DigitalBeamformerGPU",
   "details": [
     {
-      "heading": "How it works",
-      "body": "Simulates signals from a phased array antenna and aligns them with programmable phase shifts to enhance one direction and suppress noise. Implements time-domain beamforming (delays align the signals before combining) and frequency-domain beamforming (FFT with complex weights per frequency bin, using cuFFT). Built with C/C++ and nvcc and run on a GPU cluster."
+      "heading": "Status",
+      "body": "Course project."
     }
   ],
   "links": [
@@ -25,5 +27,6 @@
       "label": "Report",
       "url": "https://github.com/RohithKalisetti13/DigitalBeamformerGPU/blob/main/REPORT_FINAL%20PROJECT.pdf"
     }
-  ]
+  ],
+  "summary": "A CUDA digital beamformer with a time-domain path and a cuFFT frequency-domain path. Time-domain beamforming runs in about 0.025 ms."
 }

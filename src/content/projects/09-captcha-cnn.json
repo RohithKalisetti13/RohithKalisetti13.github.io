@@ -5,24 +5,20 @@
   "period": "Jan 2024 – May 2024",
   "stack": [
     "Python",
-    "TensorFlow",
     "Keras",
+    "PIL",
     "OpenCV"
   ],
   "highlights": [
-    "End-to-end CAPTCHA recognition pipeline trained on 50K+ labeled samples, reaching about 70% decoding accuracy across diverse formats.",
-    "Preprocessing (denoising, segmentation, morphological operations, normalization) to improve character isolation under distortion, noise and varying fonts.",
-    "Tuned architecture and hyperparameters (convolution depth, learning rate scheduling, regularization, augmentation)."
+    "Attached-binary-images approach that avoids character segmentation.",
+    "Keras model with PIL and OpenCV preprocessing.",
+    "Test-set accuracy about 70% (0.696)."
   ],
   "repo": "https://github.com/RohithKalisetti13/CAPTCHA-CNN",
   "details": [
     {
-      "heading": "How it works",
-      "body": "CAPTCHAs are generated at runtime with random distortions (4 characters, A-Z and 0-9), so no dataset download is needed. A CNN with convolutional and dense layers predicts each character. Training is monitored in TensorBoard and a custom match() function scores partial correctness."
-    },
-    {
-      "heading": "Goal",
-      "body": "Show how learned models can defeat traditional CAPTCHA defences and analyse what makes a CAPTCHA harder."
+      "heading": "Status",
+      "body": "Course project, team of 3."
     }
   ],
   "links": [
@@ -42,5 +38,6 @@
       "label": "Notebook",
       "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/CNN%20Model.ipynb"
     }
-  ]
+  ],
+  "summary": "A CNN that reads text CAPTCHAs (letters and digits) without segmenting characters, reaching about 70% (0.696) on the test set. A second goal was to work out which CAPTCHA properties make them hard to break."
 }
