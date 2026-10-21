@@ -231,6 +231,12 @@ const POWER = [
   }
 
   /* LEDs: dim at rest; in progress blinks amber at 1 Hz; shipped lights green on hover or press */
+  .u-led :global(.lit) {
+    transition: opacity 250ms ease-out;
+  }
+  .hit:is(:hover, :focus-visible, .pressed) .u-led :global(.lit) {
+    transition-duration: 120ms;
+  }
   .unit[data-status='wip'] .u-led :global(.lit) {
     animation: unit-blink 1s steps(1, end) infinite;
   }
@@ -257,6 +263,13 @@ const POWER = [
   :global(html:has(.desk[data-power='off'])) .u-led :global(.lit) {
     opacity: 0 !important;
     animation: none !important;
+  }
+  .plate :global(.sled) {
+    transition: background-color 250ms ease-out;
+  }
+  :global(html:has(.desk[data-power='off'])) .plate :global(.sled) {
+    animation: none;
+    background: #3e3a32;
   }
 
   /* label strip over the centre channel */

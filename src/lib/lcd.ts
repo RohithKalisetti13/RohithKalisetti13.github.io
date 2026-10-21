@@ -1,13 +1,19 @@
-// 1602 character LCD in the hero: geometry, HD44780-style glyphs and the lit-dot path,
-// shared by the server render and the client marquee.
+// 2002 character LCD in the hero: geometry, HD44780-style glyphs and the lit-dot path,
+// shared by the server render and the client boot log.
 
 // module and its viewing window (local coordinates inside the module)
-export const LCD = { x: 1105, y: -186, w: 410, h: 176 };
-export const WIN = { x: 22, y: 40, w: 366, h: 108 };
+export const LCD = { w: 500, h: 176 };
+// where the module lies, in board units, and its scale: large on the desk world, where it must still
+// clear the cable, the switch and the link strip at 1024 wide; smaller in the stacked layout
+export const PLACES = [
+  { layout: 'world', x: 1095, y: -300, s: 1.28 },
+  { layout: 'stack', x: 1100, y: -200, s: 1 },
+] as const;
+export const WIN = { x: 22, y: 40, w: 456, h: 108 };
 // 5x8 dot cells: dot pitch D, a one-dot gap between characters and between the two rows
 export const D = 3.6;
 export const DOT = 3;
-export const COLS = 16;
+export const COLS = 20;
 export const TX = WIN.x + (WIN.w - (COLS * 6 - 1) * D) / 2;
 export const TY = WIN.y + (WIN.h - 17 * D) / 2;
 export const CELLS = Array.from({ length: COLS * 2 }, (_, i) => [TX + (i % COLS) * 6 * D, TY + Math.floor(i / COLS) * 9 * D]);
@@ -44,6 +50,8 @@ export const frame = (a: string, b: string) =>
     )
     .join('');
 
-export const NAME = 'ROHITH KALISETTI';
-export const TAG = 'EMBEDDED FIRMWARE ENGINEER';
+// a line centred in the 20 columns
+const mid = (t: string) => t.padStart(t.length + ((COLS - t.length) >> 1)).padEnd(COLS);
+export const NAME = mid('ROHITH KALISETTI');
+export const TAG = mid('EMBEDDED FIRMWARE');
 export const LOG = ['RK-FW1 REV A', 'RST: POWER-ON', 'CLK: PLL LOCKED', 'I2C1: 0x27 ACK', 'RTOS: SCHED UP', 'APP: READY'];

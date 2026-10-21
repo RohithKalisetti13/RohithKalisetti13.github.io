@@ -46,6 +46,10 @@ const SEVEN = ['11111', '00001', '00010', '00100', '01000', '01000', '01000'];
             <rect x="77" y="-24" width="3" height="1.6" />
           </g>
           <rect x="77" y="-20" width="3" height="1.6" fill="#2a2a2c" />
+          <g class="ind">
+            <circle cx="87.7" cy="-13.05" r="4.2" fill="url(#bd-ind-glow)" />
+            <rect x="86" y="-14" width="3.4" height="1.9" rx="0.3" />
+          </g>
           <text x="66" y="-31" font-size="6" font-weight="700" fill={SILK} text-anchor="middle">MSA311</text>
           <g font-size="2.7" fill={SILK} text-anchor="middle">
             {['VIN', '3Vo', 'GND', 'SCL', 'SDA', 'INT'].map((t, i) => (
@@ -87,6 +91,10 @@ const SEVEN = ['11111', '00001', '00010', '00100', '01000', '01000', '01000'];
           <text x="60" y="-24" font-size="4.6" font-weight="700" fill="#55595e" text-anchor="middle">WLAN</text>
           <text x="60" y="-18" font-size="2.9" fill="#55595e" text-anchor="middle">2.4G b/g/n</text>
           <path d="M80 -12V-33H83.2V-14H86.4V-33H89.6V-14H92.8V-33" fill="none" stroke="#c9a24a" stroke-width="1.3" stroke-linejoin="round" />
+          <g class="ind">
+            <circle cx="99.7" cy="-25.05" r="4.2" fill="url(#bd-ind-glow)" />
+            <rect x="98" y="-26" width="3.4" height="1.9" rx="0.3" />
+          </g>
           <g font-size="2.6" fill={SILK} text-anchor="middle">
             {['GND', 'V+', 'EN', 'RST', 'TX', 'RX', 'IO0', 'IO2'].map((t, i) => (
               <text x={30 + i * 10} y="-4">{t}</text>
@@ -147,6 +155,10 @@ const SEVEN = ['11111', '00001', '00010', '00100', '01000', '01000', '01000'];
             <circle cx="81" cy="-24" r="2.2" />
           </g>
           <circle cx="81" cy="-24" r="0.6" fill={SILK} />
+          <g class="ind">
+            <circle cx="88.7" cy="-17.05" r="4.2" fill="url(#bd-ind-glow)" />
+            <rect x="87" y="-18" width="3.4" height="1.9" rx="0.3" />
+          </g>
           <g font-size="3" fill={SILK} text-anchor="middle">
             <text x="44" y="-24">X</text>
             <text x="77" y="-14">Y</text>
@@ -323,6 +335,10 @@ const SEVEN = ['11111', '00001', '00010', '00100', '01000', '01000', '01000'];
           <circle cx="66" cy="26" r="3" fill="#06090d" />
           <ellipse cx="63" cy="22.8" rx="2.2" ry="1.4" fill="#fff" opacity="0.4" transform="rotate(-35 63 22.8)" />
           <text x="44" y="22" font-size="2.6" fill={SILK} text-anchor="middle" transform="rotate(-90 44 22)">CAM</text>
+          <g class="ind">
+            <circle cx="87.7" cy="20.95" r="4.2" fill="url(#bd-ind-glow)" />
+            <rect x="86" y="20" width="3.4" height="1.9" rx="0.3" />
+          </g>
         </g>
       )
     }
@@ -337,8 +353,28 @@ const SEVEN = ['11111', '00001', '00010', '00100', '01000', '01000', '01000'];
   }
   .dot {
     fill: #c9c6bd;
+    transition: fill 250ms ease-out;
   }
   .dot.on {
     fill: #ecdcb4;
+  }
+  .px,
+  .ind circle {
+    transition: opacity 250ms ease-out;
+  }
+  .ind rect {
+    fill: #ff5a3c;
+    transition: fill 250ms ease-out;
+  }
+  /* board power off: screens, pixels and power LEDs go dark; the parts themselves stay */
+  :global(html:has(.desk[data-power='off'])) .px,
+  :global(html:has(.desk[data-power='off'])) .ind circle {
+    opacity: 0;
+  }
+  :global(html:has(.desk[data-power='off'])) .dot {
+    fill: #2c2d31;
+  }
+  :global(html:has(.desk[data-power='off'])) .ind rect {
+    fill: #5a2a24;
   }
 </style>

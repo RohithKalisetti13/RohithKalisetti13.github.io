@@ -408,13 +408,20 @@ const J1 = [
     box-shadow:
       inset 0 0 0 1px rgba(0, 0, 0, 0.35),
       2px 2px 2px rgba(0, 0, 0, 0.35);
-    transition: background var(--t-fast) var(--ease);
+    transition: background var(--t-med) var(--ease);
   }
   .ref {
     position: absolute;
     top: 6px;
     right: 26px;
     font-size: 11px;
+  }
+  /* board power off: every chip LED stays dark, the chips still open */
+  :global(html:has(.desk[data-power='off'])) .ic .led {
+    background: #2a302c;
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+      2px 2px 2px rgba(0, 0, 0, 0.35);
   }
   .soic .led,
   .soic .ref {
