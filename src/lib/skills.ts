@@ -93,9 +93,9 @@ export const PAD: Record<SkillKind, [number, number]> = {
   gpu: [226, 30],
 };
 
-// the parts block, in board units from the top of the block, under the Skills heading. Rows sit below
-// a channel each, where the harness turns in toward the parts; the heading sits above every channel
-export const BLOCK = { h: 728 };
-export const SLOT_W = 375;
-export const ROW_Y = [120, 480];
+// the parts block, in board units from the top of the block, under the Register map heading. Rows sit below
+// a channel each, where the harness turns in toward the parts; the heading sits above every channel.
+// Parts and plates are drawn at a scale k over the board (set in CSS by aspect ratio, up to 1.3), and the
+// grid runs right past the board's edge onto the free desk as k grows
+export const GRID = { top: 120, channel: 112, gap: 50, inset: 25 };
 export const PLATE = { dy: FRAME.h + 8, h: 40 };

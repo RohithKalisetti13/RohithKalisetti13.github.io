@@ -4,17 +4,18 @@
 // The grouped list below the parts is the full text: visually hidden on the desk world, the whole
 // section on phones, without scripts and with reduced motion.
 import SkillPart from './SkillPart.astro';
-import { SKILLS, FRAME, PAD, BLOCK, SLOT_W, ROW_Y, PLATE, baseOf, offsetOf } from '../../lib/skills';
+import { SKILLS, FRAME, PAD, GRID, PLATE, baseOf, offsetOf } from '../../lib/skills';
 
 const parts = SKILLS.map((g, i) => {
-  const x = (i % 4) * SLOT_W + (SLOT_W - FRAME.w) / 2;
-  const y = ROW_Y[Math.floor(i / 4)];
   const [px, py] = PAD[g.kind];
-  return { ...g, row: Math.floor(i / 4), style: `--x:${x};--y:${y}`, pad: `--px:${x + px};--py:${y + py}` };
+  return { ...g, row: Math.floor(i / 4), style: `--col:${i % 4};--row:${Math.floor(i / 4)}`, pad: `--px:${px};--py:${py}` };
 });
 ---
 
-<div class="skills-board" style={`--bh:${BLOCK.h};--fw:${FRAME.w};--fh:${FRAME.h};--pdy:${PLATE.dy};--ph:${PLATE.h}`}>
+<div
+  class="skills-board"
+  style={`--fw:${FRAME.w};--fh:${FRAME.h};--pdy:${PLATE.dy};--ph:${PLATE.h};--gt:${GRID.top};--gc:${GRID.channel};--gg:${GRID.gap};--gi:${GRID.inset}`}
+>
   <svg class="sk-defs" width="0" height="0" aria-hidden="true" focusable="false">
     <defs>
       <linearGradient id="sk-tin" x1="0" y1="0" x2="1" y2="1">
@@ -262,6 +263,12 @@ const parts = SKILLS.map((g, i) => {
     overflow: hidden;
   }
   .skills-board {
+    /* part scale over the board: four parts a row need the width, so squarer screens take less */
+    --k: 1;
+    /* a part with its plate, the column pitch and the block height, in board units */
+    --uh: calc((var(--pdy) + var(--ph)) * var(--k));
+    --pitch: calc(var(--fw) * var(--k) + var(--gg));
+    --bh: calc(var(--gt) + 2 * var(--uh) + var(--gc));
     position: relative;
     z-index: 2;
     width: var(--stage-w);
@@ -303,12 +310,27 @@ const parts = SKILLS.map((g, i) => {
       white-space: nowrap;
     }
   }
+  @media (min-aspect-ratio: 5/4) {
+    .skills-board {
+      --k: 1.1;
+    }
+  }
+  @media (min-aspect-ratio: 4/3) {
+    .skills-board {
+      --k: 1.15;
+    }
+  }
+  @media (min-aspect-ratio: 3/2) {
+    .skills-board {
+      --k: 1.3;
+    }
+  }
   .sk-unit {
     position: absolute;
-    left: calc(var(--x) * var(--u));
-    top: calc(var(--y) * var(--u));
-    width: calc(var(--fw) * var(--u));
-    height: calc((var(--pdy) + var(--ph)) * var(--u));
+    left: calc((var(--gi) + var(--col) * var(--pitch)) * var(--u));
+    top: calc((var(--gt) + var(--row) * (var(--uh) + var(--gc))) * var(--u));
+    width: calc(var(--fw) * var(--k) * var(--u));
+    height: calc(var(--uh) * var(--u));
   }
   .skill-part {
     position: absolute;
@@ -326,7 +348,7 @@ const parts = SKILLS.map((g, i) => {
     top: 0;
     left: 0;
     width: 100%;
-    height: calc(var(--fh) * var(--u));
+    height: calc(var(--fh) * var(--k) * var(--u));
     overflow: visible;
     filter: drop-shadow(calc(5 * var(--u)) calc(9 * var(--u)) calc(7 * var(--u)) rgba(0, 0, 0, 0.42));
     transition: translate var(--t-fast) var(--ease);
@@ -341,10 +363,10 @@ const parts = SKILLS.map((g, i) => {
     --ink: #2a2620;
     --ink-2: #4a443a;
     position: absolute;
-    left: calc(10 * var(--u));
-    right: calc(10 * var(--u));
-    top: calc(var(--pdy) * var(--u));
-    height: calc(var(--ph) * var(--u));
+    left: calc(10 * var(--k) * var(--u));
+    right: calc(10 * var(--k) * var(--u));
+    top: calc(var(--pdy) * var(--k) * var(--u));
+    height: calc(var(--ph) * var(--k) * var(--u));
     display: flex;
     align-items: center;
     gap: 0.6em;
@@ -355,7 +377,7 @@ const parts = SKILLS.map((g, i) => {
       0 0 0 1px #ddd6c5,
       1px 2px 3px rgba(0, 0, 0, 0.12);
     color: var(--ink);
-    font: 500 max(10px, calc(19 * var(--u))) / 1 var(--font-mono);
+    font: 500 max(10px, calc(19 * var(--k) * var(--u))) / 1 var(--font-mono);
     text-align: left;
   }
   .ttl {
@@ -501,8 +523,8 @@ const parts = SKILLS.map((g, i) => {
   /* jumper landing pin; WireLayer draws the wire onto it */
   .sk-pad {
     position: absolute;
-    left: calc((var(--px) - var(--x)) * var(--u));
-    top: calc((var(--py) - var(--y)) * var(--u));
+    left: calc(var(--px) * var(--k) * var(--u));
+    top: calc(var(--py) * var(--k) * var(--u));
     width: 4px;
     height: 4px;
     margin: -2px 0 0 -2px;
