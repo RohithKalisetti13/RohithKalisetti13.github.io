@@ -86,14 +86,15 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         lenis?.raf(t);
         raf = requestAnimationFrame(loop);
       };
-      // wheel smoothing only: no snap, no hijack; keys, find-in-page and touch stay native
+      // wheel smoothing only: no snap, no hijack; keys, find-in-page and touch stay native. A wheel
+      // that a nested pane has already taken (the laptop preview) is not the page's
       const sync = () => {
         if (reduced.matches) {
           cancelAnimationFrame(raf);
           lenis?.destroy();
           lenis = null;
         } else if (!lenis) {
-          lenis = new Lenis({ lerp: 0.12, smoothWheel: true, syncTouch: false });
+          lenis = new Lenis({ lerp: 0.12, smoothWheel: true, syncTouch: false, virtualScroll: ({ event }) => !event.defaultPrevented });
           raf = requestAnimationFrame(loop);
         }
       };

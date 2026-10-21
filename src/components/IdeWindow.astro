@@ -92,13 +92,13 @@ const CONTACT = [
     </button>
   </div>
 
-  <section class="panel" role="tabpanel" id="ide-about" aria-labelledby="ide-tab-about" tabindex="0">
+  <section class="panel" role="tabpanel" id="ide-about" aria-labelledby="ide-tab-about" tabindex="0" data-lenis-prevent>
     <h3 class="sr-only">About</h3>
     {photo && <img class="photo" src={photo} alt="Rohith Kalisetti" width="160" height="160" loading="lazy" decoding="async" />}
     <Code code={mainC} lang="c" theme={theme} transformers={[numbered]} />
   </section>
 
-  <section class="panel term" role="tabpanel" id="contact" aria-labelledby="ide-tab-contact" tabindex="0">
+  <section class="panel term" role="tabpanel" id="contact" aria-labelledby="ide-tab-contact" tabindex="0" data-lenis-prevent>
     <h3 class="sr-only">Contact</h3>
     <pre class="serial"><span class="dim">$ screen /dev/ttyACM0 115200</span>
 <span class="ok">[ok]</span> uart0 115200 8N1

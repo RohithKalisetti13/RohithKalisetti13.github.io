@@ -251,6 +251,24 @@ const FONT = "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif";
     };
 
     open.addEventListener('click', () => zoomIn('about'));
+    // on the desk the screen is inert under the open button, so a vertical wheel over it scrolls the
+    // shown pane first and the page once the pane is at its end
+    open.addEventListener(
+      'wheel',
+      (e) => {
+        if (zoomed() || e.ctrlKey || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+        const r = screen.getBoundingClientRect();
+        if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+        const pane = ide.querySelector<HTMLElement>('.panel:not([hidden])');
+        if (!pane) return;
+        const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * pane.clientHeight : e.deltaY;
+        const end = pane.scrollHeight - pane.clientHeight;
+        if (dy < 0 ? pane.scrollTop <= 0 : pane.scrollTop >= end - 1) return;
+        e.preventDefault();
+        pane.scrollTop += dy;
+      },
+      { passive: false, signal },
+    );
     window.addEventListener('rk:zoom-out', zoomOut, { signal });
     lap.querySelector('[data-zoom-out]')!.addEventListener('click', zoomOut);
     document.addEventListener(
