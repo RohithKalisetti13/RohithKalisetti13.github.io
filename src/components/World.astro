@@ -227,6 +227,8 @@
     window.addEventListener(
       'popstate',
       () => {
+        // a new hash entry (typed, or set from a script) carries no state: hashchange takes it
+        if (history.state == null) return;
         popped = performance.now();
         const pos = readPos();
         if (on() && pos && root.dataset.zoom !== 'in') jump(pos);
