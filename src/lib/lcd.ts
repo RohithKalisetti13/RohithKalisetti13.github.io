@@ -55,3 +55,8 @@ const mid = (t: string) => t.padStart(t.length + ((COLS - t.length) >> 1)).padEn
 export const NAME = mid('ROHITH KALISETTI');
 export const TAG = mid('EMBEDDED FIRMWARE');
 export const LOG = ['RK-FW1 REV A', 'RST: POWER-ON', 'CLK: PLL LOCKED', 'I2C1: 0x27 ACK', 'RTOS: SCHED UP', 'APP: READY'];
+
+// row 2 ticker: the text and four spaces loop; the window shows 20 whole characters from a position
+const LOOP = 'EMBEDDED FIRMWARE ENGINEER    ';
+export const TICKER_LEN = LOOP.length;
+export const TICKER = (pos: number) => Array.from({ length: COLS }, (_, i) => LOOP[(pos + i) % LOOP.length]).join('');
