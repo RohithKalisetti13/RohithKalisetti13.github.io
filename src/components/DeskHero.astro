@@ -1,6 +1,6 @@
 ---
 // Hero: the board lying on a desk, a USB cable in CN1 with an inline power switch,
-// and a 1602 character LCD on an I2C backpack wired to CN5.
+// and a 2002 character LCD on an I2C backpack wired to CN5.
 // Overlays share the board's 1500x2000 user space, so every coordinate below is board units.
 // Markup is the powered-on state; a tiny inline script applies the saved state before first paint.
 import McuBoard from './McuBoard.astro';
@@ -8,23 +8,24 @@ import LedDot from './LedDot.astro';
 import site from '../content/site.json';
 import skills from '../content/skills.json';
 
-import { LCD, WIN, D, DOT, TX, TY, CELLS, frame, NAME, TAG } from '../lib/lcd';
+import { LCD, PLACES, WIN, D, DOT, TX, TY, CELLS, frame, NAME, TAG } from '../lib/lcd';
 import { usbLeft } from '../lib/world';
 
 // backpack pins, left to right; the left pin takes the inner lane and the shallowest socket
 type Wire = { pin: string; px: number; to: string; y: number; color: string };
 const WIRES: Wire[] = [
-  { pin: 'SCL', px: 280, to: 'SCL/D15', y: 826, color: '#e3b23c' },
-  { pin: 'SDA', px: 305, to: 'SDA/D14', y: 879, color: '#3f86d8' },
-  { pin: 'VCC', px: 330, to: 'AVDD', y: 932, color: '#d4483e' },
-  { pin: 'GND', px: 355, to: 'GND', y: 985, color: '#2a2b2f' },
+  { pin: 'SCL', px: 370, to: 'SCL/D15', y: 826, color: '#e3b23c' },
+  { pin: 'SDA', px: 395, to: 'SDA/D14', y: 879, color: '#3f86d8' },
+  { pin: 'VCC', px: 420, to: 'AVDD', y: 932, color: '#d4483e' },
+  { pin: 'GND', px: 445, to: 'GND', y: 985, color: '#2a2b2f' },
 ];
 const HOUSING_END = 1298; // CN5 socket housings end here
 const LANE0 = 1500; // right desk margin, clear of the board edge at 1470
-const PIN_Y = LCD.y + 238; // bottom of the Dupont housings on the backpack
+type Place = (typeof PLACES)[number];
 // over the corner, down the margin with a little slack, then into CN5
-const wirePath = (w: Wire, i: number) => {
-  const sx = LCD.x + w.px;
+const wirePath = (w: Wire, i: number, p: Place) => {
+  const sx = p.x + w.px * p.s;
+  const PIN_Y = p.y + 238 * p.s; // bottom of the Dupont housings on the backpack
   const lx = LANE0 + i * 14;
   const sag = 16 + i * 3;
   return [
@@ -160,7 +161,7 @@ const LINKS = [
         </g>
       </svg>
 
-      <!-- 1602 LCD module and its four jumpers -->
+      <!-- 2002 LCD module and its four jumpers -->
       <svg class="rig rig-fx" viewBox="0 0 1500 2000" overflow="visible" aria-hidden="true">
         <defs>
           <linearGradient id="lcd-pcb" x1="0" y1="0" x2="1" y2="1">
@@ -182,73 +183,81 @@ const LINKS = [
           </pattern>
         </defs>
 
-        <ellipse class="lcd-halo" cx={LCD.x + 205} cy={LCD.y + 95} rx="470" ry="300" fill="url(#lcd-halo-g)" />
-        <g class="lcd" transform={`translate(${LCD.x} ${LCD.y})`}>
-          <rect x="14" y="22" width={LCD.w} height={LCD.h} rx="9" fill="#000" opacity=".22" />
-          <rect x="5" y="8" width={LCD.w} height={LCD.h} rx="8" fill="#000" opacity=".35" />
-          <rect x="-2" y="3" width={LCD.w + 2} height={LCD.h} rx="7" fill="#14431c" />
-          <rect width={LCD.w} height={LCD.h} rx="7" fill="url(#lcd-pcb)" />
-          <path d={`M3 ${LCD.h - 8}V10Q3 3 10 3H${LCD.w - 8}`} stroke="#fff" stroke-width="2" fill="none" opacity=".22" />
-          {
-            [
-              [13, 13],
-              [LCD.w - 13, 13],
-              [13, LCD.h - 13],
-              [LCD.w - 13, LCD.h - 13],
-            ].map(([x, y]) => (
-              <g>
-                <circle cx={x} cy={y} r="8" fill="#d9c27a" />
-                <circle cx={x} cy={y} r="4.6" fill="#0b120c" />
-              </g>
-            ))
-          }
-          <!-- 16-pin parallel header -->
-          {
-            Array.from({ length: 16 }, (_, i) => (
-              <g>
-                <rect x={44 + i * 20} y="7" width="13" height="13" rx={i ? 6.5 : 1.5} fill="#d9c27a" />
-                <circle cx={50.5 + i * 20} cy="13.5" r="3.4" fill="#1d1a10" />
-              </g>
-            ))
-          }
-          <!-- bezel and backlit window -->
-          <rect x="12" y="29" width="386" height="128" rx="4" fill="#25282d" />
-          <path d="M13 156V31Q13 30 15 30H396" stroke="#4a4e55" stroke-width="2" fill="none" />
-          <rect x={WIN.x} y={WIN.y} width={WIN.w} height={WIN.h} rx="2" fill="#3a3d42" />
-          <g class="lcd-on">
-            <rect x={WIN.x} y={WIN.y} width={WIN.w} height={WIN.h} rx="2" fill="url(#lcd-back)" />
-            {CELLS.map(([x, y]) => <rect x={x} y={y} width={5 * D} height={8 * D} fill="url(#lcd-cell)" />)}
-            <path class="lcd-lit" d={frame(NAME, TAG)} fill="#1c2733" opacity=".92" />
-          </g>
-          <path d={`M${WIN.x + 4} ${WIN.y + WIN.h - 3}L${WIN.x + 70} ${WIN.y + 3}H${WIN.x + 108}L${WIN.x + 42} ${WIN.y + WIN.h - 3}Z`} fill="#fff" opacity=".06" />
-
-          <!-- I2C backpack along the bottom edge -->
-          <rect x="152" y="168" width="250" height="44" rx="3" fill="#000" opacity=".35" />
-          <rect x="148" y="164" width="250" height="44" rx="3" fill="#16191e" />
-          <path d="M150 166H396" stroke="#3a3f47" stroke-width="1.5" />
-          <rect x="164" y="176" width="54" height="22" rx="2" fill="#0c0d0f" />
-          <path d="M168 174v-3M178 174v-3M188 174v-3M198 174v-3M208 174v-3M168 200v3M178 200v3M188 200v3M198 200v3M208 200v3" stroke="#a7a8ab" stroke-width="3" />
-          <rect x="228" y="174" width="26" height="26" rx="3" fill="#2463c4" />
-          <circle cx="241" cy="187" r="8" fill="#e9e6dc" />
-          <path d="M236 187h10M241 182v10" stroke="#555" stroke-width="2.4" />
-          <g fill="#e8edf2" opacity=".85" font-family="'JetBrains Mono Variable', ui-monospace, monospace" font-size="11" text-anchor="middle">
-            {WIRES.map((w) => <text x={w.px} y="179">{w.pin}</text>)}
-          </g>
-        </g>
-
-        <!-- jumpers: shadow, insulation, highlight, then the Dupont housings at both ends -->
-        <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-          {WIRES.map((w, i) => <path d={wirePath(w, i)} transform="translate(7 10)" stroke="#000" stroke-width="11" opacity=".24" />)}
-          {WIRES.map((w, i) => <path d={wirePath(w, i)} stroke={w.color} stroke-width="9" />)}
-          {WIRES.map((w, i) => <path d={wirePath(w, i)} transform="translate(-1.5 -1.5)" stroke="#fff" stroke-width="2.4" opacity=".3" />)}
-        </g>
         {
-          WIRES.map((w) => (
-            <g transform={`translate(${LCD.x + w.px} ${LCD.y})`}>
-              <rect x="-9" y="190" width="22" height="58" rx="3" fill="#000" opacity=".3" />
-              <rect x="-11" y="186" width="22" height="58" rx="3" fill="#18191c" />
-              <path d="M-9 188H9" stroke="#4a4b51" stroke-width="2" />
-              <rect x="-4" y="226" width="8" height="14" rx="1" fill="#2c2d32" />
+          PLACES.map((p) => (
+            <g class="lcd-place" data-layout={p.layout}>
+          <ellipse class="lcd-halo" cx={p.x + (LCD.w / 2) * p.s} cy={p.y + 95 * p.s} rx={560 * p.s} ry={300 * p.s} fill="url(#lcd-halo-g)" />
+          <g class="lcd" transform={`translate(${p.x} ${p.y}) scale(${p.s})`}>
+            <rect x="14" y="22" width={LCD.w} height={LCD.h} rx="9" fill="#000" opacity=".22" />
+            <rect x="5" y="8" width={LCD.w} height={LCD.h} rx="8" fill="#000" opacity=".35" />
+            <rect x="-2" y="3" width={LCD.w + 2} height={LCD.h} rx="7" fill="#14431c" />
+            <rect width={LCD.w} height={LCD.h} rx="7" fill="url(#lcd-pcb)" />
+            <path d={`M3 ${LCD.h - 8}V10Q3 3 10 3H${LCD.w - 8}`} stroke="#fff" stroke-width="2" fill="none" opacity=".22" />
+            {
+              [
+                [13, 13],
+                [LCD.w - 13, 13],
+                [13, LCD.h - 13],
+                [LCD.w - 13, LCD.h - 13],
+              ].map(([x, y]) => (
+                <g>
+                  <circle cx={x} cy={y} r="8" fill="#d9c27a" />
+                  <circle cx={x} cy={y} r="4.6" fill="#0b120c" />
+                </g>
+              ))
+            }
+            <!-- 16-pin parallel header -->
+            {
+              Array.from({ length: 16 }, (_, i) => (
+                <g>
+                  <rect x={44 + i * 20} y="7" width="13" height="13" rx={i ? 6.5 : 1.5} fill="#d9c27a" />
+                  <circle cx={50.5 + i * 20} cy="13.5" r="3.4" fill="#1d1a10" />
+                </g>
+              ))
+            }
+            <!-- bezel and backlit window -->
+            <rect x="12" y="29" width={LCD.w - 24} height="128" rx="4" fill="#25282d" />
+            <path d={`M13 156V31Q13 30 15 30H${LCD.w - 14}`} stroke="#4a4e55" stroke-width="2" fill="none" />
+            <rect class="lcd-dark" x={WIN.x} y={WIN.y} width={WIN.w} height={WIN.h} rx="2" />
+            <g class="lcd-on">
+              <rect x={WIN.x} y={WIN.y} width={WIN.w} height={WIN.h} rx="2" fill="url(#lcd-back)" />
+              {CELLS.map(([x, y]) => <rect x={x} y={y} width={5 * D} height={8 * D} fill="url(#lcd-cell)" />)}
+              <path class="lcd-lit" d={frame(NAME, TAG)} fill="#1c2733" opacity=".92" />
+            </g>
+            <path d={`M${WIN.x + 4} ${WIN.y + WIN.h - 3}L${WIN.x + 70} ${WIN.y + 3}H${WIN.x + 108}L${WIN.x + 42} ${WIN.y + WIN.h - 3}Z`} fill="#fff" opacity=".06" />
+
+            <!-- I2C backpack along the bottom edge, at the right end -->
+            <g transform={`translate(${LCD.w - 410} 0)`}>
+              <rect x="152" y="168" width="250" height="44" rx="3" fill="#000" opacity=".35" />
+              <rect x="148" y="164" width="250" height="44" rx="3" fill="#16191e" />
+              <path d="M150 166H396" stroke="#3a3f47" stroke-width="1.5" />
+              <rect x="164" y="176" width="54" height="22" rx="2" fill="#0c0d0f" />
+              <path d="M168 174v-3M178 174v-3M188 174v-3M198 174v-3M208 174v-3M168 200v3M178 200v3M188 200v3M198 200v3M208 200v3" stroke="#a7a8ab" stroke-width="3" />
+              <rect x="228" y="174" width="26" height="26" rx="3" fill="#2463c4" />
+              <circle cx="241" cy="187" r="8" fill="#e9e6dc" />
+              <path d="M236 187h10M241 182v10" stroke="#555" stroke-width="2.4" />
+            </g>
+            <g fill="#e8edf2" opacity=".85" font-family="'JetBrains Mono Variable', ui-monospace, monospace" font-size="11" text-anchor="middle">
+              {WIRES.map((w) => <text x={w.px} y="179">{w.pin}</text>)}
+            </g>
+          </g>
+
+          <!-- jumpers: shadow, insulation, highlight, then the Dupont housings at both ends -->
+          <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+            {WIRES.map((w, i) => <path d={wirePath(w, i, p)} transform="translate(7 10)" stroke="#000" stroke-width="11" opacity=".24" />)}
+            {WIRES.map((w, i) => <path d={wirePath(w, i, p)} stroke={w.color} stroke-width="9" />)}
+            {WIRES.map((w, i) => <path d={wirePath(w, i, p)} transform="translate(-1.5 -1.5)" stroke="#fff" stroke-width="2.4" opacity=".3" />)}
+          </g>
+          {
+            WIRES.map((w) => (
+              <g transform={`translate(${p.x + w.px * p.s} ${p.y}) scale(${p.s})`}>
+                <rect x="-9" y="190" width="22" height="58" rx="3" fill="#000" opacity=".3" />
+                <rect x="-11" y="186" width="22" height="58" rx="3" fill="#18191c" />
+                <path d="M-9 188H9" stroke="#4a4b51" stroke-width="2" />
+                <rect x="-4" y="226" width="8" height="14" rx="1" fill="#2c2d32" />
+              </g>
+            ))
+          }
             </g>
           ))
         }
@@ -264,7 +273,12 @@ const LINKS = [
         }
       </svg>
 
-      <button type="button" class="lcd-hit" aria-label="Open about"></button>
+      <button
+        type="button"
+        class="lcd-hit"
+        style={PLACES.map((p) => `--x-${p.layout}:${p.x};--y-${p.layout}:${p.y};--w-${p.layout}:${LCD.w * p.s};--h-${p.layout}:${LCD.h * p.s}`).join(';')}
+        aria-label="Open about"
+      ></button>
 
       <!-- the cable leads to the laptop on the left -->
       <button type="button" class="usb-hit" data-go-station="left" aria-label="Follow the USB cable to the laptop"></button>
@@ -325,7 +339,7 @@ const LINKS = [
 </script>
 
 <script>
-  import { frame, NAME, TAG, LOG, COLS } from '../lib/lcd';
+  import { frame, NAME, TAG, LOG } from '../lib/lcd';
   import { usbLeft } from '../lib/world';
 
   const store = {
@@ -367,9 +381,9 @@ const LINKS = [
     const signal = ac.signal;
     const stage = root.querySelector<HTMLElement>('.stage')!;
     const sw = root.querySelector<HTMLButtonElement>('.pwr')!;
-    const lit = root.querySelector('.lcd-lit')!;
+    const lit = [...root.querySelectorAll('.lcd-lit')];
     const reduced = mq('(prefers-reduced-motion: reduce)');
-    const show = (a: string, b: string) => lit.setAttribute('d', frame(a, b));
+    const show = (a: string, b: string) => lit.forEach((el) => el.setAttribute('d', frame(a, b)));
 
     // one pending LCD step at a time, so power-off cancels whatever is running
     let step = 0;
@@ -377,19 +391,7 @@ const LINKS = [
       step = window.setTimeout(fn, ms);
       timers.push(step);
     };
-    const run = () => {
-      if (reduced) return show(NAME, 'EMBEDDED FW ENG');
-      // hold at the start, scroll one character per 300 ms, hold at the end, loop
-      const last = TAG.length - COLS;
-      let k = 0;
-      const tick = () => {
-        show(NAME, TAG.slice(k, k + COLS));
-        const hold = k === 0 || k === last;
-        k = k === last ? 0 : k + 1;
-        later(tick, hold ? 2000 : 300);
-      };
-      tick();
-    };
+    const run = () => show(NAME, TAG);
     const boot = () => {
       if (reduced) return run();
       let i = 0;
@@ -787,9 +789,10 @@ const LINKS = [
     --halo: 1;
   }
   :global(:root[data-theme='light']) .desk {
-    --lcd-a: #98a592;
-    --lcd-b: #8f9d8a;
-    --lcd-c: #859382;
+    /* lit dots stay above 4.5:1 on the darkest stop, over the unlit dot cells */
+    --lcd-a: #a2ae9c;
+    --lcd-b: #9cab97;
+    --lcd-c: #98a693;
     --halo: 0;
   }
   :global(#lcd-back stop) {
@@ -798,7 +801,11 @@ const LINKS = [
   .lcd-halo {
     pointer-events: none;
     opacity: 0;
-    transition: opacity 400ms ease-out;
+    transition: opacity 250ms ease-out;
+  }
+  /* the unlit panel: a dull green-grey glass */
+  .lcd-dark {
+    fill: #333d37;
   }
   .desk[data-power='on'] .lcd-halo {
     opacity: var(--halo);
@@ -819,11 +826,27 @@ const LINKS = [
     cursor: pointer;
   }
   .lcd-hit {
-    left: calc(1105 * var(--u));
-    top: calc(-186 * var(--u));
-    width: calc(410 * var(--u));
-    height: calc(176 * var(--u));
-    border-radius: calc(7 * var(--u));
+    left: calc(var(--x-stack) * var(--u));
+    top: calc(var(--y-stack) * var(--u));
+    width: calc(var(--w-stack) * var(--u));
+    height: calc(var(--h-stack) * var(--u));
+    border-radius: calc(9 * var(--u));
+  }
+  /* one module per layout, both wired the same */
+  .lcd-place[data-layout='world'] {
+    display: none;
+  }
+  :global(html.world) .lcd-place[data-layout='world'] {
+    display: inline;
+  }
+  :global(html.world) .lcd-place[data-layout='stack'] {
+    display: none;
+  }
+  :global(html.world) .lcd-hit {
+    left: calc(var(--x-world) * var(--u));
+    top: calc(var(--y-world) * var(--u));
+    width: calc(var(--w-world) * var(--u));
+    height: calc(var(--h-world) * var(--u));
   }
   .lcd-hit:focus-visible,
   .pwr:focus-visible {
