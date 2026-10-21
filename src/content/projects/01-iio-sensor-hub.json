@@ -15,6 +15,6 @@
   "highlights": [
     "Pipeline: sensors, STM32 NUCLEO-F446RE, UART or SPI link (interface still to be chosen), Raspberry Pi 4, custom Linux kernel driver, Linux IIO subsystem, userspace tools and data logging.",
     "Hardware on the bench: breadboard, jumper wires, resistors for pull-ups, dividers and protection, buttons for GPIO and user-control experiments, status and debug LEDs.",
-    "Status: the STM32 firmware side is about 70% complete; the Linux driver work is still ahead."
+    "Status: in progress. Results will be added when the project is complete."
   ]
 }

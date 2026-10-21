@@ -14,5 +14,22 @@
     "Deployed an HDC model for MNIST classification on a Raspberry Pi 4 and Google Colab, with dimensionality 5000 vs 10000 for constrained and accelerated platforms.",
     "Achieved 82.75% accuracy in 1741 s on the Pi (496 MB) versus 82.99% in 96.6 s on Colab (205 MB).",
     "Used GPIO-triggered events, with PyTorch and TorchHD for implementation, evaluation and visualization of lightweight AI for edge computing."
+  ],
+  "repo": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU",
+  "details": [
+    {
+      "heading": "Method",
+      "body": "MNIST classification with hyperdimensional computing, bipolar hypervectors, bundling by majority vote for training and cosine similarity for inference, run on a Raspberry Pi 4 Model B and a Google Colab GPU."
+    }
+  ],
+  "links": [
+    {
+      "label": "Report",
+      "url": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU/blob/main/Final%20Report.pdf"
+    },
+    {
+      "label": "Slides",
+      "url": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU/blob/main/Presentation.pptx"
+    }
   ]
 }

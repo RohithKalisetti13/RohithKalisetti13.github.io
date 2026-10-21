@@ -23,7 +23,7 @@ const d = project.data;
     <h1>{d.title}</h1>
     <p class="mono meta">
       <span class="status"><StatusLed status={d.status} />{d.status === 'wip' ? 'In progress' : 'Shipped'}</span>
-      <span>{d.period}</span>
+      <span>{d.period ?? 'Earlier project'}</span>
     </p>
     <ul class="chips" aria-label="Stack">
       {
@@ -43,6 +43,15 @@ const d = project.data;
       </ul>
     </section>
 
+    {
+      d.details?.map((x) => (
+        <section>
+          <h2>{x.heading}</h2>
+          <p class="detail">{x.body}</p>
+        </section>
+      ))
+    }
+
     {d.note && <p class="note">{d.note}</p>}
 
     <div class="actions">
@@ -52,6 +61,13 @@ const d = project.data;
             View repository
           </GpioButton>
         )
+      }
+      {
+        d.links?.map((l, i) => (
+          <GpioButton href={l.url} pin={`PB${i + 2}`} variant="secondary" external>
+            {l.label}
+          </GpioButton>
+        ))
       }
       <GpioButton href="/#projects" pin="PB0" variant="secondary">Back to builds</GpioButton>
     </div>
@@ -107,6 +123,9 @@ const d = project.data;
     gap: var(--s-2);
     padding-left: var(--s-3);
     list-style: disc;
+    color: var(--text-2);
+  }
+  .detail {
     color: var(--text-2);
   }
   .note {

@@ -10,7 +10,28 @@
     "QEMU"
   ],
   "highlights": [
-    "Engineered a Ghidra plugin for static control-flow analysis, extracting direct and computed call graphs with overestimation handling and recursive depth tracing, with accurate CFGs across 40+ binaries.",
-    "Integrated the plugin with DECAF (QEMU-based full-system introspection) to enforce real-time control-flow integrity, with under 1% performance overhead on tested embedded use cases."
+    "Engineered a Ghidra plugin for static control-flow analysis, extracting direct and computed call graphs with overestimation handling and recursive depth tracing.",
+    "Designed it to feed DECAF (QEMU-based full-system introspection) so runtime call stacks can be checked against the extracted valid paths to enforce control-flow integrity; the accompanying paper reports minimal runtime overhead on its test cases."
+  ],
+  "repo": "https://github.com/RohithKalisetti13/Hardware-Debloat-Research",
+  "details": [
+    {
+      "heading": "Problem",
+      "body": "Controlling hardware access based on valid execution paths helps defend against control-flow hijacking such as ROP, COP and JOP."
+    },
+    {
+      "heading": "What the plugin does",
+      "body": "Extracts control flow graphs, identifies direct and computed calls, handles unresolved calls by overestimation and supports recursive depth-controlled tracing."
+    }
+  ],
+  "links": [
+    {
+      "label": "Paper",
+      "url": "https://github.com/RohithKalisetti13/Hardware-Debloat-Research/blob/main/Scholarly%20Paper.pdf"
+    },
+    {
+      "label": "Setup guide",
+      "url": "https://github.com/RohithKalisetti13/Hardware-Debloat-Research/blob/main/GHIDRA_SETUP.md"
+    }
   ]
 }

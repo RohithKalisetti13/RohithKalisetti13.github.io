@@ -13,5 +13,34 @@
     "End-to-end CAPTCHA recognition pipeline trained on 50K+ labeled samples, reaching about 70% decoding accuracy across diverse formats.",
     "Preprocessing (denoising, segmentation, morphological operations, normalization) to improve character isolation under distortion, noise and varying fonts.",
     "Tuned architecture and hyperparameters (convolution depth, learning rate scheduling, regularization, augmentation)."
+  ],
+  "repo": "https://github.com/RohithKalisetti13/CAPTCHA-CNN",
+  "details": [
+    {
+      "heading": "How it works",
+      "body": "CAPTCHAs are generated at runtime with random distortions (4 characters, A-Z and 0-9), so no dataset download is needed. A CNN with convolutional and dense layers predicts each character. Training is monitored in TensorBoard and a custom match() function scores partial correctness."
+    },
+    {
+      "heading": "Goal",
+      "body": "Show how learned models can defeat traditional CAPTCHA defences and analyse what makes a CAPTCHA harder."
+    }
+  ],
+  "links": [
+    {
+      "label": "Report",
+      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/Report.pdf"
+    },
+    {
+      "label": "Slides",
+      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/Presentation.pdf"
+    },
+    {
+      "label": "Demo video",
+      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/Project%20Demo.mp4"
+    },
+    {
+      "label": "Notebook",
+      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/CNN%20Model.ipynb"
+    }
   ]
 }

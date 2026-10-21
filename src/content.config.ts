@@ -8,12 +8,14 @@ const project = z.object({
   slug: z.string(),
   title: z.string(),
   status: z.enum(['wip', 'shipped']),
-  period: z.string(),
+  period: z.string().optional(),
   stack: z.array(z.string()),
   summary: z.string().optional(),
   highlights: z.array(z.string()),
   repo: z.url().optional(),
   note: z.string().optional(),
+  links: z.array(z.object({ label: z.string(), url: z.url() })).optional(),
+  details: z.array(z.object({ heading: z.string(), body: z.string() })).optional(),
   draft: z.literal(false).optional(),
 });
 const parked = z.looseObject({ draft: z.literal(true) });

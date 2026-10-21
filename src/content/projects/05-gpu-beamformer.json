@@ -12,5 +12,18 @@
   "highlights": [
     "Implemented GPU-accelerated digital beamforming with CUDA, speeding up signal processing and reducing computation times, achieving 66.89% adjusted R-squared in variance explanation.",
     "Optimized real-time CUDA kernels for signal manipulation and used cuFFT for fast frequency transformations, contributing to a dynamic beamforming architecture used in radar and communication systems."
+  ],
+  "repo": "https://github.com/RohithKalisetti13/DigitalBeamformerGPU",
+  "details": [
+    {
+      "heading": "How it works",
+      "body": "Simulates signals from a phased array antenna and aligns them with programmable phase shifts to enhance one direction and suppress noise. Implements time-domain beamforming (delays align the signals before combining) and frequency-domain beamforming (FFT with complex weights per frequency bin, using cuFFT). Built with C/C++ and nvcc and run on a GPU cluster."
+    }
+  ],
+  "links": [
+    {
+      "label": "Report",
+      "url": "https://github.com/RohithKalisetti13/DigitalBeamformerGPU/blob/main/REPORT_FINAL%20PROJECT.pdf"
+    }
   ]
 }
