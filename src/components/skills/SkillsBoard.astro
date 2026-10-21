@@ -1,0 +1,224 @@
+---
+// Skills: eight parts on the desk under the board, two rows of four, each with a label plate and the
+// header pin its jumper leaves (WireLayer draws the jumpers). Positions are board units (var(--u)).
+// The grouped list below the parts is the full text: visually hidden on the desk world, the whole
+// section on phones, without scripts and with reduced motion.
+import SkillPart from './SkillPart.astro';
+import { SKILLS, FRAME, PAD, BLOCK, SLOT_W, ROW_Y, PLATE } from '../../lib/skills';
+
+const parts = SKILLS.map((g, i) => {
+  const x = (i % 4) * SLOT_W + (SLOT_W - FRAME.w) / 2;
+  const y = ROW_Y[Math.floor(i / 4)];
+  const [px, py] = PAD[g.kind];
+  return { ...g, row: Math.floor(i / 4), style: `--x:${x};--y:${y}`, pad: `--px:${x + px};--py:${y + py}` };
+});
+---
+
+<h2 id="regs-title" class="sk-title">Skills</h2>
+<div class="skills-board" style={`--lift:${BLOCK.lift};--bh:${BLOCK.h};--fw:${FRAME.w};--fh:${FRAME.h};--pdy:${PLATE.dy};--ph:${PLATE.h}`}>
+  <svg class="sk-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="sk-tin" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#e6e8ea" />
+        <stop offset=".5" stop-color="#c0c3c7" />
+        <stop offset="1" stop-color="#8f9397" />
+      </linearGradient>
+      <linearGradient id="sk-epoxy" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#2c2e33" />
+        <stop offset="1" stop-color="#141518" />
+      </linearGradient>
+      <linearGradient id="sk-can" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#d9dbdd" />
+        <stop offset=".6" stop-color="#b9bcc0" />
+        <stop offset="1" stop-color="#999da2" />
+      </linearGradient>
+      <linearGradient id="sk-alu" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#c9ccd0" />
+        <stop offset="1" stop-color="#9ea2a7" />
+      </linearGradient>
+      <linearGradient id="sk-jack" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#d4d6d9" />
+        <stop offset="1" stop-color="#a6aaae" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <ul class="sk-parts" aria-label="Skill groups">
+    {
+      parts.map((g) => (
+        <li class="sk-unit" style={g.style} data-row={g.row}>
+          <button type="button" class="skill-part" data-sk={g.n} aria-label={`U${g.n}: ${g.name}, ${g.skills.length} skills`}>
+            <SkillPart kind={g.kind} />
+            <span class="sk-plate" aria-hidden="true">
+              <span class="ttl">{g.label}</span>
+              <span class="pin">{g.silk}</span>
+            </span>
+          </button>
+          <span class="sk-pad" style={g.pad} aria-hidden="true" />
+        </li>
+      ))
+    }
+  </ul>
+
+  <div class="sk-list">
+    {
+      SKILLS.map((g) => (
+        <section class="sk-group" aria-labelledby={`sk-g${g.n}`}>
+          <h3 id={`sk-g${g.n}`}>{g.name}</h3>
+          <ul>
+            {g.skills.map((s) => (
+              <li>{s}</li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  :global(html.world) .sk-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .sk-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+  .skills-board {
+    position: relative;
+    z-index: 2;
+    width: var(--stage-w);
+    margin-left: calc((100% - var(--stage-w)) / 2);
+  }
+  .sk-parts {
+    display: none;
+  }
+
+  /* desk world: the parts, tucked under the board's lower edge */
+  :global(html.world) .skills-board {
+    margin-top: calc(var(--lift) * var(--u) * -1);
+  }
+  :global(html.world) .sk-parts {
+    position: relative;
+    display: block;
+    height: calc(var(--bh) * var(--u));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sk-unit {
+    position: absolute;
+    left: calc(var(--x) * var(--u));
+    top: calc(var(--y) * var(--u));
+    width: calc(var(--fw) * var(--u));
+    height: calc((var(--pdy) + var(--ph)) * var(--u));
+  }
+  .skill-part {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    border: 0;
+    border-radius: calc(10 * var(--u));
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sk-art {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(var(--fh) * var(--u));
+    overflow: visible;
+    filter: drop-shadow(calc(5 * var(--u)) calc(9 * var(--u)) calc(7 * var(--u)) rgba(0, 0, 0, 0.42));
+    transition: translate var(--t-fast) var(--ease);
+  }
+  :global(:root[data-theme='light']) .sk-art {
+    filter: drop-shadow(calc(5 * var(--u)) calc(9 * var(--u)) calc(7 * var(--u)) rgba(60, 50, 40, 0.3));
+  }
+
+  /* label strip under the part, the bench plate */
+  .sk-plate {
+    --ivory: #f3efe5;
+    --ink: #2a2620;
+    --ink-2: #4a443a;
+    position: absolute;
+    left: calc(10 * var(--u));
+    right: calc(10 * var(--u));
+    top: calc(var(--pdy) * var(--u));
+    height: calc(var(--ph) * var(--u));
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0 0.7em;
+    border-radius: 3px;
+    background: var(--ivory);
+    box-shadow:
+      0 0 0 1px #ddd6c5,
+      1px 2px 3px rgba(0, 0, 0, 0.12);
+    color: var(--ink);
+    font: 500 max(10px, calc(19 * var(--u))) / 1 var(--font-mono);
+    text-align: left;
+  }
+  .ttl {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .pin {
+    flex: none;
+    padding: 0 0.35em;
+    border: 1px solid var(--ink-2);
+    border-radius: 3px;
+    color: var(--ink-2);
+    font-size: 0.9em;
+    line-height: 1.1;
+  }
+
+  /* power LED on every part: matte green while powered, dark when the board is off */
+  .sk-art :global(.sk-led .lens) {
+    fill: #46b77a;
+    transition: fill 200ms ease-out;
+  }
+  .sk-art :global(.sk-led .glow) {
+    fill: #7ee3a2;
+    opacity: 0.28;
+    transition: opacity 200ms ease-out;
+  }
+  :global(html:has(.desk[data-power='off'])) .sk-art :global(.sk-led .lens) {
+    fill: #26302a;
+  }
+  :global(html:has(.desk[data-power='off'])) .sk-art :global(.sk-led .glow) {
+    opacity: 0;
+  }
+
+  /* jumper landing pin; WireLayer draws the wire onto it */
+  .sk-pad {
+    position: absolute;
+    left: calc((var(--px) - var(--x)) * var(--u));
+    top: calc((var(--py) - var(--y)) * var(--u));
+    width: 4px;
+    height: 4px;
+    margin: -2px 0 0 -2px;
+    pointer-events: none;
+  }
+
+  /* the full text; hidden on the desk world, where the parts carry it */
+  :global(html.world) .sk-list {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+</style>

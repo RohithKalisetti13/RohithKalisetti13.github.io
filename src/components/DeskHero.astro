@@ -6,7 +6,7 @@
 import McuBoard from './McuBoard.astro';
 import LedDot from './LedDot.astro';
 import site from '../content/site.json';
-import skills from '../content/skills.json';
+import SkillsBoard from './skills/SkillsBoard.astro';
 
 import { LCD, PLACES, WIN, D, DOT, TX, TY, CELLS, frame, NAME, TAG } from '../lib/lcd';
 import { usbLeft } from '../lib/world';
@@ -95,21 +95,9 @@ const LINKS = [
       </ul>
     </section>
 
-    <!-- the board itself is the skills region; its register map is drawn in a later stage -->
-    <section id="skills" class="stage" aria-labelledby="regs-title">
-      <div class="sr-only">
-        <h2 id="regs-title">Register map: skills</h2>
-        <dl>
-          {
-            skills.map((r) => (
-              <>
-                <dt>{r.reg}</dt>
-                <dd>{r.values.join(', ')}</dd>
-              </>
-            ))
-          }
-        </dl>
-      </div>
+    <!-- skills: the board, then the parts wired to it -->
+    <section id="skills" class="skills-sec" aria-labelledby="regs-title">
+    <div class="stage">
       <McuBoard power="on" idPrefix="hero-" />
       <!-- nav sentinel on the perforation slots between ST-LINK and target halves (y 650 of 2000) -->
       <i id="s-regs" class="sentinel" aria-hidden="true"></i>
@@ -317,6 +305,8 @@ const LINKS = [
           <text x="47" y="132" text-anchor="middle" font-family="'JetBrains Mono Variable', ui-monospace, monospace" font-size="12" font-weight="600" fill="#b4b6bb">I/O</text>
         </svg>
       </button>
+    </div>
+    <SkillsBoard />
     </section>
   </div>
 </div>
@@ -942,7 +932,7 @@ const LINKS = [
   }
   :global(html.world) .desk {
     overflow: visible;
-    padding-bottom: var(--s-8);
+    padding-bottom: var(--s-3);
     background: none;
   }
   :global(html.world) .desk::before,

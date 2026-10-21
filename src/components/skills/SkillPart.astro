@@ -1,0 +1,341 @@
+---
+// The skill parts under the board, drawn from above in one 320 x 200 frame each (board units, so the
+// 2.54 mm header pitch is the board's 53 where a part has a full-size header). Matte boards, one light
+// from the top-left; the soft shadow under each part is set in CSS. Every part carries a 0603 power LED
+// (.sk-led) that follows the board's power. Markings are generic: no makes, no marks.
+import { FRAME, type SkillKind } from '../../lib/skills';
+
+interface Props {
+  kind: SkillKind;
+}
+const { kind } = Astro.props;
+const MONO = "'JetBrains Mono Variable', ui-monospace, monospace";
+const SILK = '#e9e8e2';
+const range = (n: number) => Array.from({ length: n }, (_, i) => i);
+---
+
+<svg class="sk-art" viewBox={`0 0 ${FRAME.w} ${FRAME.h}`} data-kind={kind} aria-hidden="true" focusable="false" font-family={MONO}>
+  {
+    kind === 'dip8' && (
+      <g>
+        <!-- small breakout: 1x4 header on top, the DIP-8 in the middle -->
+        <rect x="40" y="16" width="240" height="172" rx="8" fill="#24364a" />
+        <path d="M43 182V24Q43 19 48 19H274" fill="none" stroke="#fff" stroke-width="1.6" opacity=".14" />
+        {[[58, 168], [262, 168]].map(([x, y]) => (
+          <g>
+            <circle cx={x} cy={y} r="7" fill="#c9b16c" />
+            <circle cx={x} cy={y} r="3.85" fill="#15171a" />
+          </g>
+        ))}
+        <rect x="56" y="22" width="178" height="26" rx="2" fill="#16171a" />
+        {range(4).map((i) => (
+          <g>
+            <rect x={60 + i * 44} y="26" width="24" height="18" rx="2" fill="#c9b16c" />
+            <rect x={66 + i * 44} y="29" width="12" height="12" rx="1" fill="url(#sk-tin)" />
+          </g>
+        ))}
+        <g font-size="9" fill={SILK} text-anchor="middle">
+          {['VCC', 'CS', 'DO', 'GND'].map((t, i) => (
+            <text x={72 + i * 44} y="60">{t}</text>
+          ))}
+        </g>
+        {range(4).map((i) => (
+          <g fill="url(#sk-tin)">
+            <rect x={96 + i * 40} y="72" width="14" height="14" rx="1.5" />
+            <rect x={96 + i * 40} y="152" width="14" height="14" rx="1.5" />
+          </g>
+        ))}
+        <rect x="82" y="82" width="166" height="74" rx="5" fill="url(#sk-epoxy)" />
+        <path d="M84 152V88Q84 84 88 84H244" fill="none" stroke="#fff" stroke-width="1.2" opacity=".12" />
+        <path d="M82 108A11 11 0 0 1 82 130Z" fill="#0c0d0f" />
+        <circle cx="100" cy="143" r="4" fill="#0c0d0f" />
+        <g font-size="12" fill="#8f9297" text-anchor="middle">
+          <text x="168" y="114">25Q64</text>
+          <text x="168" y="132" font-size="9">SPI FLASH</text>
+        </g>
+        <text x="266" y="62" font-size="11" font-weight="700" fill={SILK} text-anchor="end">U1</text>
+        <g class="sk-led">
+          <circle class="glow" cx="248" cy="174" r="12" />
+          <rect class="lens" x="241" y="170" width="14" height="8" rx="1.5" />
+        </g>
+        <text x="232" y="177" font-size="8" fill={SILK} text-anchor="end">PWR</text>
+      </g>
+    )
+  }
+  {
+    kind === 'devboard' && (
+      <g>
+        <!-- stick-format dev board: header holes along both long edges, USB at the left end -->
+        <rect x="18" y="42" width="290" height="124" rx="7" fill="#1f2a24" />
+        <path d="M21 160V50Q21 45 26 45H302" fill="none" stroke="#fff" stroke-width="1.6" opacity=".12" />
+        {range(12).map((i) => (
+          <g>
+            <circle cx={62 + i * 20} cy="54" r="6.5" fill="#c9b16c" />
+            <circle cx={62 + i * 20} cy="54" r="3.4" fill="#0f1210" />
+            <circle cx={62 + i * 20} cy="154" r="6.5" fill="#c9b16c" />
+            <circle cx={62 + i * 20} cy="154" r="3.4" fill="#0f1210" />
+          </g>
+        ))}
+        <rect x="6" y="80" width="42" height="48" rx="4" fill="url(#sk-tin)" />
+        <path d="M10 86H44M10 122H44" stroke="#7c8086" stroke-width="1.5" />
+        <rect x="14" y="94" width="26" height="20" rx="2" fill="#2b2d31" />
+        <rect x="130" y="76" width="60" height="60" rx="3" fill="url(#sk-epoxy)" />
+        <circle cx="138" cy="84" r="2.6" fill="#33353a" />
+        <g fill="#b9bbbf">
+          {range(7).map((i) => (
+            <g>
+              <rect x={137 + i * 7.5} y="72" width="3" height="4" />
+              <rect x={137 + i * 7.5} y="136" width="3" height="4" />
+              <rect x="126" y={83 + i * 7.5} width="4" height="3" />
+              <rect x="190" y={83 + i * 7.5} width="4" height="3" />
+            </g>
+          ))}
+        </g>
+        <rect x="212" y="84" width="34" height="18" rx="9" fill="url(#sk-tin)" />
+        <g>
+          <rect x="70" y="72" width="30" height="30" rx="3" fill="#cfd1d4" />
+          <circle cx="85" cy="87" r="8" fill="#26282c" />
+          <rect x="70" y="108" width="30" height="30" rx="3" fill="#cfd1d4" />
+          <circle cx="85" cy="123" r="8" fill="#26282c" />
+        </g>
+        <g fill="#c9b48a">
+          <rect x="216" y="114" width="10" height="6" />
+          <rect x="232" y="114" width="10" height="6" />
+          <rect x="256" y="84" width="6" height="12" />
+        </g>
+        <g font-size="8" fill={SILK}>
+          <text x="104" y="92">BOOT</text>
+          <text x="104" y="128">RST</text>
+          <text x="294" y="80" font-size="11" font-weight="700" text-anchor="end">U2</text>
+        </g>
+        <g class="sk-led">
+          <circle class="glow" cx="280" cy="124" r="12" />
+          <rect class="lens" x="273" y="120" width="14" height="8" rx="1.5" />
+        </g>
+      </g>
+    )
+  }
+  {
+    kind === 'dip28' && (
+      <g>
+        <!-- DIP-28 microcontroller on a carrier, crystal and a 1x2 header at the left -->
+        <rect x="12" y="30" width="296" height="160" rx="8" fill="#2a3a2f" />
+        <path d="M15 184V38Q15 33 20 33H302" fill="none" stroke="#fff" stroke-width="1.6" opacity=".12" />
+        <rect x="26" y="38" width="44" height="24" rx="2" fill="#16171a" />
+        {[0, 1].map((i) => (
+          <g>
+            <rect x={32 + i * 20 - 6} y="42" width="16" height="16" rx="2" fill="#c9b16c" />
+            <rect x={36 + i * 20 - 6} y="46" width="8" height="8" rx="1" fill="url(#sk-tin)" />
+          </g>
+        ))}
+        {range(14).map((i) => (
+          <g fill="url(#sk-tin)">
+            <rect x={40 + i * 17.6} y="82" width="8" height="12" rx="1" />
+            <rect x={40 + i * 17.6} y="160" width="8" height="12" rx="1" />
+          </g>
+        ))}
+        <rect x="28" y="92" width="264" height="70" rx="5" fill="url(#sk-epoxy)" />
+        <path d="M30 158V98Q30 94 34 94H288" fill="none" stroke="#fff" stroke-width="1.2" opacity=".12" />
+        <path d="M28 116A11 11 0 0 1 28 138Z" fill="#0c0d0f" />
+        <circle cx="46" cy="150" r="4" fill="#0c0d0f" />
+        <g font-size="13" fill="#8f9297" text-anchor="middle">
+          <text x="166" y="124">MCU 28P</text>
+          <text x="166" y="142" font-size="9">32K FLASH</text>
+        </g>
+        <rect x="96" y="44" width="40" height="18" rx="9" fill="url(#sk-tin)" />
+        <text x="292" y="56" font-size="11" font-weight="700" fill={SILK} text-anchor="end">U3</text>
+        <g class="sk-led">
+          <circle class="glow" cx="264" cy="181" r="11" />
+          <rect class="lens" x="257" y="177" width="14" height="8" rx="1.5" />
+        </g>
+        <text x="250" y="184" font-size="8" fill={SILK} text-anchor="end">PWR</text>
+      </g>
+    )
+  }
+  {
+    kind === 'rf' && (
+      <g>
+        <!-- RF module: castellated edge on top, metal can, chip antenna over its keep-out -->
+        <rect x="56" y="14" width="210" height="176" rx="5" fill="#1d2a3a" />
+        <rect x="186" y="16" width="78" height="60" fill="#2a3a4c" />
+        <path d="M59 186V20Q59 17 62 17H262" fill="none" stroke="#fff" stroke-width="1.5" opacity=".12" />
+        {range(5).map((i) => (
+          <g>
+            <rect x={68 + i * 22} y="14" width="16" height="14" fill="#c9b16c" />
+            <path d={`M${70 + i * 22} 14A6 6 0 0 0 ${82 + i * 22} 14Z`} fill="#0e1218" />
+          </g>
+        ))}
+        <rect x="196" y="34" width="58" height="20" rx="2" fill="#e8e3d6" />
+        <rect x="196" y="34" width="9" height="20" rx="1.5" fill="url(#sk-tin)" />
+        <rect x="245" y="34" width="9" height="20" rx="1.5" fill="url(#sk-tin)" />
+        <rect x="72" y="80" width="180" height="96" rx="7" fill="url(#sk-can)" />
+        <path d="M75 172V86Q75 83 78 83H248" fill="none" stroke="#fff" stroke-width="1.6" opacity=".4" />
+        <g fill="#8f9398" opacity=".55">
+          {range(4).map((r) => range(8).map((c) => <circle cx={92 + c * 20} cy={98 + r * 20} r="1.6" />))}
+        </g>
+        <g font-size="8" fill={SILK}>
+          <text x="72" y="44">ANT</text>
+          <text x="72" y="58" font-size="11" font-weight="700">U4</text>
+        </g>
+        <g class="sk-led">
+          <circle class="glow" cx="160" cy="62" r="11" />
+          <rect class="lens" x="153" y="58" width="14" height="8" rx="1.5" />
+        </g>
+      </g>
+    )
+  }
+  {
+    kind === 'sbc' && (
+      <g>
+        <!-- single-board computer: 2x16 header on top, SoC, RAM, two USB jacks and Ethernet at the right edge -->
+        <rect x="6" y="14" width="272" height="176" rx="9" fill="#284433" />
+        <path d="M9 184V22Q9 17 14 17H272" fill="none" stroke="#fff" stroke-width="1.6" opacity=".12" />
+        {[[24, 172], [258, 172]].map(([x, y]) => (
+          <g>
+            <circle cx={x} cy={y} r="8" fill="#c9b16c" />
+            <circle cx={x} cy={y} r="4.4" fill="#15171a" />
+          </g>
+        ))}
+        <rect x="28" y="18" width="200" height="28" rx="2" fill="#16171a" />
+        {range(16).map((i) => (
+          <g fill="url(#sk-tin)">
+            <rect x={34 + i * 12} y="22" width="6" height="6" />
+            <rect x={34 + i * 12} y="35" width="6" height="6" />
+          </g>
+        ))}
+        <rect x="56" y="76" width="70" height="70" rx="4" fill="url(#sk-epoxy)" />
+        <rect x="66" y="86" width="50" height="50" rx="3" fill="#2a2c31" />
+        <rect x="140" y="82" width="40" height="58" rx="2" fill="url(#sk-epoxy)" />
+        <rect x="22" y="152" width="34" height="26" rx="2" fill="url(#sk-tin)" />
+        <rect x="190" y="58" width="20" height="10" rx="1" fill="#c9b48a" />
+        <g>
+          <rect x="226" y="58" width="92" height="56" rx="3" fill="url(#sk-jack)" />
+          <rect x="236" y="66" width="74" height="40" rx="2" fill="#2a2c30" />
+          <rect x="250" y="60" width="44" height="6" fill="#55585d" />
+          <rect x="226" y="122" width="92" height="56" rx="3" fill="url(#sk-jack)" />
+          <path d="M232 136H312M232 150H312M232 164H312" stroke="#8c9095" stroke-width="2" />
+        </g>
+        <g font-size="8" fill={SILK}>
+          <text x="58" y="66" font-size="11" font-weight="700">U5</text>
+          <text x="232" y="54">ETH</text>
+          <text x="196" y="186">USB</text>
+        </g>
+        <g class="sk-led">
+          <circle class="glow" cx="166" cy="164" r="11" />
+          <rect class="lens" x="159" y="160" width="14" height="8" rx="1.5" />
+        </g>
+        <text x="150" y="167" font-size="8" fill={SILK} text-anchor="end">PWR</text>
+      </g>
+    )
+  }
+  {
+    kind === 'logic' && (
+      <g>
+        <!-- 8-channel logic analyzer: 1x10 probe header on top, clip leads out of the lower edge -->
+        <rect x="56" y="24" width="214" height="20" rx="2" fill="#16171a" />
+        {range(10).map((i) => (
+          <rect x={66 + i * 20} y="30" width="9" height="9" rx="1" fill="url(#sk-tin)" />
+        ))}
+        <rect x="40" y="44" width="246" height="78" rx="10" fill="url(#sk-alu)" />
+        <path d="M44 116V54Q44 48 50 48H280" fill="none" stroke="#fff" stroke-width="1.5" opacity=".35" />
+        <rect x="18" y="68" width="24" height="30" rx="3" fill="url(#sk-tin)" />
+        <g font-size="8" fill="#2b2d31" text-anchor="middle">
+          <text x="70" y="62">0</text>
+          <text x="250" y="62">GND</text>
+          <text x="164" y="94" font-size="11" font-weight="700">8CH 24MHz</text>
+        </g>
+        <g fill="none" stroke-linecap="round" stroke-width="5">
+          {['#2a2b2f', '#7a5136', '#c4473c', '#d98a1e', '#c9a43a', '#4f8a4f', '#3f6fa8', '#6d5596', '#7d7f84'].map((c, i) => (
+            <path d={`M${84 + i * 20} 122C${84 + i * 20} 150 ${30 + i * 32} 146 ${30 + i * 32} 170`} stroke={c} />
+          ))}
+        </g>
+        {range(9).map((i) => (
+          <g>
+            <rect x={23 + i * 32} y="166" width="14" height="28" rx="4" fill="#cfcfcb" />
+            <rect x={26 + i * 32} y="186" width="8" height="8" rx="2" fill="#8e8f8b" />
+          </g>
+        ))}
+        <text x="274" y="76" font-size="11" font-weight="700" fill="#2b2d31" text-anchor="end">U6</text>
+        <g class="sk-led">
+          <circle class="glow" cx="262" cy="106" r="11" />
+          <rect class="lens" x="255" y="102" width="14" height="8" rx="1.5" />
+        </g>
+      </g>
+    )
+  }
+  {
+    kind === 'probe' && (
+      <g>
+        <!-- USB programmer stick: plug at the left, boxed 2x5 SWD header at the right end -->
+        <rect x="6" y="72" width="62" height="52" rx="3" fill="url(#sk-tin)" />
+        <path d="M12 82H62M12 114H62" stroke="#7c8086" stroke-width="1.5" />
+        <rect x="18" y="88" width="10" height="7" fill="#2b2d31" />
+        <rect x="18" y="102" width="10" height="7" fill="#2b2d31" />
+        <rect x="64" y="58" width="246" height="80" rx="9" fill="#1d1f22" />
+        <path d="M67 132V66Q67 61 72 61H304" fill="none" stroke="#fff" stroke-width="1.5" opacity=".12" />
+        <rect x="224" y="66" width="80" height="64" rx="3" fill="#2a2c30" />
+        <rect x="230" y="72" width="68" height="52" rx="2" fill="#131416" />
+        <rect x="258" y="124" width="12" height="6" fill="#2a2c30" />
+        {range(5).map((i) => (
+          <g fill="url(#sk-tin)">
+            <rect x={242 + i * 12} y="80" width="7" height="7" rx="1" />
+            <rect x={242 + i * 12} y="108" width="7" height="7" rx="1" />
+          </g>
+        ))}
+        <path d="M236 76l6 0-6 6z" fill="#e9e8e2" />
+        <g font-size="8" fill={SILK}>
+          <text x="96" y="92" font-size="11" font-weight="700">U7</text>
+          <text x="96" y="110">SWD PROG</text>
+          <text x="232" y="146" fill="#2b2d31">SWD</text>
+        </g>
+        <g class="sk-led">
+          <circle class="glow" cx="196" cy="88" r="11" />
+          <rect class="lens" x="189" y="84" width="14" height="8" rx="1.5" />
+        </g>
+        <rect x="189" y="104" width="14" height="8" rx="1.5" fill="#6b5532" />
+      </g>
+    )
+  }
+  {
+    kind === 'gpu' && (
+      <g>
+        <!-- GPU card from above: bracket at the left, one fan over the fin stack, edge fingers below -->
+        <rect x="18" y="30" width="294" height="146" rx="4" fill="#1f2a24" />
+        <g fill="#c9a43a">
+          {range(22).map((i) => (
+            <rect x={70 + i * 9} y="176" width="6" height="14" rx="1" />
+          ))}
+        </g>
+        <rect x="6" y="22" width="18" height="168" rx="2" fill="url(#sk-tin)" />
+        <path d="M12 40v28M12 140v28" stroke="#7c8086" stroke-width="3" stroke-linecap="round" />
+        <rect x="216" y="18" width="44" height="24" rx="2" fill="#16171a" />
+        {range(3).map((i) => (
+          <rect x={222 + i * 12} y="24" width="8" height="12" rx="1" fill="url(#sk-tin)" />
+        ))}
+        <rect x="36" y="46" width="264" height="120" rx="12" fill="#2c2e33" />
+        <path d="M40 160V56Q40 50 46 50H294" fill="none" stroke="#fff" stroke-width="1.5" opacity=".12" />
+        <g stroke="#55585e" stroke-width="3">
+          {range(12).map((i) => (
+            <path d={`M${178 + i * 9} 60V152`} />
+          ))}
+        </g>
+        <circle cx="106" cy="106" r="54" fill="#18191c" />
+        <circle cx="106" cy="106" r="50" fill="none" stroke="#3a3c42" stroke-width="2" />
+        <g fill="#2d2f34">
+          {range(9).map((i) => (
+            <path d="M106 106C114 90 122 76 128 62C120 62 110 70 102 88Z" transform={`rotate(${i * 40} 106 106)`} />
+          ))}
+        </g>
+        <circle cx="106" cy="106" r="15" fill="#3a3c42" />
+        <circle cx="106" cy="106" r="5" fill="#55585e" />
+        <g font-size="11" font-weight="700" fill={SILK}>
+          <text x="282" y="40" text-anchor="end">U8</text>
+        </g>
+        <g class="sk-led">
+          <circle class="glow" cx="196" cy="31" r="11" />
+          <rect class="lens" x="189" y="27" width="14" height="8" rx="1.5" />
+        </g>
+      </g>
+    )
+  }
+</svg>
