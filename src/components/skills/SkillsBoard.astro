@@ -196,6 +196,8 @@ const parts = SKILLS.map((g, i) => {
       sheet.hidden = true;
       live.textContent = 'Datasheet closed';
       light();
+      // the page just got shorter and the scroll may clamp after the wires redrew: draw them once more
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 250);
       if (refocus) b.focus({ preventScroll: true });
     };
     const show = (b: HTMLButtonElement) => {
