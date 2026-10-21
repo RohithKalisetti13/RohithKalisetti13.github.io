@@ -281,13 +281,18 @@ const FONT = "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif";
       },
       { signal },
     );
-    // the Contact pill and #contact open the terminal once the camera has arrived
+    // the Contact pill and #contact open main.c at the top once the camera has arrived
     window.addEventListener(
       'rk:laptop',
       (e) => {
         if ((e as CustomEvent<string>).detail !== 'contact') return;
-        if (root.dataset.station === 'left' && !world.classList.contains('moving')) return zoomIn('contact');
-        window.addEventListener('rk:world-moved', () => zoomIn('contact'), { once: true, signal });
+        const go = () => {
+          zoomIn('about');
+          const pane = ide.querySelector<HTMLElement>('#ide-about');
+          if (pane) pane.scrollTop = 0;
+        };
+        if (root.dataset.station === 'left' && !world.classList.contains('moving')) return go();
+        window.addEventListener('rk:world-moved', go, { once: true, signal });
       },
       { signal },
     );
