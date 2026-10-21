@@ -3,14 +3,24 @@
 // session with real links. In the stacked layout both panels show one after the other.
 import { Code } from 'astro:components';
 import type { ShikiTransformer, ThemeRegistration } from 'shiki';
+// @ts-ignore: node types are not installed; this runs at build time only
+import { statSync } from 'node:fs';
 import site from '../content/site.json';
 
 // draft copy: only confirmed facts
 const mainC = `/*
  * main.c - about
  *
- * Rohith Kalisetti
- * Embedded Firmware Engineer, SF Bay Area, CA
+ * Firmware engineer. I like knowing what the machine is actually
+ * doing from the inside, not just what the comment says it's doing.
+ *
+ * I work on: bare-metal C, C++, real-time systems and embedded Linux,
+ *            from registers up to the OS.
+ * Earlier:   firmware engineering intern at Mill, teaching assistant
+ *            for GPU and microcontroller courses, reverse-engineering
+ *            research.
+ * Lately:    Linux kernel drivers and GPU kernel optimization.
+ * Off the bench: cricket, Lego, movies, die-cast cars.
  */
 
 #include "about.h"
@@ -27,14 +37,13 @@ static const struct engineer rohith = {
 /* experience, newest first */
 static const struct role history[] = {
     {
-        .org  = "Mill Industries",
-        .work = "embedded firmware",
-        .from = "Nov 2025",
-        .to   = "Feb 2026",
+        .org   = "Mill Industries",
+        .work  = "embedded firmware",
     },
     {
-        .org  = "George Mason University",
-        .work = "research: embedded and hardware-debloat topics",
+        .org   = "George Mason University",
+        .work1 = "teaching: GPU and microcontroller labs",
+        .work2 = "research: embedded and hardware-debloat topics",
     },
 };
 
@@ -70,11 +79,11 @@ const numbered: ShikiTransformer = {
 
 // optional portrait: rendered only when public/photo.png exists
 const photo = Object.keys(import.meta.glob('../../public/photo.png')).length ? '/photo.png' : null;
+const resumeBytes = statSync('public/rohith_resume.pdf').size;
 const CONTACT = [
   { key: 'email', label: site.email, href: `mailto:${site.email}` },
   { key: 'linkedin', label: site.linkedin, href: site.linkedin },
   { key: 'github', label: site.github, href: site.github },
-  { key: 'resume', label: site.resume, href: site.resume },
 ];
 ---
 
@@ -100,17 +109,17 @@ const CONTACT = [
 
   <section class="panel term" role="tabpanel" id="contact" aria-labelledby="ide-tab-contact" tabindex="0" data-lenis-prevent>
     <h3 class="sr-only">Contact</h3>
-    <pre class="serial"><span class="dim">$ screen /dev/ttyACM0 115200</span>
-<span class="ok">[ok]</span> uart0 115200 8N1
-<span class="prompt">&gt;</span> contact
-<ul class="links">{
-  CONTACT.map((c) => (
-    <li>
-      <span class="key">{c.key}</span>
-      <a href={c.href} {...(c.key === 'email' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}>{c.label}</a>
-    </li>
-  ))
-}</ul><span class="prompt">&gt;</span> <span class="cursor" aria-hidden="true"></span></pre>
+    <ul class="sr-only">
+      {CONTACT.map((c) => <li>{c.key}: {c.label}</li>)}
+      <li>resume: {site.resumeName}</li>
+    </ul>
+    <pre class="serial" data-term>
+<span class="ln"><span class="prompt">rohith@rk-fw:~$ </span><span class="cmd" data-type="whoami">whoami</span>
+</span><span class="out">rohith (embedded firmware engineer, SF Bay Area)
+</span><span class="ln"><span class="prompt">rohith@rk-fw:~$ </span><span class="cmd" data-type="cat contact.txt">cat contact.txt</span>
+</span><span class="out">{CONTACT.map((c) => (<Fragment><span class="key">{c.key.padEnd(10)}</span><a href={c.href} {...(c.key === 'email' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}>{c.label.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '')}</a>{'\n'}</Fragment>))}</span><span class="ln"><span class="prompt">rohith@rk-fw:~$ </span><span class="cmd" data-type="ls -l docs/">ls -l docs/</span>
+</span><span class="out">-rw-r--r-- 1 rohith rohith {resumeBytes} <a href={site.resume} target="_blank" rel="noopener noreferrer">resume.pdf</a>
+</span><span class="ln"><span class="prompt">rohith@rk-fw:~$ </span><span class="cursor" aria-hidden="true"></span></span></pre>
   </section>
 
   <p class="status mono" aria-hidden="true">uart0 · 115200 8N1 · UTF-8</p>
@@ -156,6 +165,51 @@ const CONTACT = [
       });
     });
   };
+  // the terminal types its commands the first time it is shown; later visits keep the finished session
+  const typeTerm = () => {
+    const term = document.querySelector<HTMLElement>('[data-term]');
+    if (!term || term.dataset.bound) return;
+    term.dataset.bound = '1';
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const panel = term.closest<HTMLElement>('.panel')!;
+    let started = false;
+    const io = new IntersectionObserver((es) => {
+      if (started || !es.some((e) => e.isIntersecting)) return;
+      started = true;
+      io.disconnect();
+      const cmds = [...term.querySelectorAll<HTMLElement>('.cmd')];
+      const outs = [...term.querySelectorAll<HTMLElement>('.out')];
+      const cursor = term.querySelector<HTMLElement>('.cursor')!;
+      const last = cursor.parentElement!;
+      cmds.forEach((c) => (c.textContent = ''));
+      outs.forEach((o) => (o.hidden = true));
+      term.querySelectorAll<HTMLElement>('.ln').forEach((l, i) => i > 0 && (l.hidden = true));
+      const lines = [...term.querySelectorAll<HTMLElement>('.ln')];
+      let k = 0;
+      const next = () => {
+        if (k >= cmds.length) return;
+        const cmd = cmds[k];
+        const text = cmd.dataset.type!;
+        const ln = lines[k];
+        ln.hidden = false;
+        cmd.after(cursor);
+        let i = 0;
+        const tick = () => {
+          cmd.textContent = text.slice(0, ++i);
+          if (i < text.length) return void setTimeout(tick, 25);
+          outs[k].hidden = false;
+          k++;
+          if (k < cmds.length) { lines[k].hidden = false; setTimeout(next, 25); }
+          else { lines[k].hidden = false; lines[k].append(cursor); }
+        };
+        setTimeout(tick, 25);
+      };
+      next();
+    });
+    io.observe(panel);
+  };
+  document.addEventListener('astro:page-load', typeTerm);
+  typeTerm();
   document.addEventListener('astro:after-swap', init);
   document.addEventListener('astro:page-load', init);
 </script>
@@ -317,30 +371,30 @@ const CONTACT = [
   .prompt {
     color: var(--syn-kw);
   }
-  .links {
-    display: grid;
-    gap: 2px;
-    margin: 4px 0 8px;
-    white-space: normal;
+  .serial {
+    line-height: 1.8;
   }
-  .links li {
-    display: grid;
-    grid-template-columns: 10ch 1fr;
-    gap: var(--s-2);
-    align-items: center;
+  .out[hidden],
+  .ln[hidden] {
+    display: none;
   }
   .key {
     color: var(--syn-type);
   }
-  .links a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 32px;
+  .serial a {
     color: var(--syn-str);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+    text-underline-offset: 3px;
     overflow-wrap: anywhere;
   }
-  .links a:hover {
+  .serial a:hover {
     color: var(--text);
+  }
+  .serial a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
   }
   .cursor {
     display: inline-block;
