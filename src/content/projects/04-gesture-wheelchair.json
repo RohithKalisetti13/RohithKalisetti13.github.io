@@ -18,7 +18,7 @@
     "An IR obstacle input on PORTD stops the chair, shows \"OBJ DETECTED\" and backs away.",
     "A UART receive interrupt at 9600 baud, with the rest of the control loop in polled C."
   ],
-  "summary": "ATmega32 firmware that turns hand tilt into wheelchair motion. A two-axis MEMS accelerometer is read through the ADC, and an IR obstacle input overrides the motors.",
+  "summary": "ATmega32 firmware that turns hand tilt into wheelchair motion. A two-axis MEMS accelerometer is read through the ADC, and an IR obstacle input overrides the motors. Team project.",
   "details": [
     {
       "label": "How a tilt becomes a command",
@@ -35,7 +35,7 @@
   ],
   "links": [
     {
-      "label": "Source",
+      "label": "Repository",
       "url": "https://github.com/RohithKalisetti13/WheelChairObstacleDetection"
     }
   ]

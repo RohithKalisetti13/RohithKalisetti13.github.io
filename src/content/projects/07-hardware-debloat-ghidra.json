@@ -16,7 +16,6 @@
     "The graphs feed DECAF's enforcement plugin, which compares the live call stack to the allowed paths and grants or denies hardware access.",
     "Validated against control-flow hijacking in the style of return-oriented and call-oriented programming."
   ],
-  "repo": "https://github.com/RohithKalisetti13/Hardware-Debloat-Research",
   "details": [
     {
       "label": "Problem",
@@ -35,15 +34,11 @@
       "body": "The Ghidra plugin and its integration with DECAF are my piece of a collaborative effort; the enforcement side lives in DECAF. The work is described in a paper and tested against control-flow hijack attempts."
     }
   ],
+  "summary": "A Ghidra plugin that works out which call paths may legitimately reach a critical function, then hands them to DECAF so the runtime can allow or deny hardware access. It is the static-analysis half of a control-flow-integrity system, built with a collaborator.",
   "links": [
     {
-      "label": "Paper",
-      "url": "https://github.com/RohithKalisetti13/Hardware-Debloat-Research/blob/main/Scholarly%20Paper.pdf"
-    },
-    {
-      "label": "Setup guide",
-      "url": "https://github.com/RohithKalisetti13/Hardware-Debloat-Research/blob/main/GHIDRA_SETUP.md"
+      "label": "Repository",
+      "url": "https://github.com/RohithKalisetti13/Hardware-Debloat-Research"
     }
-  ],
-  "summary": "A Ghidra plugin that works out which call paths may legitimately reach a critical function, then hands them to DECAF so the runtime can allow or deny hardware access. It is the static-analysis half of a control-flow-integrity system, built with a collaborator."
+  ]
 }

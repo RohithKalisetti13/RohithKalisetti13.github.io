@@ -13,9 +13,9 @@
     "Three kernels: generate_signals (modulated signals with per-element phase delays), time-domain beamforming, and frequency-domain beamforming that applies complex weights to FFT output.",
     "cuFFT forward and inverse transforms connect the two paths.",
     "Run from the command line with the antenna count, carrier frequency, sampling time and per-element delay (for example 1024 antennas at 2.4 GHz).",
-    "Time-domain beamforming measured at about 0.025 ms, with the kernel itself about 0.024 ms, timed with high-resolution clocks."
+    "Time-domain beamforming measured at about 0.025 ms, with the kernel itself about 0.024 ms, timed with high-resolution clocks.",
+    "Implemented GPU-accelerated digital beamforming with CUDA, speeding up signal processing and reducing computation times, achieving 66.89% adjusted R-squared in variance explanation."
   ],
-  "repo": "https://github.com/RohithKalisetti13/DigitalBeamformerGPU",
   "details": [
     {
       "label": "The idea",
@@ -34,11 +34,11 @@
       "body": "For a 100-antenna array the time-domain run took about 0.025 ms, with the kernel itself about 0.024 ms. It was built with nvcc and linked against cuFFT and run on a university GPU cluster."
     }
   ],
+  "summary": "A CUDA digital beamformer with a time-domain path and a cuFFT frequency-domain path, driven from the command line. Time-domain beamforming runs in about 0.025 ms. Course project.",
   "links": [
     {
-      "label": "Report",
-      "url": "https://github.com/RohithKalisetti13/DigitalBeamformerGPU/blob/main/REPORT_FINAL%20PROJECT.pdf"
+      "label": "Repository",
+      "url": "https://github.com/RohithKalisetti13/DigitalBeamformerGPU"
     }
-  ],
-  "summary": "A CUDA digital beamformer with a time-domain path and a cuFFT frequency-domain path, driven from the command line. Time-domain beamforming runs in about 0.025 ms. Course project."
+  ]
 }

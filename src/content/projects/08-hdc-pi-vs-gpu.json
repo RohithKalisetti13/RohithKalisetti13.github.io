@@ -15,9 +15,9 @@
     "Pixel intensity maps to a level hypervector; binding position and level by element-wise multiplication gives one hypervector per pixel.",
     "The 784 pixel hypervectors are summed into one image hypervector, then hard-quantized to -1/+1.",
     "Classification compares an image hypervector with one trained centroid per digit.",
-    "Pi at dimension 5,000 on one CPU thread against the T4 at dimension 10,000."
+    "Pi (dimension 5,000, one CPU thread): training 1741 s, testing 316 s, 496 MB, 82.75% accuracy.",
+    "T4 (dimension 10,000): training 96.61 s, testing 20.78 s, 205 MB, 82.99% accuracy."
   ],
-  "repo": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU",
   "details": [
     {
       "label": "Why HDC",
@@ -33,18 +33,14 @@
     },
     {
       "label": "Findings",
-      "body": "The GPU trained and tested faster and was more accurate. The Pi stayed at reasonable accuracy, a little lower because of the smaller dimension and single thread, which makes it a workable choice for cheap offline use."
+      "body": "The T4 trained about 18x faster and tested about 15x faster than the Pi. Accuracy was nearly the same: 82.99% on the T4 against 82.75% on the Pi, a gap of 0.24 points despite the Pi running at half the dimension on a single thread. For this task the cost of running on the Pi is time, not accuracy, which makes it workable for cheap offline classification where latency is not critical."
     }
   ],
+  "summary": "Hyperdimensional computing for MNIST digit classification, run on a Raspberry Pi 4B and on a Colab Tesla T4 and compared on training time, test time, memory and accuracy. The T4 trained about 18x faster and tested about 15x faster, with accuracy within a quarter of a point (82.99% vs 82.75%). Course project, team of two.",
   "links": [
     {
-      "label": "Report",
-      "url": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU/blob/main/Final%20Report.pdf"
-    },
-    {
-      "label": "Slides",
-      "url": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU/blob/main/Presentation.pptx"
+      "label": "Repository",
+      "url": "https://github.com/RohithKalisetti13/HDCBenchmark-RPivsGPU"
     }
-  ],
-  "summary": "Hyperdimensional computing for MNIST digit classification, run on a Raspberry Pi 4B and on a Colab Tesla T4 and compared on training time, test time, memory and accuracy. The GPU was faster and more accurate; the Pi is a practical low-cost option. Course project, team of two."
+  ]
 }

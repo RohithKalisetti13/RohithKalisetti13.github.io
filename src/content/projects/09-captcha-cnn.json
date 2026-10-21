@@ -15,7 +15,6 @@
     "A sequential convolutional network in Keras and TensorFlow classifies the extracted characters.",
     "Reached 0.696 accuracy, about 70%, with accuracy and loss curves tracked during training."
   ],
-  "repo": "https://github.com/RohithKalisetti13/CAPTCHA-CNN",
   "details": [
     {
       "label": "The question",
@@ -34,23 +33,11 @@
       "body": "The test set is generated CAPTCHAs, which are cleaner than real ones. The planned next step was larger and noisier CAPTCHAs with more symbols."
     }
   ],
+  "summary": "A CNN that reads text CAPTCHAs (letters and digits) and reaches about 70% on its test set. The aim was to break them and to learn what makes CAPTCHAs resistant. Course project, team of three.",
   "links": [
     {
-      "label": "Report",
-      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/Report.pdf"
-    },
-    {
-      "label": "Slides",
-      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/Presentation.pdf"
-    },
-    {
-      "label": "Demo video",
-      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/Project%20Demo.mp4"
-    },
-    {
-      "label": "Notebook",
-      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN/blob/main/CNN%20Model.ipynb"
+      "label": "Repository",
+      "url": "https://github.com/RohithKalisetti13/CAPTCHA-CNN"
     }
-  ],
-  "summary": "A CNN that reads text CAPTCHAs (letters and digits) and reaches about 70% on its test set. The aim was to break them and to learn what makes CAPTCHAs resistant. Course project, team of three."
+  ]
 }
