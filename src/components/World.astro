@@ -392,7 +392,8 @@
       const pad = 24;
       const nav = navH();
       const vw = world.clientWidth;
-      const vh = window.innerHeight - nav;
+      // the strip along the bottom stays clear for the toggle in its corner
+      const vh = window.innerHeight - nav - (toggle.offsetHeight + 2 * 16 - pad);
       const w = camera.offsetWidth;
       const h = Math.max(...[...stations.values()].map((el) => el.offsetHeight));
       const s = Math.min((vw - 2 * pad) / w, (vh - 2 * pad) / h);
