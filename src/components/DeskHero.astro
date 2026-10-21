@@ -935,16 +935,23 @@ const LINKS = [
     --stage-w: calc(97.5vh);
     --board-top: calc(var(--copy-h) + 140 * var(--u));
   }
-  /* the links sit top right, level with the name, so the band below holds only the cable and its switch */
+  /* the links sit top right, level with the name, so the band below holds only the cable and its switch.
+     They get their own column, so the status chip wraps under the role instead of running into them. */
   :global(html.world) .copy {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: var(--s-4);
     padding-top: clamp(20px, 3.5svh, 32px);
   }
+  :global(html.world) .copy > :not(.tact) {
+    grid-column: 1;
+  }
   :global(html.world) .tact {
-    position: absolute;
-    top: clamp(24px, 4.5svh, 40px);
-    right: 0;
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: start;
     grid-template-columns: repeat(2, auto);
-    margin-top: 0;
+    margin-top: calc(clamp(24px, 4.5svh, 40px) - clamp(20px, 3.5svh, 32px));
     padding-inline: 24px;
   }
   @container (min-width: 1240px) {
