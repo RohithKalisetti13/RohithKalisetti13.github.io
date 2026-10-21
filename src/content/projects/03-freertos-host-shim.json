@@ -2,7 +2,7 @@
   "slug": "freertos-host-shim",
   "title": "FreeRTOS simulation layer and test framework",
   "status": "shipped",
-  "period": "Nov 2025 – Feb 2026, Mill Industries",
+  "period": "Nov 2025 to Feb 2026, Mill Industries",
   "stack": [
     "C/C++",
     "FreeRTOS",

@@ -2,7 +2,7 @@
   "slug": "cuda-image-processing",
   "title": "CUDA image processing",
   "status": "shipped",
-  "period": "Jan 2024 – May 2024",
+  "period": "Jan 2024 to May 2024",
   "stack": [
     "C",
     "CUDA",

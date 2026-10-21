@@ -12,7 +12,7 @@ const { work } = Astro.props;
 const flash = work.filter((w) => w.data.kind === 'flash');
 const rom = work.filter((w) => w.data.kind === 'rom');
 const short = (slug: string) => slug.replace(/-/g, ' ').toUpperCase();
-const span = (w: CollectionEntry<'work'>) => `${w.data.start} – ${w.data.end}`;
+const span = (w: CollectionEntry<'work'>) => `${w.data.start} to ${w.data.end}`;
 // generic laser marks: a part description over a lot code
 const LOT = ['A', 'B', 'C', 'D', 'E', 'F'];
 

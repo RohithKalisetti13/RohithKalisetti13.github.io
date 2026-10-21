@@ -2,7 +2,7 @@
   "slug": "captcha-cnn",
   "title": "CAPTCHA recognition with a deep CNN",
   "status": "shipped",
-  "period": "Jan 2024 – May 2024",
+  "period": "Jan 2024 to May 2024",
   "stack": [
     "Python",
     "Keras",

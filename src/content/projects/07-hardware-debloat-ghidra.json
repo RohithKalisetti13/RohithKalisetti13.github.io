@@ -2,7 +2,7 @@
   "slug": "hardware-debloat-ghidra",
   "title": "Hardware Debloat Ghidra plugin",
   "status": "shipped",
-  "period": "Aug 2024 – Dec 2024",
+  "period": "Aug 2024 to Dec 2024",
   "stack": [
     "Python (Jython)",
     "Ghidra",

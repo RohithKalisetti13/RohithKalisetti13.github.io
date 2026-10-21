@@ -2,7 +2,7 @@
   "slug": "hdc-pi-vs-gpu",
   "title": "Hyperdimensional computing benchmark, Raspberry Pi vs GPU",
   "status": "shipped",
-  "period": "Aug 2024 – Dec 2024",
+  "period": "Aug 2024 to Dec 2024",
   "stack": [
     "Python",
     "PyTorch",
