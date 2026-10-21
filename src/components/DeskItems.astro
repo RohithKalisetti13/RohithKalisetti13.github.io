@@ -1,0 +1,224 @@
+---
+// Two things lying on the desk under the laptop: a business card and a sticky note. Same light as the
+// rest of the desk: soft from the top-left, shadows offset down-right, matte paper. Only the card's
+// links take input. In the stacked layout the card is plain link rows and the art is gone.
+import site from '../content/site.json';
+
+const LINKS = [
+  { label: 'Email', text: site.email, href: `mailto:${site.email}` },
+  { label: 'LinkedIn', text: site.linkedin.replace(/^https:\/\/www\./, '').replace(/\/$/, ''), href: site.linkedin },
+  { label: 'GitHub', text: site.github.replace(/^https:\/\//, ''), href: site.github },
+];
+---
+
+<div class="desk-items">
+  <div class="desk-card">
+    <svg class="card-art" viewBox="0 0 350 200" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="card-paper" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#f7f4ec" />
+          <stop offset="1" stop-color="#e9e4d8" />
+        </linearGradient>
+      </defs>
+      <rect width="350" height="200" rx="7" fill="url(#card-paper)" />
+      <path d="M2 196V8Q2 2 8 2H342" stroke="#fff" stroke-width="2" fill="none" opacity=".7" />
+      <!-- a short copper trace with a via, set in the top-right corner -->
+      <g fill="none" stroke="#b07a3c" stroke-width="2.2" stroke-linecap="round" opacity=".85">
+        <path d="M268 22H300L314 36V58" />
+        <path d="M282 30H296L306 40V58" />
+      </g>
+      <circle cx="314" cy="62" r="4.5" fill="#f7f4ec" stroke="#b07a3c" stroke-width="2.2" />
+      <circle cx="306" cy="62" r="3.5" fill="#f7f4ec" stroke="#b07a3c" stroke-width="2" opacity=".85" />
+    </svg>
+    <div class="card-face">
+      <p class="card-name">{site.name}</p>
+      <p class="card-role mono">{site.role}</p>
+      <ul class="card-links">
+        {
+          LINKS.map((l) => (
+            <li>
+              <a class="mono" href={l.href} rel={l.href.startsWith('http') ? 'noopener' : undefined}>
+                <span class="sr-only">{l.label}: </span>
+                {l.text}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+
+  <div class="desk-note">
+    <svg class="note-art" viewBox="0 0 300 300" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="note-paper" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#f6dc7c" />
+          <stop offset=".75" stop-color="#efcf62" />
+          <stop offset="1" stop-color="#e2bf52" />
+        </linearGradient>
+        <linearGradient id="note-curl" x1="0" y1="0" x2="1" y2="1">
+          <stop offset=".35" stop-color="#e9c85c" stop-opacity="0" />
+          <stop offset="1" stop-color="#d4b04a" stop-opacity=".9" />
+        </linearGradient>
+      </defs>
+      <path d="M0 0H300V262Q296 292 262 300H0Z" fill="url(#note-paper)" />
+      <!-- the gummed strip along the top -->
+      <rect width="300" height="46" fill="#000" opacity=".045" />
+      <path d="M2 298V2H298" stroke="#fff" stroke-width="2" fill="none" opacity=".45" />
+      <!-- the lifted corner -->
+      <path d="M300 230V262Q296 292 262 300H226Q284 286 300 230Z" fill="url(#note-curl)" />
+    </svg>
+    <p class="note-text"><span>Open to work</span> <span class="note-dot">·</span> <span>United States</span></p>
+  </div>
+</div>
+
+<style>
+  .desk-items {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--s-2) var(--s-4);
+  }
+  .desk-card,
+  .desk-note {
+    position: relative;
+  }
+  .card-art,
+  .note-art {
+    display: none;
+  }
+  .card-name {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .card-role {
+    color: var(--text-2);
+    font-size: var(--fs-label);
+  }
+  .card-links {
+    margin: var(--s-1) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .card-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--text);
+    font-size: var(--fs-label-lg);
+    overflow-wrap: anywhere;
+  }
+  .card-links a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .note-text {
+    color: var(--text-2);
+    font-size: var(--fs-label-lg);
+  }
+
+  /* desk world: paper on the desk, sized with the laptop (the row is as wide as it is) */
+  :global(html.world) .desk-items {
+    container-type: inline-size;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 7cqi;
+    width: 100%;
+  }
+  :global(html.world) .card-art,
+  :global(html.world) .note-art {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  :global(html.world) .desk-card {
+    container-type: inline-size;
+    width: 34cqi;
+    aspect-ratio: 350 / 200;
+    border-radius: 7px;
+    transform: rotate(-2.5deg);
+    box-shadow:
+      3px 5px 0 rgba(0, 0, 0, 0.14),
+      9px 14px 22px rgba(0, 0, 0, 0.34);
+  }
+  :global(html.world) .card-face {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 8cqi 8cqi 6cqi;
+  }
+  :global(html.world) .card-name {
+    color: #18231d;
+    font-size: 7.2cqi;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  :global(html.world) .card-role {
+    margin-top: 1.6cqi;
+    color: #3f4f46;
+    font-size: max(11px, 3.9cqi);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  :global(html.world) .card-links {
+    margin-top: auto;
+    padding-top: 3cqi;
+    border-top: 1px solid rgba(24, 35, 29, 0.18);
+  }
+  :global(html.world) .card-links a {
+    min-height: 0;
+    padding-block: 0.6cqi;
+    color: #1c5a43;
+    font-size: max(11px, 4.1cqi);
+    text-decoration: none;
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
+  :global(html.world) .card-links a:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  :global(html.world) .card-links a:focus-visible {
+    outline-color: #1c5a43;
+    border-radius: 2px;
+  }
+  :global(html.world) .desk-note {
+    display: grid;
+    place-items: center;
+    width: 24cqi;
+    aspect-ratio: 1;
+    padding: 4cqi 3cqi 3cqi;
+    transform: rotate(3.5deg);
+    filter: drop-shadow(3px 5px 0 rgba(0, 0, 0, 0.12)) drop-shadow(8px 13px 14px rgba(0, 0, 0, 0.3));
+  }
+  :global(html.world) .note-text {
+    position: relative;
+    color: #3a2f0c;
+    font-size: 2.7cqi;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+  }
+  :global(html.world) .note-text span {
+    display: block;
+  }
+  :global(html.world) .note-text .note-dot {
+    line-height: 1;
+    opacity: 0.7;
+  }
+
+  /* stacked layout: the card as plain rows of links */
+  :global(html:not(.world)) .desk-items {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-1);
+    margin-top: var(--s-4);
+    padding-top: var(--s-3);
+    border-top: 1px solid var(--line);
+  }
+</style>

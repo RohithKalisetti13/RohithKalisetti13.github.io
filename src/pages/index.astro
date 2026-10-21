@@ -8,6 +8,7 @@ import MemoryBank from '../components/MemoryBank.astro';
 import WireLayer from '../components/WireLayer.astro';
 import World from '../components/World.astro';
 import Laptop from '../components/Laptop.astro';
+import DeskItems from '../components/DeskItems.astro';
 import Breadboard from '../components/Breadboard.astro';
 import { getProjects } from '../lib/projects';
 import { hexAt } from '../lib/hex';
@@ -49,6 +50,7 @@ const projects = await getProjects();
           <p class="mono eyebrow"><span class="pin" style="--wire:var(--pa4)">PA4</span> 0x4000 / about and contact</p>
           <h2 id="about-title">Workstation</h2>
           <Laptop />
+          <DeskItems />
         </div>
       </section>
 
@@ -133,11 +135,23 @@ const projects = await getProjects();
     padding-left: 100px;
     padding-right: 76px;
   }
+  /* the laptop station runs as tall as the board's, and the card and note share the desk under the
+     laptop, centred in what is left */
   :global(html.world) .laptop-station {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     padding-top: var(--s-6);
   }
   :global(html.world) .laptop-station .container {
-    width: min(100% - 2 * var(--s-6), 1000px, 70cqw);
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    width: min(100% - 2 * var(--s-6), 1400px, 88cqw);
+  }
+  :global(html.world) .laptop-station :global(.desk-items) {
+    flex: 1;
+    padding-block: var(--s-8);
   }
   .laptop-station h2 {
     margin-bottom: var(--s-4);
