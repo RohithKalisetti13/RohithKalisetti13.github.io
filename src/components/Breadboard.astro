@@ -20,18 +20,19 @@ interface Props {
 const { projects } = Astro.props;
 
 type Half = 'top' | 'bottom';
-// left to right, top half then bottom half; pin = silkscreen name, from = the header pin the jumper leaves
-const UNITS: { slug: string; kind: PartKind; half: Half; silk: string; from: string; color: string }[] = [
-  { slug: 'iio-sensor-hub', kind: 'msa311', half: 'top', silk: 'D2', from: "#hero-cn9 [data-pin='PA10']", color: '#d9d6cf' },
-  { slug: 'openwrt-fault-injection', kind: 'wifi', half: 'top', silk: 'D3', from: "#hero-cn9 [data-pin='PB3']", color: '#4f8a4f' },
-  { slug: 'freertos-host-shim', kind: 'crystal', half: 'top', silk: 'D4', from: "#hero-cn9 [data-pin='PB5']", color: '#c77a33' },
-  { slug: 'gesture-wheelchair', kind: 'adxl335', half: 'top', silk: 'D5', from: "#hero-cn9 [data-pin='PB4']", color: '#6d5596' },
-  { slug: 'gpu-beamformer', kind: 'hcsr04', half: 'top', silk: 'D6', from: "#hero-cn9 [data-pin='PB10']", color: '#3f6fa8' },
-  { slug: 'cuda-image-processing', kind: 'matrix', half: 'bottom', silk: 'D7', from: "#hero-cn9 [data-pin='PA8']", color: '#c9a43a' },
-  { slug: 'hardware-debloat-ghidra', kind: 'swd', half: 'bottom', silk: 'D1', from: "#hero-cn9 [data-pin='PA2']", color: '#7a5136' },
-  { slug: 'hdc-pi-vs-gpu', kind: 'oled', half: 'bottom', silk: 'D0', from: "#hero-cn9 [data-pin='PA3']", color: '#7d7f84' },
+// left to right, top half then bottom half; label = the one-line plate text (the full title is in the tooltip),
+// silk = silkscreen name of the header pin the jumper leaves (from)
+const UNITS: { slug: string; label: string; kind: PartKind; half: Half; silk: string; from: string; color: string }[] = [
+  { slug: 'iio-sensor-hub', label: 'IIO hub', kind: 'msa311', half: 'top', silk: 'D2', from: "#hero-cn9 [data-pin='PA10']", color: '#d9d6cf' },
+  { slug: 'openwrt-fault-injection', label: 'OpenWrt', kind: 'wifi', half: 'top', silk: 'D3', from: "#hero-cn9 [data-pin='PB3']", color: '#4f8a4f' },
+  { slug: 'freertos-host-shim', label: 'FreeRTOS', kind: 'crystal', half: 'top', silk: 'D4', from: "#hero-cn9 [data-pin='PB5']", color: '#c77a33' },
+  { slug: 'gesture-wheelchair', label: 'Wheelchair', kind: 'adxl335', half: 'top', silk: 'D5', from: "#hero-cn9 [data-pin='PB4']", color: '#6d5596' },
+  { slug: 'gpu-beamformer', label: 'Beamformer', kind: 'hcsr04', half: 'top', silk: 'D6', from: "#hero-cn9 [data-pin='PB10']", color: '#3f6fa8' },
+  { slug: 'cuda-image-processing', label: 'CUDA', kind: 'matrix', half: 'bottom', silk: 'D7', from: "#hero-cn9 [data-pin='PA8']", color: '#c9a43a' },
+  { slug: 'hardware-debloat-ghidra', label: 'Ghidra', kind: 'swd', half: 'bottom', silk: 'D1', from: "#hero-cn9 [data-pin='PA2']", color: '#7a5136' },
+  { slug: 'hdc-pi-vs-gpu', label: 'HDC', kind: 'oled', half: 'bottom', silk: 'D0', from: "#hero-cn9 [data-pin='PA3']", color: '#7d7f84' },
   // A0 (PA0) sits on the far side of the board; its jumper leaves the nearest free CN10 morpho pin
-  { slug: 'captcha-cnn', kind: 'camera', half: 'bottom', silk: 'PC4', from: "#hero-cn10 [data-pin='PC4']", color: '#3f86d8' },
+  { slug: 'captcha-cnn', label: 'CAPTCHA', kind: 'camera', half: 'bottom', silk: 'PC4', from: "#hero-cn10 [data-pin='PC4']", color: '#3f86d8' },
 ];
 const STATUS = { wip: 'In progress', shipped: 'Shipped' };
 const byId = new Map(projects.map((p) => [p.id, p]));
@@ -85,7 +86,12 @@ const POWER = [
       {
         units.map((u) => (
           <li class:list={['unit', u.half]} style={u.li} data-status={u.p.data.status}>
-            <a class="hit" href={`/projects/${u.slug}/`} data-unit>
+            <a
+              class="hit"
+              href={`/projects/${u.slug}/`}
+              aria-label={`${u.p.data.title}, ${u.p.data.period ?? 'Earlier project'}, ${STATUS[u.p.data.status]}`}
+              data-unit
+            >
               <span class="art" style={u.art} aria-hidden="true">
                 <span class="u-part" style={u.part}>
                   <Part kind={u.kind} />
@@ -102,7 +108,7 @@ const POWER = [
               </span>
               <span class="plate" style={u.plate} aria-hidden="true">
                 <StatusLed status={u.p.data.status} />
-                <span class="ttl">{u.p.data.title}</span>
+                <span class="ttl">{u.label}</span>
                 <span class="pin">{u.silk}</span>
               </span>
               <span class="tip">
@@ -277,12 +283,8 @@ const POWER = [
     background: #fbf8f1;
   }
   .ttl {
-    display: -webkit-box;
     flex: 1;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    white-space: nowrap;
   }
   .pin {
     flex: none;
@@ -428,9 +430,6 @@ const POWER = [
       padding: 6px 8px;
       font-size: var(--fs-label);
     }
-    .ttl {
-      display: block;
-    }
     .tip {
       position: static;
       align-self: start;
@@ -449,12 +448,7 @@ const POWER = [
       translate: none;
     }
     .tt {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
+      font-weight: 500;
     }
     .tp {
       color: var(--ink-2);
