@@ -102,7 +102,7 @@ const CONTACT = [
 
   <section class="panel" role="tabpanel" id="ide-about" aria-labelledby="ide-tab-about" tabindex="0" data-lenis-prevent>
     <h3 class="sr-only">About</h3>
-    {photo && <img class="photo" src={photo} alt="Rohith Kalisetti" width="160" height="160" loading="lazy" decoding="async" />}
+    {photo && <img class="photo" src={photo} alt="Portrait of Rohith Kalisetti" width="150" height="200" loading="eager" decoding="async" />}
     <Code code={mainC} lang="c" theme={theme} transformers={[numbered]} />
   </section>
 
@@ -343,6 +343,7 @@ const CONTACT = [
     outline-offset: -2px;
   }
   .panel {
+    position: relative;
     flex: 1;
     min-height: 0;
     overflow: auto;
@@ -351,13 +352,27 @@ const CONTACT = [
   .panel[hidden] {
     display: none;
   }
+  /* laptop: pinned top right of the code; widest of lines 1 to 14 is about 600px, the 1024 pane leaves 140px */
   .photo {
-    float: right;
-    width: 120px;
-    height: 120px;
-    margin: var(--pad);
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: clamp(120px, 10.4vw, 180px);
+    height: auto;
+    aspect-ratio: 3 / 4;
+    border: 1px solid var(--line);
     border-radius: var(--r-2);
     object-fit: cover;
+    object-position: 50% 15%;
+    /* head and shoulders of the 720x960 source: x 20 to 420, y 310 to 843 */
+    object-view-box: inset(32.3% 41.7% 12.2% 2.8%);
+  }
+  /* stacked layout: above the text, left aligned */
+  :global(html:not(.world)) .photo {
+    position: static;
+    display: block;
+    width: 120px;
+    margin: var(--pad) var(--pad) 0;
   }
   .panel :global(pre) {
     margin: 0;
